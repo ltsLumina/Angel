@@ -1,0 +1,65 @@
+class AAngelPlayerController : APlayerController
+{
+    UPROPERTY(DefaultComponent)
+    UEnhancedInputComponent InputComponent;
+
+    UManualWalkingComponent ManualWalkingComponent;
+    UManualReloadComponent ManualReloadComponent;
+    UManualBlinkingComponent ManualBlinkingComponent;
+    UManualBreathingComponent ManualBreathingComponent;
+
+    UPROPERTY(Category = "Input")
+    UInputAction InventoryAction;
+
+    UPROPERTY(Category = "Input")
+    UInputAction SwitchGunAction;
+
+    UPROPERTY(Category = "Input")
+    UInputMappingContext Context;
+
+    UFUNCTION(BlueprintOverride)
+    void BeginPlay()
+    {
+        PushInputComponent(InputComponent);
+
+        UEnhancedInputLocalPlayerSubsystem EnhancedInputSubsystem = UEnhancedInputLocalPlayerSubsystem::Get(this);
+        EnhancedInputSubsystem.AddMappingContext(Context, 0, FModifyContextOptions());
+
+        ManualWalkingComponent = UManualWalkingComponent::Get(Gameplay::GetPlayerCharacter(0));
+        ManualReloadComponent = UManualReloadComponent::Get(Gameplay::GetPlayerCharacter(0));
+        ManualBlinkingComponent = UManualBlinkingComponent::Get(Gameplay::GetPlayerCharacter(0));
+        ManualBreathingComponent = UManualBreathingComponent::Get(Gameplay::GetPlayerCharacter(0));
+
+        // Manual actions
+        InputComponent.BindKey(EKeys::Q, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnKeyPressed"));
+        InputComponent.BindKey(EKeys::E, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnKeyPressed"));
+        InputComponent.BindKey(EKeys::AnyKey, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualReloadComponent, n"OnKeyPressed"));
+        InputComponent.BindKey(EKeys::F, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualBlinkingComponent, n"Blink"));
+        InputComponent.BindKey(EKeys::SpaceBar, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualBreathingComponent, n"Inhale"));
+        InputComponent.BindKey(EKeys::SpaceBar, EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(ManualBreathingComponent, n"Exhale"));
+
+        // UI/Inventory actions
+        InputComponent.BindAction(InventoryAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"ToggleInventory"));
+
+        // Gun switching actions
+        InputComponent.BindAction(SwitchGunAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"CycleGun"));
+    }
+
+    UFUNCTION()
+    void ToggleInventory(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
+    {
+        Print(f"Toggled inventory!");
+    }
+
+    UFUNCTION()
+    void CycleGun(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
+    {
+        UHolster Holster = UHolster::Get(Gameplay::GetPlayerCharacter(0));
+
+        if (IsValid(Holster))
+        {
+            Holster.CycleGun();
+        }
+    }
+    
+};

@@ -1,0 +1,4 @@
+class AGlock : AManualGun
+{
+    
+};
