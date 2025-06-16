@@ -17,6 +17,7 @@ class UManualReloadComponent : UActorComponent
     UPROPERTY(Category = "Config | Reload", VisibleAnywhere)
     TArray<FKey> ExpectedKeys;
 
+    // Modifies the legal keys for the reload sequence to only use keys: 1, 2, and 3.
     UPROPERTY(Category = "Config | Reload | Debug", EditDefaultsOnly)
     bool UseDebugReloadKeys;
     default UseDebugReloadKeys = true;

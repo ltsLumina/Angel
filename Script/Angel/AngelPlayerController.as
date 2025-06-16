@@ -12,16 +12,19 @@ class AAngelPlayerController : APlayerController
     UManualBreathingComponent ManualBreathingComponent;
 
     UPROPERTY(Category = "Input")
-    UInputAction InventoryAction;
+    UInputAction MoveAction;
 
     UPROPERTY(Category = "Input")
-    UInputAction SwitchGunAction;
+    UInputAction ShootAction;
 
     UPROPERTY(Category = "Input")
     UInputAction InitiateReloadAction;
 
     UPROPERTY(Category = "Input")
-    UInputAction ShootAction;
+    UInputAction InventoryAction;
+
+    UPROPERTY(Category = "Input")
+    UInputAction SwitchGunAction;
 
     UPROPERTY(Category = "Input")
     UInputMappingContext Context;
@@ -39,38 +42,42 @@ class AAngelPlayerController : APlayerController
         ManualBlinkingComponent = UManualBlinkingComponent::Get(Gameplay::GetPlayerCharacter(0));
         ManualBreathingComponent = UManualBreathingComponent::Get(Gameplay::GetPlayerCharacter(0));
 
-        // Manual actions
+        // Movement
+        InputComponent.BindAction(MoveAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnMove"));
+        InputComponent.BindAction(MoveAction, ETriggerEvent::Completed, FEnhancedInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnMoveCompleted"));
         InputComponent.BindKey(EKeys::Q, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnKeyPressed"));
         InputComponent.BindKey(EKeys::E, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnKeyPressed"));
+
+        // Shooting
+        InputComponent.BindAction(ShootAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"OnShoot"));
         
+        // Reloading
         InputComponent.BindKey(EKeys::AnyKey, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualReloadComponent, n"OnKeyPressed"));
         InputComponent.BindAction(InitiateReloadAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(ManualReloadComponent, n"InitiateReload"));
 
+        // Blinking
         InputComponent.BindKey(EKeys::F, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualBlinkingComponent, n"Blink"));
-        
+
+        // Breathing
         InputComponent.BindKey(EKeys::SpaceBar, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualBreathingComponent, n"Inhale"));
         InputComponent.BindKey(EKeys::SpaceBar, EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(ManualBreathingComponent, n"Exhale"));
 
-        // UI/Inventory actions
+        // UI/Inventory
         InputComponent.BindAction(InventoryAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"ToggleInventory"));
 
-        // Gun switching actions
+        // Gun Switching
         InputComponent.BindAction(SwitchGunAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"CycleGun"));
-
-        // The GunComponent may not be valid at the time of binding, so we check it here. Depends on if the player starts with a gun or not.
-        RegisterGunComponent(UGunComponent::Get(Gameplay::GetPlayerCharacter(0)));
     }
 
-    UFUNCTION()
-    void RegisterGunComponent(UGunComponent NewGunComponent)
-    {
-        if (!IsValid(NewGunComponent)) return;
+    float CycleGunCooldown = 0.2f;
+    float CycleGunTimer = 0.0f;
 
-        // Only register the GunComponent if it's not already set.
-        if (!IsValid(GunComponent))
+    UFUNCTION(BlueprintOverride)
+    void Tick(float DeltaSeconds)
+    {
+        if (CycleGunTimer > 0.0f)
         {
-            GunComponent = NewGunComponent;
-            InputComponent.BindAction(ShootAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(NewGunComponent, n"OnShoot"));
+            CycleGunTimer -= DeltaSeconds;
         }
     }
 
@@ -83,11 +90,18 @@ class AAngelPlayerController : APlayerController
     UFUNCTION()
     void CycleGun(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
     {
+        if (CycleGunTimer > 0.0f) return;
+
+        float Direction = ActionValue.GetAxis1D();
+
         UHolster Holster = UHolster::Get(Gameplay::GetPlayerCharacter(0));
 
         if (IsValid(Holster))
         {
-            Holster.CycleGun();
+            FString DirectionString = (Direction > 0) ? "Next" : "Previous";
+            Print(f"Cycle gun with direction: {DirectionString}", 2, FLinearColor(0.15, 0.32, 0.52));
+            Holster.CycleGun(Direction);
+            CycleGunTimer = CycleGunCooldown;
         }
     }
 };

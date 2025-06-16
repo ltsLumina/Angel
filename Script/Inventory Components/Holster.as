@@ -20,6 +20,7 @@ class UHolster : UActorComponent
     default AutoEquipFirstGun = true;
 
     USkeletalMeshComponent ArmsMesh;
+    UGunComponent GunComponent;
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
@@ -31,6 +32,7 @@ class UHolster : UActorComponent
             return;
         }
 
+        GunComponent = UGunComponent::Get(GetOwner());
         if (!IsValid(UGunComponent::Get(GetOwner())))
         {
             PrintError("Holster component requires a GunComponent on the owner actor!");
@@ -91,46 +93,47 @@ class UHolster : UActorComponent
                 // Set the new gun as the equipped gun
                 Gun.AttachToComponent(ArmsMesh, n"GripPoint", EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, true);
                 Gun.SetActorHiddenInGame(false);
-                EquippedGun = Gun;
 
-                // Attach the gun component to the owner actor (player)
-                UGunComponent GunComponent = UGunComponent::Get(GetOwner());
+                EquippedGun = Gun;
                 GunComponent.CurrentGun = Gun;
 
-                GetAngelController(0).RegisterGunComponent(GunComponent);
-
-                OnGunEquipped(Gun, GunComponent);
+                OnGunEquipped(Gun);
             }
             else
             {
                 // gun is already in the holster, just equip it
                 Gun.SetActorHiddenInGame(false);
+                
                 EquippedGun = Gun;
-
-                UGunComponent GunComponent = UGunComponent::Get(GetOwner());
                 GunComponent.CurrentGun = Gun;
 
-                GetAngelController(0).RegisterGunComponent(GunComponent);
-
-                OnGunEquipped(Gun, GunComponent);
+                OnGunEquipped(Gun);
             } 
         }
     }
 
-    void OnGunEquipped(AManualGun Gun, UGunComponent GunComponent)
+    void OnGunEquipped(AManualGun Gun)
     {
         BP_OnGunEquipped(Gun, GunComponent);
     }
 
     UFUNCTION(BlueprintEvent, Category = "Holster", Meta = (DisplayName = "Gun Equipped"))
-    void BP_OnGunEquipped(AManualGun Gun, UGunComponent GunComponent) 
+    void BP_OnGunEquipped(AManualGun Gun, UGunComponent InGunComponent) 
     { }
 
     UFUNCTION(Category = "Holster")
-    void CycleGun()
+    void CycleGun(float Direction = 1.0f)
     {
-        EquippedGunIndex = (EquippedGunIndex + 1) % Guns.Num();
-        SwitchGun(EquippedGunIndex);
+        if (Guns.Num() == 0) return;
+
+        int NumGuns = Guns.Num();
+        int NextIndex = EquippedGunIndex + int(Direction);
+
+        // Handle wrapping with float direction
+        if (NextIndex < 0) NextIndex = NumGuns - 1;
+        else if (NextIndex >= NumGuns) NextIndex = 0;
+
+        SwitchGun(NextIndex);
     }
 
     UFUNCTION(Category = "Holster")
