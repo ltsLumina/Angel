@@ -58,6 +58,14 @@ class UManualBreathingComponent : UActorComponent
     float MaxInhaleTime;
     default MaxInhaleTime = MaxOxygen / OxygenInhaleRate;
 
+    UPROPERTY(Category = "Breathing | Inhale")
+    float TimeSinceInhale;
+    default TimeSinceInhale = 999; // Start with a high value to allow immediate inhalation
+
+    UPROPERTY(Category = "Breathing | Inhale")
+    float InhaleCooldown;
+    default InhaleCooldown = 1.5; // Cooldown before the player can inhale again
+
 // -- end
 
     UFUNCTION(BlueprintOverride)
@@ -95,9 +103,23 @@ class UManualBreathingComponent : UActorComponent
         return System::IsTimerActiveHandle(FlowStateTimer);
     }
 
+    UPROPERTY(Category = "Breathing | Flow State", BlueprintGetter = "GetCanEnterFlowState", VisibleAnywhere)
+    bool CanEnterFlowState;
+
+    UFUNCTION(Category = "Breathing | Flow State", BlueprintPure)
+    bool GetCanEnterFlowState() const
+    {
+        // Can enter flow state if not already in it and the cooldown is not active
+        return !GetIsInFlowState() && !System::IsTimerActiveHandle(FlowStateCooldownTimer);
+    }
+
     UPROPERTY(Category = "Breathing | Flow State")
     float FlowStateDuration;
     default FlowStateDuration = 5; // Duration of the flow state in seconds
+
+    UPROPERTY(Category = "Breathing | Flow State")
+    float FlowStateCooldown;
+    default FlowStateCooldown = 10; // Cooldown before the player can enter flow state again
 
     // Upon reaching maximum oxygen, the player will enter a flow state where they do not consume oxygen for a short period.
     UFUNCTION(Category = "Breathing | Flow State")
@@ -119,9 +141,15 @@ class UManualBreathingComponent : UActorComponent
         Oxygen = Math::Clamp(Oxygen, MinOxygen, MaxOxygen); // Ensure oxygen is within bounds
         BreathingState = EManualBreathingState::Exhale;
         InhaleTime = 0.0f;
+
+        FlowStateCooldownTimer = System::SetTimer(this, n"ReactivateFlowState", FlowStateCooldown, false);
     }
 
     FTimerHandle FlowStateTimer;
+    FTimerHandle FlowStateCooldownTimer;
+
+    UFUNCTION()
+    void ReactivateFlowState() { }
 
 // end
 
@@ -150,20 +178,24 @@ class UManualBreathingComponent : UActorComponent
             // If oxygen is full, enter flow state
             if (Oxygen >= MaxOxygen)
             {
-                // If not already in flow state, enter it
-                if (!GetIsInFlowState())
+                // If not already in flow state and the cooldown is not active, enter it
+                if (GetCanEnterFlowState())
                 {
                     EnterFlowState();
 
                     // Start a timer to exit flow state after the specified duration
                     FlowStateTimer = System::SetTimer(this, n"ExitFlowState", FlowStateDuration, false);
                 }
+
+                Exhale(EKeys::Invalid); // Automatically exhale when reaching max oxygen
             }
         }
         else
         {
             // Deplete oxygen over time
             Oxygen = Math::Clamp(Oxygen - (OxygenDepletionRate * DeltaSeconds), MinOxygen, MaxOxygen);
+
+            TimeSinceInhale += DeltaSeconds;
         }
 
         // Applies once oxygen is below a certain threshold (e.g., 25)
@@ -177,7 +209,14 @@ class UManualBreathingComponent : UActorComponent
     UFUNCTION(NotBlueprintCallable)
     void Inhale(FKey _)
     {
+        // If the inhale cooldown is active, do not allow inhaling
+        if (TimeSinceInhale < InhaleCooldown) return;
+
+        // If in flow state, do not allow inhaling
+        if (GetIsInFlowState()) return;
+
         BreathingState = EManualBreathingState::Inhale;
+        TimeSinceInhale = 0.0f; // Reset the time since last inhale
         OnInhale();
     }
 
@@ -188,6 +227,9 @@ class UManualBreathingComponent : UActorComponent
     UFUNCTION(NotBlueprintCallable)
     void Exhale(FKey _)
     {
+        // Can't exhale if you haven't inhaled yet
+        if (BreathingState != EManualBreathingState::Inhale) return;
+
         BreathingState = EManualBreathingState::Exhale;
         OnExhale();
     }

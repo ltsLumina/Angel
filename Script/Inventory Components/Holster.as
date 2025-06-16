@@ -2,7 +2,7 @@ class UHolster : UActorComponent
 {
     // The classes of guns that can be holstered
     UPROPERTY(Category = "Holster")
-    TArray<TSubclassOf<AManualGun>> GunClasses;
+    TArray<TSubclassOf<AManualGun>> InitialGuns;
 
     // The guns that are currently in the holster
     UPROPERTY(VisibleAnywhere, Category = "Holster")
@@ -31,7 +31,13 @@ class UHolster : UActorComponent
             return;
         }
 
-        for (TSubclassOf<AManualGun> GunClass : GunClasses)
+        if (!IsValid(UGunComponent::Get(GetOwner())))
+        {
+            PrintError("Holster component requires a GunComponent on the owner actor!");
+            return;
+        }
+
+        for (TSubclassOf<AManualGun> GunClass : InitialGuns)
         {
             AManualGun NewGun = SpawnActor(GunClass);
             if (IsValid(NewGun))
@@ -63,36 +69,71 @@ class UHolster : UActorComponent
     UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
     void BP_BeginPlay() { }
 
-    UFUNCTION(BlueprintCallable, Category = "Holster")
+    UFUNCTION(Category = "Holster")
     void EquipGun(AManualGun Gun)
     {
         if (IsValid(Gun))
         {
             if (IsValid(EquippedGun))
             {
-                // Hide the currently equipped gun
-                EquippedGun.SetActorHiddenInGame(true);
+                // Hide all guns
+                for (AManualGun ExistingGun : Guns)
+                {
+                    ExistingGun.SetActorHiddenInGame(true);
+                }
             }
 
-            // Set the new gun as the equipped gun
-            Gun.AttachToComponent(ArmsMesh, n"GripPoint", EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, true);
-            Gun.SetActorHiddenInGame(false);
-            EquippedGun = Gun;
+            if (!Guns.Contains(Gun))
+            {
+                // Gun is not in the holster, add it
+                Guns.Add(Gun);
 
-            OnGunEquipped(Gun);
+                // Set the new gun as the equipped gun
+                Gun.AttachToComponent(ArmsMesh, n"GripPoint", EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, true);
+                Gun.SetActorHiddenInGame(false);
+                EquippedGun = Gun;
+
+                // Attach the gun component to the owner actor (player)
+                UGunComponent GunComponent = UGunComponent::Get(GetOwner());
+                GunComponent.CurrentGun = Gun;
+
+                GetAngelController(0).RegisterGunComponent(GunComponent);
+
+                OnGunEquipped(Gun, GunComponent);
+            }
+            else
+            {
+                // gun is already in the holster, just equip it
+                Gun.SetActorHiddenInGame(false);
+                EquippedGun = Gun;
+
+                UGunComponent GunComponent = UGunComponent::Get(GetOwner());
+                GunComponent.CurrentGun = Gun;
+
+                GetAngelController(0).RegisterGunComponent(GunComponent);
+
+                OnGunEquipped(Gun, GunComponent);
+            } 
         }
     }
 
-    void OnGunEquipped(AManualGun Gun)
+    void OnGunEquipped(AManualGun Gun, UGunComponent GunComponent)
     {
-        BP_OnGunEquipped(Gun);
+        BP_OnGunEquipped(Gun, GunComponent);
     }
 
     UFUNCTION(BlueprintEvent, Category = "Holster", Meta = (DisplayName = "Gun Equipped"))
-    void BP_OnGunEquipped(AManualGun Gun) 
+    void BP_OnGunEquipped(AManualGun Gun, UGunComponent GunComponent) 
     { }
 
-    UFUNCTION(BlueprintCallable, Category = "Holster")
+    UFUNCTION(Category = "Holster")
+    void CycleGun()
+    {
+        EquippedGunIndex = (EquippedGunIndex + 1) % Guns.Num();
+        SwitchGun(EquippedGunIndex);
+    }
+
+    UFUNCTION(Category = "Holster")
     void SwitchGun(int Index)
     {
         if (Guns.IsValidIndex(Index))
@@ -104,12 +145,5 @@ class UHolster : UActorComponent
         {
             PrintError(f"Invalid gun index: {Index}. Total guns available: {Guns.Num()}");
         }
-    }
-
-    UFUNCTION(BlueprintCallable, Category = "Holster")
-    void CycleGun()
-    {
-        EquippedGunIndex = (EquippedGunIndex + 1) % Guns.Num();
-        SwitchGun(EquippedGunIndex);
     }
 };

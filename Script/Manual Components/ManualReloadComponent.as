@@ -2,6 +2,12 @@ class UManualReloadComponent : UActorComponent
 {
 // - config | reload
 
+    UPROPERTY(Category = "Config | Reload", BlueprintGetter = "GetIsReloading", VisibleAnywhere)
+    bool IsReloading;
+
+    UFUNCTION(BlueprintPure, Category = "Reload")
+    bool GetIsReloading() const { return ExpectedKeys.Num() > 0; }
+
     UPROPERTY(Category = "Config | Reload", VisibleAnywhere)
     TArray<FKey> IncomingKeys;
 
@@ -45,51 +51,81 @@ class UManualReloadComponent : UActorComponent
     void BP_Tick(float DeltaSeconds) { }
 
     UFUNCTION(BlueprintPure, Category = "Reload")
-    TArray<FKey> GenerateReloadKeys()
+    TArray<FKey> GenerateReloadKeys(int ReloadSteps = 3)
     {
-        // Shuffle and pick 3 unique keys
-        LegalKeys.Shuffle();
         TArray<FKey> SequenceKeys;
-        for (int i = 0; i < 3 && i < LegalKeys.Num(); ++i)
+
+        if (UseDebugReloadKeys)
         {
-            SequenceKeys.Add(LegalKeys[i]);
-            if (!UseDebugReloadKeys) // Blueprint overrides this print.
+            SequenceKeys.Add(EKeys::One);
+            SequenceKeys.Add(EKeys::Two);
+            SequenceKeys.Add(EKeys::Three);
+
+            for (int i = 0; i < ReloadSteps; ++i)
             {
-                Print(f"Key {i + 1}: {LegalKeys[i].GetDisplayName()}", 5, FLinearColor(0.58, 0.95, 0.49));   
-            }
-            else
-            {
-                SequenceKeys.Empty();
-                SequenceKeys.Add(EKeys::One);
-                SequenceKeys.Add(EKeys::Two);
-                SequenceKeys.Add(EKeys::Three);
+                Print(f"Debug Key: {i + 1}", Math::Min(ReloadSteps, 10), FLinearColor(0.58, 0.95, 0.49));
             }
         }
+        else
+        {
+            for (int i = 0; i < ReloadSteps; ++i)
+            {
+                // Pick a random legal key for each step (can repeat)
+                if (LegalKeys.Num() > 0)
+                {
+                    int idx = Math::RandRange(0, LegalKeys.Num() - 1);
+                    SequenceKeys.Add(LegalKeys[idx]);
+                    Print(f"Key {i + 1}: {LegalKeys[idx].GetDisplayName()}", Math::Min(ReloadSteps, 10), FLinearColor(0.58, 0.95, 0.49));
+                }
+            }
+        }
+
+        ExpectedKeys = SequenceKeys;
         return SequenceKeys;
     }
+
+    UFUNCTION(Category = "Reload")
+    void InitiateReload(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
+    {
+        if (GetIsReloading())
+        {
+            CancelReload(); // Cancel any ongoing reload if this is called again
+            return;
+        }
+
+        ExpectedKeys = GenerateReloadKeys(); // Generate a new sequence of keys for the reload
+    }
+
+    UFUNCTION(Category = "Reload")
+    void CancelReload()
+    {
+        IncomingKeys.Empty(); // Clear any incoming keys
+        ExpectedKeys.Empty(); // Clear the expected keys
+        TimeSinceInput = 0; // Reset the input timer
+
+        Print("Reload cancelled!", 1.5f, FLinearColor(1.00, 0.45, 0.00));
+    }
+
+    UFUNCTION(BlueprintEvent, Category = "Reload", Meta = (DisplayName = "On Initiate Reload"))
+    void BP_OnInitiateReload() { }
 
     FTimerHandle ReloadTimer;
 
     UFUNCTION()
     void OnKeyPressed(FKey Key)
     {
+        if (!LegalKeys.Contains(Key) || ExpectedKeys.Num() == 0) return; // Ignore keys that are not in the legal keys list
+
         if (TimeSinceInput < InputDelay)
         {
             // If the time since the last input is less than the delay, ignore this key press.
+            Print(f"Input too fast! Wait {InputDelay - TimeSinceInput:.2f} seconds before the next key.", 1.5f, FLinearColor(1.0, 0.0, 0.0));
             return;
         }
         else
         {
             TimeSinceInput = 0; // Reset the timer for the next input
         }
-
-        // if the reload is already running, ignore the call
-        if (System::IsTimerActiveHandle(ReloadTimer))
-        {
-            Print("Reload already in progress!", System::GetTimerRemainingTimeHandle(ReloadTimer), FLinearColor(1.0, 0.0, 0.0));
-            return;
-        }
-
 
         FKey NextKey = ExpectedKeys[IncomingKeys.Num()];
 
@@ -101,29 +137,25 @@ class UManualReloadComponent : UActorComponent
         else if (LegalKeys.Contains(Key))
         {
             // If the key is legal but not the expected one, we can print a message.
-            //Print(f"Wrong key! Expected: {NextKey.GetDisplayName()}, but got: {Key.GetDisplayName()}", 1.5, FLinearColor(1.0, 0.0, 0.0));
+            Print(f"Wrong key! Expected: {NextKey.GetDisplayName()}, but got: {Key.GetDisplayName()}", 1, FLinearColor(1.00, 0.45, 0.00));
         }
 
         if (IncomingKeys == ExpectedKeys)
         {
-            StartReload(GetAngelCharacter(GetOwner()).HolsterComponent.EquippedGun);
+            ReloadComplete(GetAngelCharacter(GetOwner()).HolsterComponent.EquippedGun);
             IncomingKeys.Empty(); // Reset after successful reload
         }
     }
 
     // BlueprintCallable if you want to call this function from Blueprints earlier than intended.
     UFUNCTION(BlueprintCallable, Category = "Reload")
-    void StartReload(AManualGun Gun)
+    void ReloadComplete(AManualGun Gun)
     {
-        // Create a new sequence of keys for the next reload
-        ExpectedKeys = GenerateReloadKeys();
+        ExpectedKeys.Empty(); // Clear the expected keys
 
-        OnReload(Gun);
+        UGunComponent::Get(GetOwner()).OnGunReloaded(Gun);
     }
 
-    UFUNCTION(NotBlueprintCallable, Category = "Reload")
-    void OnReload(AManualGun Gun)
-    {
-       Gun.OnReload();
-    }
+    UFUNCTION(BlueprintEvent, Category = "Reload", Meta = (DisplayName = "On Reload Complete"))
+    void BP_OnReloadComplete(AManualGun Gun) { }
 };

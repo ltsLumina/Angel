@@ -2,6 +2,11 @@ class UManualBlinkingComponent : UActorComponent
 {
     UCameraComponent Camera;
 
+    // The percentage of the screen that will be blurred during blinking. A value of 0.0 means no blur, and 1.0 means full blur.
+    UPROPERTY(Category = "Gameplay | Blinking", EditDefaultsOnly)
+    float BlurPercentage;
+    default BlurPercentage = 0.0; // Start with no blur
+
     // The rate at which the blur effect is applied. A higher value will make the blue reach the minimum focal distance faster.
     UPROPERTY(Category = "Gameplay | Blinking")
     float BlurRate;
@@ -15,7 +20,7 @@ class UManualBlinkingComponent : UActorComponent
 // Maximum focal distance for the blur effect. A higher value will make the blur take longer to reach the minimum focal distance.
     UPROPERTY(Category = "Gameplay | Blinking")
     float MaxFocalDistance;
-    default MaxFocalDistance = 100;
+    default MaxFocalDistance = 250;
 
     // - config | blinking
     UPROPERTY(Category = "Config | Blinking", EditDefaultsOnly)
@@ -55,12 +60,17 @@ class UManualBlinkingComponent : UActorComponent
     void Blur(float DeltaSeconds)
     {
         if (!UseBlinking) return;
-        
+
          Camera.PostProcessSettings.DepthOfFieldFocalDistance = Math::FInterpTo(
             Camera.PostProcessSettings.DepthOfFieldFocalDistance, 
             MinFocalDistance, 
             DeltaSeconds, 
             BlurRate);
+
+        // Convert the current focal distance to a percentage of the maximum focal distance
+        BlurPercentage = 1.0f - ((Camera.PostProcessSettings.DepthOfFieldFocalDistance - MinFocalDistance) / (MaxFocalDistance - MinFocalDistance));
+        BlurPercentage = Math::Clamp(BlurPercentage, 0.0f, 1.0f);
+        
     }
 
     UFUNCTION(BlueprintCallable, Category = "Blinking")

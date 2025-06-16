@@ -7,34 +7,69 @@ class AManualGun : AActor
     UPROPERTY(DefaultComponent, Category = "Config | Gun")
     USkeletalMeshComponent GunMesh;
 
-// - config | gun
+// - config
 
-    UPROPERTY(Category = "Config | Gun")
-    int AmmoCount;
-    default AmmoCount = 6;
+    UPROPERTY(Category = "Config | Gun", EditDefaultsOnly)
+    int CurrentAmmo;
+    default CurrentAmmo = 6;
 
-    UPROPERTY(Category = "Config | Gun")
-    int MaxAmmoCount;
-    default MaxAmmoCount = 6;
+    UPROPERTY(Category = "Config | Gun", EditDefaultsOnly)
+    int MaxAmmo;
+    default MaxAmmo = 6;
+
+    UPROPERTY(Category = "Config | Gun", BlueprintGetter = GetCanShoot, VisibleAnywhere)
+    bool CanShoot;
+
+    UFUNCTION(BlueprintPure, Category = "Gun")
+    bool GetCanShoot() const { return CurrentAmmo > 0; }
+
+    UPROPERTY(Category = "Config | Gun", EditDefaultsOnly)
+    int ReloadSteps;
+    default ReloadSteps = 3;
+
+    UFUNCTION(BlueprintOverride)
+    void ConstructionScript()
+    {
+        CurrentAmmo = MaxAmmo;
+    }
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
-        
-        
         BP_BeginPlay();
     }
 
     UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
     void BP_BeginPlay() { }
 
+    UFUNCTION(BlueprintOverride)
+    void ActorBeginOverlap(AActor OtherActor)
+    {
+        SetActorEnableCollision(false);
+        GetAngelCharacter(0).HolsterComponent.EquipGun(this);
+    }
+
+    UFUNCTION(Category = "Gun")
+    void Shoot(bool&out Success)
+    {
+        if (CurrentAmmo > 0)
+        {
+            CurrentAmmo--;
+            Print(f"{GetName()} fired! (Ammo: {CurrentAmmo}/{MaxAmmo})", 2, FLinearColor(0.15, 0.32, 0.52));
+            Success = true;
+        }
+        else
+        {
+            Print(f"{GetName()} cannot shoot, no ammo left!", 2, FLinearColor(1.00, 0.48, 0.00));
+            Success = false;
+        }
+    }
+
+    UFUNCTION(Category = "Gun")
     void OnReload()
     {
         Print(f"{GetName()} reloaded!", 2, FLinearColor(0.58, 0.95, 0.49));
 
-        BP_OnReload();
+        CurrentAmmo = MaxAmmo;
     }
-
-    UFUNCTION(BlueprintEvent)
-    void BP_OnReload() { }
 };

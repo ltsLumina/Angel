@@ -75,12 +75,13 @@ class UManualWalkingComponent : UActorComponent
     UPROPERTY(BlueprintGetter = GetCanMove, Category = "Config | Movement", VisibleAnywhere)
     bool CanMove;
 
-    // Resets the input keys after this delay, in seconds. Allows the player to input Q or E again after a delay.
-    UPROPERTY(Category = "Config | Movement")
-    float ResetInputDelay;
+    UPROPERTY(Category = "Config | Movement", VisibleAnywhere)
+    FKey NextMoveKey;
+    default NextMoveKey = FKey(n"Q");
 
 // - config | input
 
+    UPROPERTY(Category = "Config | Input", VisibleAnywhere)
     bool MoveCooldown;
     default MoveCooldown = true;
 
@@ -88,10 +89,16 @@ class UManualWalkingComponent : UActorComponent
     float InputDelay;
     default InputDelay = 0.05;
 
+    UPROPERTY(Category = "Config | Input", VisibleAnywhere)
     bool Q_Pressed;
+
+    UPROPERTY(Category = "Config | Input", VisibleAnywhere)
     bool E_Pressed;
     // Defaults E to be 'active' so that the first Q input counts as valid.
     default E_Pressed = true;
+
+    UPROPERTY(Category = "Config | Input", VisibleAnywhere)
+    FVector2D MoveInput;
 
     AAngelPlayerCharacter Character;
 
@@ -109,6 +116,8 @@ class UManualWalkingComponent : UActorComponent
     UFUNCTION(BlueprintOverride)
     void Tick(float DeltaSeconds)
     {
+        BP_Tick(DeltaSeconds);
+
         if (Character.GameplayTags.HasTag(GameplayTags::Buffs_FlowState))
         {
             RegenerateStamina(FlowStateStaminaRegenerationRate, DeltaSeconds);
@@ -117,13 +126,6 @@ class UManualWalkingComponent : UActorComponent
         if (MoveCooldown)
         {
             TimeSinceInput += DeltaSeconds;
-
-            if (TimeSinceInput >= ResetInputDelay && GetIsStaminaFull())
-            {
-                // Reset the input state after 3 seconds of no input.
-                Q_Pressed = false;
-                E_Pressed = true;
-            }
 
             if (TimeSinceInput >= StaminaRegenDelay && !GetIsStaminaFull())
             {
@@ -134,8 +136,6 @@ class UManualWalkingComponent : UActorComponent
         {
             Character.AddMovementInput(Character.GetActorForwardVector(), 1, false);
         }
-
-        BP_Tick(DeltaSeconds);
     }
 
     UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Tick"))
@@ -180,7 +180,12 @@ class UManualWalkingComponent : UActorComponent
 
                 if (!E_Pressed)
                 {
-                PerformMove();
+                    if (!TryPerformMove(Key))
+                    {
+                        // If the move failed due to stamina, we reset back to the previous state.
+                        Q_Pressed = false;
+                        E_Pressed = true;
+                    }
                 }
             }
         }
@@ -195,7 +200,12 @@ class UManualWalkingComponent : UActorComponent
 
                 if (!Q_Pressed)
                 {
-                    PerformMove();
+                    if (!TryPerformMove(Key))
+                    {
+                        // If the move failed due to stamina, we reset back to the previous state.
+                        Q_Pressed = true;
+                        E_Pressed = false;
+                    }
                 }
             }
         }
@@ -204,22 +214,26 @@ class UManualWalkingComponent : UActorComponent
     UFUNCTION(BlueprintEvent, Meta = (DisplayName = "On Key Pressed"))
     void BP_OnKeyPressed(FKey Key) { }
 
-    void PerformMove()
+    bool TryPerformMove(FKey Key)
     {
         if (UseStamina)
         {
             if (Stamina > 0)
             {
-                MoveCharacter();
+                MoveCharacter(Key);
+                return true;
             }
+
+            return false;
         }
         else
         {
-            MoveCharacter();
+            MoveCharacter(Key);
+            return true;
         }
     }
 
-    void MoveCharacter(float MoveDuration = 0.3)
+    void MoveCharacter(FKey Key, float MoveDuration = 0.3)
     {
         float Distance;
         if (Stamina < MoveLegStaminaCost && MoveLegStaminaCost > 0)
@@ -236,7 +250,17 @@ class UManualWalkingComponent : UActorComponent
 
         MoveCooldown = !MoveCooldown;
         System::SetTimer(this, n"EnableMoveCooldown", Distance, bLooping=false);
-        CharacterMoved(Distance);
+        CharacterMoved(Distance, Key);
+
+        // Used to display the correct button prompt for the next move.
+        if (Key == FKey(n"Q"))
+        {
+            NextMoveKey = FKey(n"E");
+        }
+        else if (Key == FKey(n"E"))
+        {
+            NextMoveKey = FKey(n"Q");
+        }
 
         SubtractStamina(MoveLegStaminaCost);
     }
@@ -248,7 +272,7 @@ class UManualWalkingComponent : UActorComponent
     }
 
     UFUNCTION(BlueprintEvent, Category = "Gameplay | Movement")
-    void CharacterMoved(float Distance) { }
+    void CharacterMoved(float Distance, FKey Key) { }
 
     UFUNCTION(BlueprintPure, Meta = (CompactNodeTitle = "Add"))
     float AddStamina(float Input)
