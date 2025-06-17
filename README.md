@@ -2,7 +2,7 @@
 
 Input Key: Shift
 
--low heartrate = slow motion
+- low heartrate = slow motion
 - high heartrate = faster move speed, fire rate, etc.
 
 - has to beat in rythym
