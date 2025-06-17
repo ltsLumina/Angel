@@ -69,15 +69,16 @@ class UManualReloadComponent : UActorComponent
         }
         else
         {
-            for (int i = 0; i < ReloadSteps; ++i)
+            // Ensure we don't request more unique keys than available
+            int Steps = Math::Min(ReloadSteps, LegalKeys.Num());
+            
+            TArray<FKey> ShuffledKeys = LegalKeys;
+            ShuffledKeys.Shuffle();
+
+            for (int i = 0; i < Steps; ++i)
             {
-                // Pick a random legal key for each step (can repeat)
-                if (LegalKeys.Num() > 0)
-                {
-                    int idx = Math::RandRange(0, LegalKeys.Num() - 1);
-                    SequenceKeys.Add(LegalKeys[idx]);
-                    Print(f"Key {i + 1}: {LegalKeys[idx].GetDisplayName()}", Math::Min(ReloadSteps, 10), FLinearColor(0.58, 0.95, 0.49));
-                }
+                SequenceKeys.Add(ShuffledKeys[i]);
+                Print(f"Key {i + 1}: {ShuffledKeys[i].GetDisplayName()}", Math::Min(ReloadSteps, 10), FLinearColor(0.58, 0.95, 0.49));
             }
         }
 
