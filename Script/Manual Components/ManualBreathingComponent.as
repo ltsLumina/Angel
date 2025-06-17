@@ -66,21 +66,6 @@ class UManualBreathingComponent : UActorComponent
     float InhaleCooldown;
     default InhaleCooldown = 1.5; // Cooldown before the player can inhale again
 
-// -- end
-
-    UFUNCTION(BlueprintOverride)
-    void BeginPlay()
-    {
-        Camera = UCameraComponent::Get(GetOwner());
-        Camera.PostProcessSettings.bOverride_ColorGain = true;
-
-        // Initialize any necessary variables or states here
-        BP_BeginPlay();
-    }
-
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
-    void BP_BeginPlay() { }
-
     float AsphyxiaEffect = 1;
 
     // How fast the asphyxia effect applies and reaches its maximum value
@@ -92,66 +77,27 @@ class UManualBreathingComponent : UActorComponent
     float AsphyxiaEffectThreshold;
     default AsphyxiaEffectThreshold = 25; // Oxygen level below which asphyxia effect starts
 
-// -- flow state
+// components
 
-    UPROPERTY(Category = "Breathing | Flow State", BlueprintGetter = "GetIsInFlowState", VisibleAnywhere)
-    bool IsInFlowState;
-
-    UFUNCTION(Category = "Breathing | Flow State", BlueprintPure)
-    bool GetIsInFlowState() const
-    {
-        return System::IsTimerActiveHandle(FlowStateTimer);
-    }
-
-    UPROPERTY(Category = "Breathing | Flow State", BlueprintGetter = "GetCanEnterFlowState", VisibleAnywhere)
-    bool CanEnterFlowState;
-
-    UFUNCTION(Category = "Breathing | Flow State", BlueprintPure)
-    bool GetCanEnterFlowState() const
-    {
-        // Can enter flow state if not already in it and the cooldown is not active
-        return !GetIsInFlowState() && !System::IsTimerActiveHandle(FlowStateCooldownTimer);
-    }
-
-    UPROPERTY(Category = "Breathing | Flow State")
-    float FlowStateDuration;
-    default FlowStateDuration = 5; // Duration of the flow state in seconds
-
-    UPROPERTY(Category = "Breathing | Flow State")
-    float FlowStateCooldown;
-    default FlowStateCooldown = 10; // Cooldown before the player can enter flow state again
-
-    // Upon reaching maximum oxygen, the player will enter a flow state where they do not consume oxygen for a short period.
-    UFUNCTION(Category = "Breathing | Flow State")
-    void EnterFlowState()
-    {
-        GetAngelCharacter(GetOwner()).GameplayTags.AddTag(GameplayTags::Buffs_FlowState);
-
-        UseBreathing = false;
-        BreathingState = EManualBreathingState::Exhale;
-        InhaleTime = 0.0f;
-    }
-
-    UFUNCTION(Category = "Breathing | Flow State")
-    void ExitFlowState()
-    {
-        GetAngelCharacter(GetOwner()).GameplayTags.RemoveTag(GameplayTags::Buffs_FlowState);
-
-        UseBreathing = true; // Resume normal breathing
-        Oxygen = Math::Clamp(Oxygen, MinOxygen, MaxOxygen); // Ensure oxygen is within bounds
-        BreathingState = EManualBreathingState::Exhale;
-        InhaleTime = 0.0f;
-
-        FlowStateCooldownTimer = System::SetTimer(this, n"ReactivateFlowState", FlowStateCooldown, false);
-    }
-
-    FTimerHandle FlowStateTimer;
-    FTimerHandle FlowStateCooldownTimer;
-
-    UFUNCTION()
-    void ReactivateFlowState() { }
+    UManualHeartbeatComponent ManualHeartbeatComponent;
 
 // end
+    
+    UFUNCTION(BlueprintOverride)
+    void BeginPlay()
+    {
+        ManualHeartbeatComponent = UManualHeartbeatComponent::Get(GetOwner());
+
+        Camera = UCameraComponent::Get(GetOwner());
+        Camera.PostProcessSettings.bOverride_ColorGain = true;
+
+        // Initialize any necessary variables or states here
+        BP_BeginPlay();
+    }
+
+    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
+    void BP_BeginPlay() { }
+
 
     UFUNCTION(BlueprintOverride)
     void Tick(float DeltaSeconds)
@@ -175,19 +121,10 @@ class UManualBreathingComponent : UActorComponent
                 InhaleTime = 0.0f; // Reset the inhale timer
             }
 
-            // If oxygen is full, enter flow state
+            // If oxygen is full, increase heartbeat BPM until you exhale
             if (Oxygen >= MaxOxygen)
             {
-                // If not already in flow state and the cooldown is not active, enter it
-                if (GetCanEnterFlowState())
-                {
-                    EnterFlowState();
-
-                    // Start a timer to exit flow state after the specified duration
-                    FlowStateTimer = System::SetTimer(this, n"ExitFlowState", FlowStateDuration, false);
-                }
-
-                Exhale(EKeys::Invalid); // Automatically exhale when reaching max oxygen
+                ManualHeartbeatComponent.IncreaseBPM(0.5f);
             }
         }
         else
@@ -212,11 +149,9 @@ class UManualBreathingComponent : UActorComponent
         // If the inhale cooldown is active, do not allow inhaling
         if (TimeSinceInhale < InhaleCooldown) return;
 
-        // If in flow state, do not allow inhaling
-        if (GetIsInFlowState()) return;
-
         BreathingState = EManualBreathingState::Inhale;
         TimeSinceInhale = 0.0f; // Reset the time since last inhale
+
         OnInhale();
     }
 

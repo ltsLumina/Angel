@@ -15,6 +15,7 @@ class AAngelPlayerCharacter : ACharacter
     UManualReloadComponent ManualReloadComponent;
     UManualBlinkingComponent ManualBlinkingComponent;
     UManualBreathingComponent ManualBreathingComponent;
+    UManualHeartbeatComponent ManualHeartbeatComponent;
     UHolster HolsterComponent;
 
     UFUNCTION(BlueprintOverride)
@@ -30,6 +31,7 @@ class AAngelPlayerCharacter : ACharacter
         ManualReloadComponent = UManualReloadComponent::Get(this);
         ManualBlinkingComponent = UManualBlinkingComponent::Get(this);
         ManualBreathingComponent = UManualBreathingComponent::Get(this);
+        ManualHeartbeatComponent = UManualHeartbeatComponent::Get(this);
         HolsterComponent = UHolster::Get(this);
 
         BP_BeginPlay();

@@ -10,6 +10,7 @@ class AAngelPlayerController : APlayerController
     UManualReloadComponent ManualReloadComponent;
     UManualBlinkingComponent ManualBlinkingComponent;
     UManualBreathingComponent ManualBreathingComponent;
+    UManualHeartbeatComponent ManualHeartbeatComponent;
 
     UPROPERTY(Category = "Input")
     UInputAction MoveAction;
@@ -37,10 +38,13 @@ class AAngelPlayerController : APlayerController
         UEnhancedInputLocalPlayerSubsystem EnhancedInputSubsystem = UEnhancedInputLocalPlayerSubsystem::Get(this);
         EnhancedInputSubsystem.AddMappingContext(Context, 0, FModifyContextOptions());
 
-        ManualWalkingComponent = UManualWalkingComponent::Get(Gameplay::GetPlayerCharacter(0));
-        ManualReloadComponent = UManualReloadComponent::Get(Gameplay::GetPlayerCharacter(0));
-        ManualBlinkingComponent = UManualBlinkingComponent::Get(Gameplay::GetPlayerCharacter(0));
-        ManualBreathingComponent = UManualBreathingComponent::Get(Gameplay::GetPlayerCharacter(0));
+        AAngelPlayerCharacter Character = GetAngelCharacter(0);
+
+        ManualWalkingComponent = UManualWalkingComponent::Get(Character);
+        ManualReloadComponent = UManualReloadComponent::Get(Character);
+        ManualBlinkingComponent = UManualBlinkingComponent::Get(Character);
+        ManualBreathingComponent = UManualBreathingComponent::Get(Character);
+        ManualHeartbeatComponent = UManualHeartbeatComponent::Get(Character);
 
         // Movement
         InputComponent.BindAction(MoveAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnMove"));
@@ -61,6 +65,9 @@ class AAngelPlayerController : APlayerController
         // Breathing
         InputComponent.BindKey(EKeys::SpaceBar, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualBreathingComponent, n"Inhale"));
         InputComponent.BindKey(EKeys::SpaceBar, EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(ManualBreathingComponent, n"Exhale"));
+
+        // Heartbeat
+        InputComponent.BindKey(EKeys::LeftShift, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualHeartbeatComponent, n"OnKeyPressed"));
 
         // UI/Inventory
         InputComponent.BindAction(InventoryAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"ToggleInventory"));
