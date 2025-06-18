@@ -16,7 +16,7 @@ class UManualBreathingComponent : UActorComponent
     float Oxygen;
     default Oxygen = 100;
 
-    UPROPERTY(Category = "Breathing", DisplayName = "Lung Capacity")
+    UPROPERTY(Category = "Breathing")
     float MaxOxygen;
     default MaxOxygen = 100;
 
@@ -126,6 +126,8 @@ class UManualBreathingComponent : UActorComponent
             {
                 ManualHeartbeatComponent.IncreaseBPM(0.5f);
             }
+
+            WhileInhale();
         }
         else
         {
@@ -133,6 +135,8 @@ class UManualBreathingComponent : UActorComponent
             Oxygen = Math::Clamp(Oxygen - (OxygenDepletionRate * DeltaSeconds), MinOxygen, MaxOxygen);
 
             TimeSinceInhale += DeltaSeconds;
+
+            WhileExhale();
         }
 
         // Applies once oxygen is below a certain threshold (e.g., 25)
@@ -156,6 +160,10 @@ class UManualBreathingComponent : UActorComponent
     }
 
     UFUNCTION(BlueprintEvent)
+    void WhileInhale()
+    { }
+
+    UFUNCTION(BlueprintEvent)
     void OnInhale()
     { }
 
@@ -166,8 +174,13 @@ class UManualBreathingComponent : UActorComponent
         if (BreathingState != EManualBreathingState::Inhale) return;
 
         BreathingState = EManualBreathingState::Exhale;
+
         OnExhale();
     }
+
+    UFUNCTION(BlueprintEvent)
+    void WhileExhale()
+    { }
 
     UFUNCTION(BlueprintEvent)
     void OnExhale()

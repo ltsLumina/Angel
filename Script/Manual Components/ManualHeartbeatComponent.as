@@ -168,9 +168,6 @@ class UManualHeartbeatComponent : UActorComponent
         float BeatInterval = SecondsInMinute / CurrentBPM;
         NextBeatTime = System::GetGameTimeInSeconds() + BeatInterval;
 
-        // Schedule the early cue
-        System::SetTimer(this, n"PlayHeartBeatCue", BeatInterval - HeartbeatLeadTime, false);
-
         System::SetTimer(this, n"OnHeartBeat", BeatInterval, true);
         Print(f"Heartbeat: {CurrentBPM} BPM", BeatInterval, FLinearColor(0.79, 0.25, 0.55));
 

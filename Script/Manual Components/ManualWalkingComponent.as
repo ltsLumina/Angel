@@ -103,7 +103,7 @@ class UManualWalkingComponent : UActorComponent
     {
         BP_Tick(DeltaSeconds);
 
-        if (Character.GameplayTags.HasTag(GameplayTags::Buffs_FlowState))
+        if (Character.GameplayTags.HasTag(GameplayTags::Buffs_State_Flow))
         {
             RegenerateStamina(FlowStateStaminaRegenerationRate, DeltaSeconds);
         }
