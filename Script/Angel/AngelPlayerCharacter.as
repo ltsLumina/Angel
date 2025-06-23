@@ -3,26 +3,12 @@ class AAngelPlayerCharacter : ACharacter
     UPROPERTY(Category = "Player", EditDefaultsOnly)
     FGameplayTagContainer GameplayTags;
 
-    UPROPERTY(Category = "Player", EditDefaultsOnly)
-    float Health;
-    default Health = 100;
-
-    UPROPERTY(Category = "Player", EditDefaultsOnly)
-    float MaxHealth;
-    default MaxHealth = 100;
-
     UManualWalkingComponent ManualWalkingComponent;
     UManualReloadComponent ManualReloadComponent;
     UManualBlinkingComponent ManualBlinkingComponent;
     UManualBreathingComponent ManualBreathingComponent;
     UManualHeartbeatComponent ManualHeartbeatComponent;
     UHolster HolsterComponent;
-
-    UFUNCTION(BlueprintOverride)
-    void ConstructionScript()
-    {
-        Health = MaxHealth;
-    }
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
@@ -39,6 +25,16 @@ class AAngelPlayerCharacter : ACharacter
 
     UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
     void BP_BeginPlay() { }
+
+    UFUNCTION(BlueprintOverride)
+    void Tick(float DeltaSeconds)
+    {
+        
+    }
+
+    UFUNCTION(BlueprintEvent, DisplayName = "Tick")
+    void BP_Tick(float DeltaSeconds) { }
+
 };
 
 AAngelPlayerCharacter GetAngelCharacter(AActor Actor)
@@ -49,14 +45,4 @@ AAngelPlayerCharacter GetAngelCharacter(AActor Actor)
 AAngelPlayerCharacter GetAngelCharacter(int PlayerIndex)
 {
     return Cast<AAngelPlayerCharacter>(Gameplay::GetPlayerCharacter(PlayerIndex));
-}
-
-float GetPlayerHealth(int PlayerIndex)
-{
-    AAngelPlayerCharacter PlayerCharacter = GetAngelCharacter(PlayerIndex);
-    if (IsValid(PlayerCharacter))
-    {
-        return PlayerCharacter.Health;
-    }
-    return -1; // Return -1 if the player character is not valid
 }

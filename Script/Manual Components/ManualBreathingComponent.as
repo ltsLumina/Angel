@@ -2,17 +2,19 @@ enum EManualBreathingState
 {
     Inhale,
     Exhale,
+    Hold,
 };
 
 class UManualBreathingComponent : UActorComponent
 {
     UCameraComponent Camera;
+    UManualHeartbeatComponent HeartbeatComponent;
 
     UPROPERTY(Category = "Breathing")
     bool UseBreathing;
     default UseBreathing = true;
 
-    UPROPERTY(Category = "Breathing", Meta = (ClampMin = MinOxygen, ClampMax = MaxOxygen))
+    UPROPERTY(Category = "Breathing", EditDefaultsOnly, Meta = (ClampMin = MinOxygen, ClampMax = MaxOxygen))
     float Oxygen;
     default Oxygen = 100;
 
@@ -43,32 +45,62 @@ class UManualBreathingComponent : UActorComponent
     bool IsInhaling;
 
     UFUNCTION(Category = "Breathing | Inhale", BlueprintPure)
-    bool GetBreathingState() const
-    {
-        return BreathingState == EManualBreathingState::Inhale;
-    }
+    bool GetBreathingState() const { return BreathingState == EManualBreathingState::Inhale; }
 
-    // Timer that ticks while inhaling. If the player holds the inhale key, this timer will increase.
-    UPROPERTY(Category = "Breathing | Inhale", VisibleAnywhere)
+    // Timer that ticks while inhaling.
+    UPROPERTY(Category = "Breathing | Inhale", VisibleAnywhere, Meta = (Units = "Seconds"))
     float InhaleTime;
     default InhaleTime = 0;
 
     // Maximum time for inhaling before it stops. Defaults to the time it takes to fill the lungs completely based on the oxygen inhale rate.
-    UPROPERTY(Category = "Breathing | Inhale", EditDefaultsOnly)
+    UPROPERTY(Category = "Breathing | Inhale", EditDefaultsOnly, Meta = (Units = "Seconds"))
     float MaxInhaleTime;
     default MaxInhaleTime = MaxOxygen / OxygenInhaleRate;
 
-    UPROPERTY(Category = "Breathing | Inhale")
+    UPROPERTY(Category = "Breathing | Inhale", Meta = (Units = "Seconds"))
     float TimeSinceInhale;
-    default TimeSinceInhale = 999; // Start with a high value to allow immediate inhalation
+    default TimeSinceInhale = 4140; // Start with a high value to allow immediate inhalation
 
-    UPROPERTY(Category = "Breathing | Inhale")
+    // How long the player must wait before they can inhale again after exhaling.
+    UPROPERTY(Category = "Breathing | Inhale", Meta = (Units = "Seconds"))
     float InhaleCooldown;
-    default InhaleCooldown = 1.5; // Cooldown before the player can inhale again
+    default InhaleCooldown = 1.5;
 
-    float AsphyxiaEffect = 1;
+// - hold breath
 
-    // How fast the asphyxia effect applies and reaches its maximum value
+    // Timer that ticks while holding breath. If the player holds the inhale key, this timer will increase.
+    UPROPERTY(Category = "Breathing | Hold", VisibleAnywhere, Meta = (Units = "Seconds"))
+    float HoldBreathTime;
+    default HoldBreathTime = 0;
+
+    // The amount of time the player must be inhaling at >=100 oxygen before they begin to hold their breath.
+    UPROPERTY(Category = "Breathing | Hold", EditDefaultsOnly, Meta = (Units = "Seconds"))
+    float HoldBreathThreshold;
+    default HoldBreathThreshold = 1.5;
+
+    // Maximum time the player can hold their breath before they start to asphyxiate.
+    UPROPERTY(Category = "Breathing | Hold", EditDefaultsOnly, Meta = (Units = "Seconds"))
+    float MaxHoldBreathTime;
+    default MaxHoldBreathTime = 2.5f;
+
+    // How much oxygen is depleted per second while holding breath.
+    UPROPERTY(Category = "Breathing | Hold", EditDefaultsOnly, Meta = (Units = "Percent"))
+    float HoldBreathOxygenDepletionRateModifier;
+    default HoldBreathOxygenDepletionRateModifier = 10; // Converts to percentage at usage.
+
+// - asphyxia effect
+    // The effect applied to the camera when the player is asphyxiating. This is a post-process effect that changes the color gain.
+    UPROPERTY(Category = "Breathing | Asphyxia Effect", VisibleAnywhere)
+    float AsphyxiaEffect;
+    default AsphyxiaEffect = 0;
+
+    UPROPERTY(Category = "Breathing | Asphyxia Effect", VisibleAnywhere, BlueprintGetter = "GetIsAsphyxiating")
+    bool IsAsphyxiating;
+
+    UFUNCTION(Category = "Breathing | Asphyxia Effect", BlueprintPure)
+    bool GetIsAsphyxiating() const { return !Math::IsNearlyEqual(AsphyxiaEffect, 0, 0.1f); }
+
+    // How fast the asphyxia effect applies and reaches its maximum value.
     UPROPERTY(Category = "Breathing | Asphyxia Effect")
     float AsphyxiaEffectRate;
     default AsphyxiaEffectRate = 1;
@@ -77,19 +109,15 @@ class UManualBreathingComponent : UActorComponent
     float AsphyxiaEffectThreshold;
     default AsphyxiaEffectThreshold = 25; // Oxygen level below which asphyxia effect starts
 
-// components
-
-    UManualHeartbeatComponent ManualHeartbeatComponent;
-
 // end
     
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
-        ManualHeartbeatComponent = UManualHeartbeatComponent::Get(GetOwner());
-
         Camera = UCameraComponent::Get(GetOwner());
         Camera.PostProcessSettings.bOverride_ColorGain = true;
+
+        HeartbeatComponent = UManualHeartbeatComponent::Get(GetOwner());
 
         // Initialize any necessary variables or states here
         BP_BeginPlay();
@@ -102,87 +130,120 @@ class UManualBreathingComponent : UActorComponent
     UFUNCTION(BlueprintOverride)
     void Tick(float DeltaSeconds)
     {
-        BP_Tick(DeltaSeconds);
-
         if (!UseBreathing) return;
 
-        if (GetBreathingState())
+        switch (BreathingState)
         {
-            // If inhaling, increase oxygen
-            Oxygen = Math::Clamp(Oxygen + (OxygenInhaleRate * DeltaSeconds), MinOxygen, MaxOxygen);
+            case EManualBreathingState::Inhale:
+                Oxygen = Math::Clamp(Oxygen + (OxygenInhaleRate * DeltaSeconds), MinOxygen, MaxOxygen);
+                InhaleTime += DeltaSeconds;
 
-            InhaleTime += DeltaSeconds;
-
-            // If the inhale timer exceeds the maximum inhale time or oxygen is full, stop inhaling, and exhale
-            if (InhaleTime >= MaxInhaleTime)
-            {
                 // Stop inhaling after reaching the maximum inhale time
-                Exhale(EKeys::Invalid);
-                InhaleTime = 0.0f; // Reset the inhale timer
-            }
+                if (InhaleTime >= MaxInhaleTime)
+                {
+                    Exhale();
+                }
 
-            // If oxygen is full, increase heartbeat BPM until you exhale
-            if (Oxygen >= MaxOxygen)
-            {
-                ManualHeartbeatComponent.IncreaseBPM(0.5f);
-            }
+                if (Oxygen >= MaxOxygen && InhaleTime > HoldBreathThreshold)
+                {
+                    BreathingState = EManualBreathingState::Hold;
+                    return;
+                }
 
-            WhileInhale();
-        }
-        else
-        {
-            // Deplete oxygen over time
-            Oxygen = Math::Clamp(Oxygen - (OxygenDepletionRate * DeltaSeconds), MinOxygen, MaxOxygen);
+                BP_Inhaling();
+                break;
 
-            TimeSinceInhale += DeltaSeconds;
+            case EManualBreathingState::Exhale:
+                Oxygen = Math::Clamp(Oxygen - (OxygenDepletionRate * DeltaSeconds), MinOxygen, MaxOxygen);
+                TimeSinceInhale += DeltaSeconds;
 
-            WhileExhale();
+                BP_Exhaling();
+                break;
+
+            case EManualBreathingState::Hold:
+                HoldBreathTime += DeltaSeconds;
+                InhaleTime = 0.0f;
+                TimeSinceInhale = 4140; // Allow immediate inhalation again after holding breath
+                
+                if (HoldBreathTime >= MaxHoldBreathTime)
+                {
+                    Oxygen = 0;
+                }
+
+                BP_HoldingBreath();
+                break;
         }
 
         // Applies once oxygen is below a certain threshold (e.g., 25)
-        AsphyxiaEffect = Math::FInterpTo(AsphyxiaEffect, Math::Clamp(Oxygen / AsphyxiaEffectThreshold, 0, 1), DeltaSeconds, AsphyxiaEffectRate);
-        Camera.PostProcessSettings.ColorGain = FVector4(AsphyxiaEffect, AsphyxiaEffect, AsphyxiaEffect, AsphyxiaEffect);
+        float TargetAsphyxia = 0.0f;
+        if (Oxygen < AsphyxiaEffectThreshold)
+        {
+            TargetAsphyxia = 1.0f - Math::Clamp(Oxygen / AsphyxiaEffectThreshold, 0, 1);
+        }
+        AsphyxiaEffect = Math::FInterpTo(AsphyxiaEffect, TargetAsphyxia, DeltaSeconds, AsphyxiaEffectRate);
+        float InvertedAsphyxia = 1.0f - AsphyxiaEffect; // 0 = full effect, 1 = no effect for ColorGain
+        Camera.PostProcessSettings.ColorGain = FVector4(InvertedAsphyxia, InvertedAsphyxia, InvertedAsphyxia, InvertedAsphyxia);
+
+        // Player has asphyxiated.
+        if (Math::IsNearlyEqual(AsphyxiaEffect, 1, 0.1f))
+        {
+            if (HeartbeatComponent.IsInCardiacArrest) return;
+            
+            HeartbeatComponent.OnCardiacArrest();
+        }
+
+        BP_Tick(DeltaSeconds);
     }
 
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Tick"))
+    UFUNCTION(BlueprintEvent, DisplayName = "Tick")
     void BP_Tick(float DeltaSeconds) { }
 
     UFUNCTION(NotBlueprintCallable)
-    void Inhale(FKey _)
+    void Inhale(FKey _ = EKeys::Invalid)
     {
+        if (BreathingState == EManualBreathingState::Inhale) return;
+
         // If the inhale cooldown is active, do not allow inhaling
         if (TimeSinceInhale < InhaleCooldown) return;
 
         BreathingState = EManualBreathingState::Inhale;
+        InhaleTime = 0.0f; // Reset the inhale timer
         TimeSinceInhale = 0.0f; // Reset the time since last inhale
 
-        OnInhale();
+        BP_OnInhale();
     }
 
-    UFUNCTION(BlueprintEvent)
-    void WhileInhale()
+    UFUNCTION(BlueprintEvent, DisplayName = "Inhaling")
+    void BP_Inhaling()
     { }
 
-    UFUNCTION(BlueprintEvent)
-    void OnInhale()
+    UFUNCTION(BlueprintEvent, DisplayName = "Inhale")
+    void BP_OnInhale()
     { }
+
+    bool EnteredHoldBreath = false;
 
     UFUNCTION(NotBlueprintCallable)
-    void Exhale(FKey _)
+    void Exhale(FKey _ = EKeys::Invalid)
     {
-        // Can't exhale if you haven't inhaled yet
-        if (BreathingState != EManualBreathingState::Inhale) return;
+        if (BreathingState == EManualBreathingState::Exhale) return;
 
         BreathingState = EManualBreathingState::Exhale;
+        InhaleTime = 0.0f; // Reset the inhale timer
+        HoldBreathTime = 0.0f; // Reset the hold breath timer
 
-        OnExhale();
+        BP_OnExhale();
     }
 
-    UFUNCTION(BlueprintEvent)
-    void WhileExhale()
+    UFUNCTION(BlueprintEvent, DisplayName = "Exhaling")
+    void BP_Exhaling()
     { }
 
-    UFUNCTION(BlueprintEvent)
-    void OnExhale()
+    UFUNCTION(BlueprintEvent, DisplayName = "Exhale")
+    void BP_OnExhale()
+    { }
+
+    UFUNCTION(BlueprintEvent, DisplayName = "Hold Breath")
+    void BP_HoldingBreath() 
     { }
 };

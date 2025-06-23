@@ -2,6 +2,10 @@ class UManualBlinkingComponent : UActorComponent
 {
     UCameraComponent Camera;
 
+    UPROPERTY(Category = "Config | Blinking", EditDefaultsOnly)
+    bool UseBlinking;
+    default UseBlinking = true;
+
     // The percentage of the screen that will be blurred during blinking. A value of 0.0 means no blur, and 1.0 means full blur.
     UPROPERTY(Category = "Gameplay | Blinking", EditDefaultsOnly)
     float BlurPercentage;
@@ -22,11 +26,6 @@ class UManualBlinkingComponent : UActorComponent
     float MaxFocalDistance;
     default MaxFocalDistance = 250;
 
-    // - config | blinking
-    UPROPERTY(Category = "Config | Blinking", EditDefaultsOnly)
-    bool UseBlinking;
-    default UseBlinking = true;
-
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
@@ -42,7 +41,7 @@ class UManualBlinkingComponent : UActorComponent
         BP_BeginPlay();
     }
 
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
+    UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
     void BP_BeginPlay() { }
 
     UFUNCTION(BlueprintOverride)
@@ -53,7 +52,7 @@ class UManualBlinkingComponent : UActorComponent
         BP_Tick(DeltaSeconds);
     }
 
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Tick"))
+    UFUNCTION(BlueprintEvent, DisplayName = "Tick")
     void BP_Tick(float DeltaSeconds) { }
 
     UFUNCTION(BlueprintCallable, Category = "Blinking")
@@ -61,11 +60,13 @@ class UManualBlinkingComponent : UActorComponent
     {
         if (!UseBlinking) return;
 
+        float FlowModifer = GameplayTag::HasTag(GetAngelCharacter(GetOwner()).GameplayTags, GameplayTags::Buffs_State_Flow, true) ? 0.25f : 1.0f;
+
          Camera.PostProcessSettings.DepthOfFieldFocalDistance = Math::FInterpTo(
             Camera.PostProcessSettings.DepthOfFieldFocalDistance, 
             MinFocalDistance, 
             DeltaSeconds, 
-            BlurRate);
+            BlurRate * FlowModifer);
 
         // Convert the current focal distance to a percentage of the maximum focal distance
         BlurPercentage = 1.0f - ((Camera.PostProcessSettings.DepthOfFieldFocalDistance - MinFocalDistance) / (MaxFocalDistance - MinFocalDistance));
@@ -76,23 +77,22 @@ class UManualBlinkingComponent : UActorComponent
     UFUNCTION(BlueprintCallable, Category = "Blinking")
     void Blink(FKey _)
     {
-        Camera.PostProcessSettings.ColorGamma = FVector4(0,0,0, 0); // Initial color gain
+        BlurPercentage = 0.0f;
+        Camera.PostProcessSettings.ColorGamma = FVector4(0,0,0,0);
 
-        System::SetTimer(this, n"OnBlink", 0.1f, false);
+        System::SetTimer(this, n"OnBlink", 0.05f, false);
     }
 
     UFUNCTION(NotBlueprintCallable, Category = "Blinking")
     void OnBlink()
     {
+        BlurPercentage = 1.0f;
         Camera.PostProcessSettings.DepthOfFieldFocalDistance = MaxFocalDistance; // Reset focal distance
         Camera.PostProcessSettings.ColorGamma = FVector4(1.0f, 1.0f, 1.0f, 1.0f); // Reset color gain
 
         BP_OnBlink();
     }
 
-    UFUNCTION(BlueprintEvent, Category = "Blinking")
-    void BP_OnBlink()
-    {
-        // This can be overridden in Blueprints to add custom behavior after blinking.
-    }
+    UFUNCTION(BlueprintEvent, Category = "Blinking", DisplayName = "Blinked")
+    void BP_OnBlink() { }
 };

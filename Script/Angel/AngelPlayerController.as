@@ -66,9 +66,6 @@ class AAngelPlayerController : APlayerController
         InputComponent.BindKey(EKeys::SpaceBar, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualBreathingComponent, n"Inhale"));
         InputComponent.BindKey(EKeys::SpaceBar, EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(ManualBreathingComponent, n"Exhale"));
 
-        // Heartbeat
-        InputComponent.BindKey(EKeys::LeftShift, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualHeartbeatComponent, n"OnKeyPressed"));
-
         // UI/Inventory
         InputComponent.BindAction(InventoryAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"ToggleInventory"));
 

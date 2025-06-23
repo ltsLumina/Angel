@@ -4,7 +4,7 @@ class UManualWalkingComponent : UActorComponent
     bool UseStamina;
     default UseStamina = true;
 
-    UPROPERTY(Category = "Gameplay | Stamina", Meta = (ClampMin = MinStamina, ClampMax = MaxStamina))
+    UPROPERTY(Category = "Gameplay | Stamina", EditDefaultsOnly, Meta = (ClampMin = MinStamina, ClampMax = MaxStamina))
     float Stamina;
     default Stamina = 100;
 

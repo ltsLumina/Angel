@@ -4,10 +4,14 @@ class UManualHeartbeatComponent : UActorComponent
     bool UseHeartbeat;
     default UseHeartbeat = true;
 
-    // The current heart rate in beats per minute (BPM). Average resting heart rate is around 60-100 BPM.
     UPROPERTY(Category = "Config | Heartbeat", VisibleAnywhere)
+    bool IsHeartbeatPaused;
+    default IsHeartbeatPaused = false;
+
+    // The current heart rate in beats per minute (BPM). Average resting heart rate is around 60-100 BPM.
+    UPROPERTY(Category = "Config | Heartbeat", EditDefaultsOnly)
     float CurrentBPM;
-    default CurrentBPM = 60; // Default to 60 beats per minute
+    default CurrentBPM = 60;
 
     // The upper limit for the heart rate. Reaching this will kill the player.
     UPROPERTY(Category = "Config | Heartbeat", EditDefaultsOnly)
@@ -17,25 +21,14 @@ class UManualHeartbeatComponent : UActorComponent
     // The minimum heart rate for the player. Reaching this will kill the player.
     UPROPERTY(Category = "Config | Heartbeat", EditDefaultsOnly)
     float MinBPM;
-    default MinBPM = 0;
+    default MinBPM = 20;
 
-    // The time window in which the player must press the beat key to register a successful beat.
-    UPROPERTY(Category = "Config | Input", VisibleAnywhere)
-    float BeatWindow;
-    default BeatWindow = .5f; // in ms
+    UPROPERTY(Category = "Config | State | Fatigue", VisibleAnywhere, BlueprintGetter = "GetBeatInterval", Meta=(Units="Seconds"))
+    float BeatInterval;
+    default BeatInterval = SecondsInMinute / CurrentBPM;
 
-    // The time window in which the player can successfully press the beat key (as a percentage, 1 = 1%)
-    UPROPERTY(Category = "Config | Input", EditDefaultsOnly)
-    float BeatWindowPercent;
-    default BeatWindowPercent = 30.0f; // 30%
-
-    UPROPERTY(Category = "Config | Input", EditDefaultsOnly)
-    float HeartbeatLeadTime = 0.15f; // seconds before beat to play the heartbeat sound cue
-
-    // Tracks the last time the beat was pressed to prevent spamming
-    UPROPERTY(Category = "Config | Input", VisibleAnywhere)
-    float LastBeatPressTime;
-    default LastBeatPressTime = -999.0f; // Start with a negative value to allow immediate first press
+    UFUNCTION(BlueprintPure, Category = "Config | Heartbeat")
+    float GetBeatInterval() const { return SecondsInMinute / CurrentBPM; }
 
     // Within this threshold , the player is considered in a fatigue state, which slows down the game speed.
     UPROPERTY(Category = "Config | State | Fatigue", EditDefaultsOnly)
@@ -54,11 +47,11 @@ class UManualHeartbeatComponent : UActorComponent
     UPROPERTY(Category = "Config | State | Flow", EditDefaultsOnly)
     float FlowSpeedMultiplier;
 
-    UPROPERTY(Category = "Config | Cardiac Arrest", VisibleAnywhere, BlueprintGetter = "GetIsInCardiacArrest")
+    UPROPERTY(Category = "Config | Cardiac Arrest", VisibleAnywhere)
     bool IsInCardiacArrest;
 
-    UFUNCTION(BlueprintPure, Category = "Config | Cardiac Arrest")
-    bool GetIsInCardiacArrest() const { return CurrentBPM == 0; }
+    UPROPERTY(Category = "Config | Cardiac Arrest", VisibleAnywhere, BlueprintGetter = GetAverageSurvivalTimeAtHighBPM, Meta=(Units="Seconds"))
+    float AverageSurvivalTime;
 
     // The chance of cardiac arrest occurring when the heart rate is above a certain threshold for a sustained period, which accumulates while the player is in a high BPM state.
     UPROPERTY(Category = "Config | Cardiac Arrest", EditDefaultsOnly,  Meta=(Units="Percent"))
@@ -69,7 +62,6 @@ class UManualHeartbeatComponent : UActorComponent
     UPROPERTY(Category = "Config | Cardiac Arrest", EditDefaultsOnly, Meta=(Units="Percent"))
     float MinCardiacArrestChance;
     default MinCardiacArrestChance = 1.0f; // 1% minimum threshold
-
     
     // An accumulated risk of cardiac arrest that persists even after leaving high BPM states.
     UPROPERTY(Category = "Config | Cardiac Arrest", VisibleAnywhere, Meta=(Units="Percent"))
@@ -91,89 +83,64 @@ class UManualHeartbeatComponent : UActorComponent
 
     const int SecondsInMinute = 60; // Total seconds in a minute. Used for 'beats per minute' calculations.
 
-    // Tracks the next time the beat should occur based on the current BPM.
-    float NextBeatTime;
-    bool bBeatPressed = false;
-
+    UPROPERTY(NotVisible)
     FTimerHandle HeartBeatTimer;
 
-    int SurvivalTicks = 0;
-    bool bSimulatingSurvival = false;
+    // Helper to convert percent property (1 = 1%) to normalized value (0.01 = 1%)
+    float PercentToNormalized(float PercentValue)
+    {
+        if (PercentValue < 0.0f || PercentValue > 100.0f)
+        {
+            Print("Percent value out of range! Must be between 0 and 100.", 2.0f, FLinearColor::Red);
+            return 0.0f;
+        }
 
+        return PercentValue * 0.01f;
+    }
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
         BP_BeginPlay();
 
-        float BeatInterval = SecondsInMinute / CurrentBPM;
-        NextBeatTime = System::GetGameTimeInSeconds() + BeatInterval;
-        HeartBeatTimer = System::SetTimer(this, n"OnHeartBeat", BeatInterval, true);
-
         OnHeartBeat(); // Trigger the first heartbeat immediately
     }
+
+    UFUNCTION(BlueprintOverride)
+    void Tick(float DeltaSeconds)
+    {
+        if (CurrentBPM <= MinBPM)
+        {
+            if (IsInCardiacArrest) return;
+
+            // Trigger cardiac arrest if BPM is less than minimum
+            OnCardiacArrest();
+        }
+
+        BP_Tick(DeltaSeconds);   
+    }
+
+    UFUNCTION(BlueprintEvent, DisplayName = "Tick")
+    void BP_Tick(float DeltaSeconds) { }
 
     UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
     void BP_BeginPlay() { }
 
-    // Helper to convert percent property (1 = 1%) to normalized value (0.01 = 1%)
-    float PercentToNormalized(float PercentValue)
-    {
-        return PercentValue * 0.01f;
-    }
-
-    // This is likely going to be deprecated.
     UFUNCTION(NotBlueprintCallable)
-    void OnKeyPressed(FKey _)
-    {
-        float CurrentTime = System::GetGameTimeInSeconds();
-        float BeatInterval = SecondsInMinute / CurrentBPM;
-        // Use normalized percent for BeatWindowPercent
-        BeatWindow = BeatInterval * PercentToNormalized(BeatWindowPercent);
-
-        // Prevent spamming: ignore if pressed too soon after last press
-        if (CurrentTime - LastBeatPressTime < BeatInterval * 0.6f)
-        {
-            Print("Too soon!", .3f, FLinearColor::Yellow);
-            return;
-        }
-
-        LastBeatPressTime = CurrentTime;
-
-        // Check if within window
-        if (Math::Abs(CurrentTime - NextBeatTime) <= BeatWindow)
-        {
-            bBeatPressed = true;
-            Print(f"On Beat! ({CurrentBPM} BPM)", .5f, FLinearColor::Green);
-        }
-    }
-
-    UFUNCTION()
     void OnHeartBeat()
     {
         if (!UseHeartbeat) return;
-        if (GetIsInCardiacArrest()) return;
+        if (IsInCardiacArrest) return;
 
-        if (!bBeatPressed)
-        {
-            CurrentBPM = Math::Clamp(CurrentBPM - 1, MinBPM, MaxBPM);
-            //Print("Missed Beat!", 0.5f, FLinearColor::Red);
-        }
-        else
-        {
-            bBeatPressed = false;
-        }
+        if (!IsHeartbeatPaused) CurrentBPM = Math::Clamp(CurrentBPM - 1, MinBPM, MaxBPM);
 
-        if (CurrentBPM == 0) { return; }
-        float BeatInterval = SecondsInMinute / CurrentBPM;
-        NextBeatTime = System::GetGameTimeInSeconds() + BeatInterval;
-
-        System::SetTimer(this, n"OnHeartBeat", BeatInterval, true);
-        Print(f"Heartbeat: {CurrentBPM} BPM", BeatInterval, FLinearColor(0.79, 0.25, 0.55));
+        HeartBeatTimer = System::SetTimer(this, n"OnHeartBeat", GetBeatInterval(), false);
+        Print(f"Heartbeat: {CurrentBPM} BPM", GetBeatInterval(), FLinearColor(0.79, 0.25, 0.55));
+        if (IsHeartbeatPaused) Print("Heartbeat is paused!", GetBeatInterval(), FLinearColor(0.87, 0.27, 0.27));
 
         if (CurrentBPM > FlowRange.Y)
         {
-            Print("Heart rate too high! Cardiac arrest imminent!", BeatInterval, FLinearColor::Red);
+            Print("Heart rate too high! Cardiac arrest imminent!", GetBeatInterval(), FLinearColor::Red);
 
             ConsecutiveHighBPMBeats++; // Increment counter
 
@@ -182,17 +149,20 @@ class UManualHeartbeatComponent : UActorComponent
             CardiacArrestChance = Math::Clamp(CardiacArrestChance + RandomIncrease, 0.0f, 100.0f);
 
             // Combine current chance with persistent risk (all in percent)
-            float Chance = CardiacArrestChance + PersistentRisk;
-            Chance = Math::Clamp(Chance, 0.0f, 100.0f);
+            float ChancePerBeat = CardiacArrestChance + PersistentRisk;
+            ChancePerBeat = Math::Clamp(ChancePerBeat, 0.0f, 100.0f);
+            float NormalizedChance = PercentToNormalized(ChancePerBeat);
+            float CardiacArrestValue = Math::RandRange(0.0f, 1.0f);
 
-            LastCumulativeChance = Chance;
+            LastCumulativeChance = ChancePerBeat;
 
-            Print(f"Cardiac Arrest Chance: {Chance}%", BeatInterval, FLinearColor::Yellow);
-            Print(f"Consecutive High BPM Beats: {ConsecutiveHighBPMBeats}", BeatInterval, FLinearColor::Yellow);
-            Print(f"Persistent Risk: {PersistentRisk}%", BeatInterval, FLinearColor::Yellow);
+            Print(f"Normalized Chance: {NormalizedChance}", GetBeatInterval(), FLinearColor::Yellow);
+            Print(f"Cardiac Arrest Chance: {ChancePerBeat}%", GetBeatInterval(), FLinearColor::Yellow);
+            Print(f"Consecutive High BPM Beats: {ConsecutiveHighBPMBeats}", GetBeatInterval(), FLinearColor::Yellow);
+            Print(f"Persistent Risk: {PersistentRisk}%", GetBeatInterval(), FLinearColor::Yellow);
 
             // Only allow cardiac arrest if chance is above the minimum threshold
-            if (Chance >= MinCardiacArrestChance && Math::RandRange(0.0f, 1.0f) < PercentToNormalized(Chance))
+            if (ChancePerBeat >= MinCardiacArrestChance && CardiacArrestValue < NormalizedChance)
             {
                 Print("Cardiac arrest occurred!", 10.0f, FLinearColor::Red);
                 
@@ -212,9 +182,9 @@ class UManualHeartbeatComponent : UActorComponent
         }
 
         // Check for flow state (BPM within flow range)
-        if (CurrentBPM < FlowRange.Y && CurrentBPM > FlowRange.X)
+        if (CurrentBPM <= FlowRange.Y && CurrentBPM >= FlowRange.X)
         {
-            Print("Heart rate in flow state!", BeatInterval, FLinearColor::Green);
+            Print("Heart rate in flow state!", GetBeatInterval(), FLinearColor::Green);
             GameplayTag::AddGameplayTag(GetAngelCharacter(GetOwner()).GameplayTags, GameplayTags::Buffs_State_Flow);
         }
         else 
@@ -223,9 +193,9 @@ class UManualHeartbeatComponent : UActorComponent
         }
 
         // Check for fatigue state (BPM within fatigue range)
-        if (CurrentBPM < FatigueRange.Y && CurrentBPM > FatigueRange.X)
+        if (CurrentBPM < FatigueRange.Y && CurrentBPM >= FatigueRange.X)
         {
-            Print("Heart rate in fatigue state!", BeatInterval, FLinearColor::Blue);
+            Print("Heart rate in fatigue state!", GetBeatInterval(), FLinearColor::Blue);
             GameplayTag::AddGameplayTag(GetAngelCharacter(GetOwner()).GameplayTags, GameplayTags::Buffs_State_Fatigue);
         }
         else
@@ -236,16 +206,30 @@ class UManualHeartbeatComponent : UActorComponent
         BP_OnHeartBeat(CurrentBPM);
     }
 
-    UFUNCTION(BlueprintEvent, DisplayName = "On Cardiac Arrest")
+    UFUNCTION(CallInEditor, DisplayName = "Induce Cardiac Arrest")
+    void OnCardiacArrest()
+    {
+        if (IsInCardiacArrest) return;
+
+        IsInCardiacArrest = true;
+
+        CurrentBPM = 0;
+        System::ClearAndInvalidateTimerHandle(HeartBeatTimer);
+
+        UCameraComponent::Get(GetAngelCharacter(GetOwner())).PostProcessSettings.ColorGamma = FVector4(0.5f,0.5f,0.5f,0.5f);
+        UCameraComponent::Get(GetAngelCharacter(GetOwner())).bUsePawnControlRotation = false;
+        UCameraComponent::Get(GetAngelCharacter(GetOwner())).SetRelativeRotation(FRotator(0,0,90));
+
+        BP_OnCardiacArrest();
+    }
+
+    UFUNCTION(BlueprintEvent, DisplayName = "Cardiac Arrest")
     void BP_OnCardiacArrest() { }
 
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "On Heart Beat"))
+    UFUNCTION(BlueprintEvent, DisplayName = "Heart Beats")
     void BP_OnHeartBeat(float InCurrentBPM) { }
 
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "On Heart Beat (Early)"))
-    void BP_OnHeartBeatEarly() { }
-
-    // utility functions
+// - Utility
 
     UFUNCTION(CallInEditor)
     void IncreaseBPM(float Amount = 5.0f)
@@ -265,28 +249,58 @@ class UManualHeartbeatComponent : UActorComponent
 
     void UpdateHeartBeatTimer()
     {
-        float BeatInterval = SecondsInMinute / CurrentBPM;
         System::ClearAndInvalidateTimerHandle(HeartBeatTimer);
-        NextBeatTime = System::GetGameTimeInSeconds() + BeatInterval;
-        HeartBeatTimer = System::SetTimer(this, n"OnHeartBeat", BeatInterval, true);
+        HeartBeatTimer = System::SetTimer(this, n"OnHeartBeat", GetBeatInterval(), true);
     }
 
-    UFUNCTION(CallInEditor, DisplayName = "Induce Cardiac Arrest")
-    void OnCardiacArrest()
+    UFUNCTION()
+    void PauseHeartbeat()
     {
-        CurrentBPM = 0; // Set BPM to 0 to simulate cardiac arrest
-        System::ClearAndInvalidateTimerHandle(HeartBeatTimer); // Stop heartbeat timer
-
-        UCameraComponent::Get(GetAngelCharacter(GetOwner())).PostProcessSettings.ColorGamma = FVector4(0.5f,0.5f,0.5f,0.5f);
-        UCameraComponent::Get(GetAngelCharacter(GetOwner())).bUsePawnControlRotation = false;
-        UCameraComponent::Get(GetAngelCharacter(GetOwner())).SetRelativeRotation(FRotator(0,0,90));
-
-        BP_OnCardiacArrest();
+        IsHeartbeatPaused = true;
     }
-};
 
-UFUNCTION(BlueprintPure)
-bool IsAlive(UManualHeartbeatComponent Target)
+    UFUNCTION()
+    void ResumeHeartbeat()
+    {
+        IsHeartbeatPaused = false;
+    }
+
+    UFUNCTION(BlueprintPure)
+    bool IsAlive()
+    {
+        return IsValid(this) && UseHeartbeat && !IsInCardiacArrest;
+    }
+
+// - utility func
+
+/**
+ * Calculate and return the average survival time in seconds at 220 BPM,
+ * given the current cardiac arrest settings.
+ */
+UFUNCTION(NotBlueprintCallable, BlueprintPure)
+float GetAverageSurvivalTimeAtHighBPM()
 {
-    return IsValid(Target) && Target.UseHeartbeat && !Target.GetIsInCardiacArrest();
+    // Use 220 BPM for calculation regardless of current BPM
+    float bpm = 220.0f;
+    float beatsPerSecond = bpm / 60.0f;
+
+    // Use current CardiacArrestChance and MinCardiacArrestChance
+    float chancePerBeat = CardiacArrestChance;
+    float minChance = MinCardiacArrestChance;
+
+    // Average increase per beat (assuming random between 0 and CardiacArrestChance)
+    float avgIncreasePerBeat = CardiacArrestChance * 0.5f;
+
+    // Beats needed to reach minChance
+    float beatsToMinChance = (minChance > 0.0f && avgIncreasePerBeat > 0.0f) ? (minChance / avgIncreasePerBeat) : 0.0f;
+    float timeToMinChance = beatsToMinChance / beatsPerSecond;
+
+    // Once at minChance, expected beats before arrest = 1 / (minChance * 0.01)
+    float normalizedMinChance = minChance * 0.01f;
+    float expectedBeatsAfterMin = (normalizedMinChance > 0.0f) ? (1.0f / normalizedMinChance) : 0.0f;
+    float timeAfterMinChance = expectedBeatsAfterMin / beatsPerSecond;
+
+    return timeToMinChance + timeAfterMinChance;
 }
+
+};
