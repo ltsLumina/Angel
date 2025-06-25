@@ -65,10 +65,28 @@ class UManualWalkingComponent : UActorComponent
     UPROPERTY(Category = "Config | Movement", BlueprintGetter = GetCanMove, VisibleAnywhere)
     bool CanMove;
 
+    /* Requires the following conditions to be true:
+       1. Time since last input is greater than or equal to the input delay.
+       2. Stamina is greater than the minimum required stamina.
+       3. Move input is not zero (i.e., player is trying to move).
+       4. Move input magnitude is greater than or equal to the minimum input magnitude.
+    */
     UFUNCTION(BlueprintPure, Category = "Gameplay | Movement")
-    bool GetCanMove() const { return TimeSinceInput >= InputDelay; }
+    bool GetCanMove() const { 
+        return MoveDelayCondition() && StaminaCondition() && InputCondition() && InputMagnitudeCondition();
+    }
+
+    bool MoveDelayCondition() const { return TimeSinceInput >= InputDelay;}
+    bool StaminaCondition() const { return Stamina >= MoveLegStaminaCost; }
+    bool InputCondition() const { return MoveInput != FVector2D::ZeroVector; }
+    bool InputMagnitudeCondition() const { return MoveInput.Size() >= MinInputMagnitude; }
 
 // - config | input
+
+    // The minimum input magnitude required to move. If the input is below this value, the player will not move. This also doubles as a minimum move distance.
+    UPROPERTY(Category = "Config | Input")
+    float MinInputMagnitude;
+    default MinInputMagnitude = 0.2f;
 
     UPROPERTY(Category = "Config | Input", VisibleAnywhere)
     bool MoveCooldown;
@@ -161,32 +179,16 @@ class UManualWalkingComponent : UActorComponent
         {
             if (!GetCanMove())
             {
-                SubtractStamina(RepeatInputStaminaPenalty);
-                Print("Cannot Move: Input delay active. \nStamina Penalty Applied", 1, FLinearColor(0.93, 0.29, 0.44));
+                Print(f"Cannot Move: GetCanMove() evaluated to: {GetCanMove()}", 1, FLinearColor(0.93, 0.29, 0.44));
                 return;
             }
 
-            if (MoveInput == FVector2D::ZeroVector)
-            {
-                Print("Cannot Move: No movement input detected!", 1, FLinearColor(0.93, 0.29, 0.44));
-                //return;
-            }
-
-            BP_OnKeyPressed(Key);
-
-            if (TryPerformMove(Key))
-            {
-                SwapExpectedMoveKey();
-            }
-            else
-            {
-                Print("Cannot Move: Not enough stamina!", 1, FLinearColor(0.93, 0.29, 0.44));
-                return;
-            }
+            MoveCharacter(Key);
+            SwapExpectedMoveKey();
         }
         else if (Key != ExpectedMoveKey)
         {
-            Print(f"Cannot Move: Incorrect key pressed. \n(Expected: {ExpectedMoveKey.ToString()}, Received: {Key.ToString()})", 3, FLinearColor(0.93, 0.29, 0.44));
+            Print(f"Cannot Move: Incorrect key pressed. \n(Expected: {ExpectedMoveKey.ToString()}, Received: {Key.ToString()})", .5f, FLinearColor(0.93, 0.29, 0.44));
             return;
         }
     }
@@ -194,28 +196,6 @@ class UManualWalkingComponent : UActorComponent
     void SwapExpectedMoveKey()
     {
         ExpectedMoveKey = (ExpectedMoveKey == FKey(n"Q")) ? FKey(n"E") : FKey(n"Q");
-    }
-
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "On Key Pressed"))
-    void BP_OnKeyPressed(FKey Key) { }
-
-    bool TryPerformMove(FKey Key)
-    {
-        if (UseStamina)
-        {
-            if (Stamina > 0)
-            {
-                MoveCharacter(Key);
-                return true;
-            }
-
-            return false;
-        }
-        else
-        {
-            MoveCharacter(Key);
-            return true;
-        }
     }
 
     void MoveCharacter(FKey Key, float MoveDuration = 0.3)

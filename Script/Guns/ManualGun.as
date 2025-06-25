@@ -26,7 +26,10 @@ class AManualGun : AActor
     bool CanShoot;
 
     UFUNCTION(BlueprintPure, Category = "Gun")
-    bool GetCanShoot() const { return CurrentAmmo > 0; }
+    bool GetCanShoot() const { return CurrentAmmo > 0 && !GetIsReloading(); }
+
+    UFUNCTION(BlueprintPure, Category = "Gun")
+    bool GetIsReloading() const { return GetAngelCharacter(0).ManualReloadComponent.GetIsReloading(); }
 
     UPROPERTY(Category = "Config | Gun", EditDefaultsOnly)
     int ReloadSteps;
@@ -41,6 +44,8 @@ class AManualGun : AActor
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
+        SetOwner(GetAngelCharacter(0));
+
         BP_BeginPlay();
     }
 
@@ -55,18 +60,12 @@ class AManualGun : AActor
     }
 
     UFUNCTION(Category = "Gun")
-    void Shoot(bool&out Success)
+    void Shoot()
     {
-        if (CurrentAmmo > 0)
+        if (GetCanShoot())
         {
             CurrentAmmo--;
             Print(f"{GunName} fired! (Ammo: {CurrentAmmo}/{MaxAmmo})", 2, FLinearColor(0.15, 0.32, 0.52));
-            Success = true;
-        }
-        else
-        {
-            Print(f"{GunName} cannot shoot, no ammo left!", 2, FLinearColor(1.00, 0.48, 0.00));
-            Success = false;
         }
     }
 

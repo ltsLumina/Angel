@@ -110,6 +110,11 @@ class AAngelPlayerController : APlayerController
     }
 };
 
+AAngelPlayerController GetAngelController(APawn Pawn)
+{
+    return Cast<AAngelPlayerController>(Pawn.GetController());
+}
+
 AAngelPlayerController GetAngelController(int PlayerIndex)
 {
     return Cast<AAngelPlayerController>(Gameplay::GetPlayerController(PlayerIndex));

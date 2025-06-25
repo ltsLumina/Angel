@@ -114,6 +114,8 @@ class UHolster : UActorComponent
 
     void OnGunEquipped(AManualGun Gun)
     {
+        Gun.SetOwner(GetOwner());
+
         BP_OnGunEquipped(Gun, GunComponent);
     }
 

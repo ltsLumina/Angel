@@ -1,3 +1,6 @@
+event void FOnHeartBeat(float CurrentBPM);
+event void FOnDeath();
+
 class UManualHeartbeatComponent : UActorComponent
 {
     UPROPERTY(Category = "Config | Heartbeat", EditDefaultsOnly)
@@ -81,9 +84,15 @@ class UManualHeartbeatComponent : UActorComponent
     UPROPERTY(Category = "Config | Cardiac Arrest", VisibleAnywhere, DisplayName = "Consecutive High BPM Beats")
     int ConsecutiveHighBPMBeats = 0;
 
-    const int SecondsInMinute = 60; // Total seconds in a minute. Used for 'beats per minute' calculations.
+    UPROPERTY(Category = "Events")
+    FOnHeartBeat OnHeartBeat;
 
-    UPROPERTY(NotVisible)
+    UPROPERTY(Category = "Events")
+    FOnDeath OnDeath;
+
+// - Constants & References
+
+    const int SecondsInMinute = 60; // Total seconds in a minute. Used for 'beats per minute' calculations.
     FTimerHandle HeartBeatTimer;
 
     // Helper to convert percent property (1 = 1%) to normalized value (0.01 = 1%)
@@ -103,7 +112,7 @@ class UManualHeartbeatComponent : UActorComponent
     {
         BP_BeginPlay();
 
-        OnHeartBeat(); // Trigger the first heartbeat immediately
+        Heartbeat(); // Trigger the first heartbeat immediately
     }
 
     UFUNCTION(BlueprintOverride)
@@ -127,14 +136,14 @@ class UManualHeartbeatComponent : UActorComponent
     void BP_BeginPlay() { }
 
     UFUNCTION(NotBlueprintCallable)
-    void OnHeartBeat()
+    void Heartbeat()
     {
         if (!UseHeartbeat) return;
         if (IsInCardiacArrest) return;
 
         if (!IsHeartbeatPaused) CurrentBPM = Math::Clamp(CurrentBPM - 1, MinBPM, MaxBPM);
 
-        HeartBeatTimer = System::SetTimer(this, n"OnHeartBeat", GetBeatInterval(), false);
+        HeartBeatTimer = System::SetTimer(this, n"Heartbeat", GetBeatInterval(), false);
         Print(f"Heartbeat: {CurrentBPM} BPM", GetBeatInterval(), FLinearColor(0.79, 0.25, 0.55));
         if (IsHeartbeatPaused) Print("Heartbeat is paused!", GetBeatInterval(), FLinearColor(0.87, 0.27, 0.27));
 
@@ -203,6 +212,7 @@ class UManualHeartbeatComponent : UActorComponent
             GameplayTag::RemoveGameplayTag(GetAngelCharacter(GetOwner()).GameplayTags, GameplayTags::Buffs_State_Fatigue);
         }
         
+        OnHeartBeat.Broadcast(CurrentBPM);
         BP_OnHeartBeat(CurrentBPM);
     }
 
@@ -220,13 +230,14 @@ class UManualHeartbeatComponent : UActorComponent
         UCameraComponent::Get(GetAngelCharacter(GetOwner())).bUsePawnControlRotation = false;
         UCameraComponent::Get(GetAngelCharacter(GetOwner())).SetRelativeRotation(FRotator(0,0,90));
 
+        OnDeath.Broadcast();
         BP_OnCardiacArrest();
     }
 
     UFUNCTION(BlueprintEvent, DisplayName = "Cardiac Arrest")
     void BP_OnCardiacArrest() { }
 
-    UFUNCTION(BlueprintEvent, DisplayName = "Heart Beats")
+    UFUNCTION(BlueprintEvent, DisplayName = "Heart Beat")
     void BP_OnHeartBeat(float InCurrentBPM) { }
 
 // - Utility
@@ -250,7 +261,7 @@ class UManualHeartbeatComponent : UActorComponent
     void UpdateHeartBeatTimer()
     {
         System::ClearAndInvalidateTimerHandle(HeartBeatTimer);
-        HeartBeatTimer = System::SetTimer(this, n"OnHeartBeat", GetBeatInterval(), true);
+        HeartBeatTimer = System::SetTimer(this, n"Heartbeat", GetBeatInterval(), true);
     }
 
     UFUNCTION()

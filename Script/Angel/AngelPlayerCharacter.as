@@ -8,7 +8,11 @@ class AAngelPlayerCharacter : ACharacter
     UManualBlinkingComponent ManualBlinkingComponent;
     UManualBreathingComponent ManualBreathingComponent;
     UManualHeartbeatComponent ManualHeartbeatComponent;
+
     UHolster HolsterComponent;
+
+    UPROPERTY(Category = "Player", NotVisible)
+    AAngelPlayerController AngelController;
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
@@ -18,7 +22,10 @@ class AAngelPlayerCharacter : ACharacter
         ManualBlinkingComponent = UManualBlinkingComponent::Get(this);
         ManualBreathingComponent = UManualBreathingComponent::Get(this);
         ManualHeartbeatComponent = UManualHeartbeatComponent::Get(this);
+
         HolsterComponent = UHolster::Get(this);
+
+        AngelController = GetAngelController(this);
 
         BP_BeginPlay();
     }

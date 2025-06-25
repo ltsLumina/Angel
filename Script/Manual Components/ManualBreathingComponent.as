@@ -5,6 +5,10 @@ enum EManualBreathingState
     Hold,
 };
 
+event void FOnInhale();
+event void FOnExhale();
+event void FOnHoldBreath();
+
 class UManualBreathingComponent : UActorComponent
 {
     UCameraComponent Camera;
@@ -98,7 +102,7 @@ class UManualBreathingComponent : UActorComponent
     bool IsAsphyxiating;
 
     UFUNCTION(Category = "Breathing | Asphyxia Effect", BlueprintPure)
-    bool GetIsAsphyxiating() const { return !Math::IsNearlyEqual(AsphyxiaEffect, 0, 0.1f); }
+    bool GetIsAsphyxiating() const { return !Math::IsNearlyZero(AsphyxiaEffect, 0.1f); }
 
     // How fast the asphyxia effect applies and reaches its maximum value.
     UPROPERTY(Category = "Breathing | Asphyxia Effect")
@@ -108,6 +112,20 @@ class UManualBreathingComponent : UActorComponent
     UPROPERTY(Category = "Breathing | Asphyxia Effect")
     float AsphyxiaEffectThreshold;
     default AsphyxiaEffectThreshold = 25; // Oxygen level below which asphyxia effect starts
+
+// events
+
+    UPROPERTY()
+    FOnInhale OnInhale;
+    
+    UPROPERTY()
+    FOnExhale OnExhale;
+
+    /* Event is called every tick while the player is holding their breath. */
+    UPROPERTY()
+    FOnHoldBreath OnHoldBreath;
+
+    // end events
 
 // end
     
@@ -119,7 +137,6 @@ class UManualBreathingComponent : UActorComponent
 
         HeartbeatComponent = UManualHeartbeatComponent::Get(GetOwner());
 
-        // Initialize any necessary variables or states here
         BP_BeginPlay();
     }
 
@@ -170,6 +187,7 @@ class UManualBreathingComponent : UActorComponent
                     Oxygen = 0;
                 }
 
+                OnHoldBreath.Broadcast();
                 BP_HoldingBreath();
                 break;
         }
@@ -198,6 +216,7 @@ class UManualBreathingComponent : UActorComponent
     UFUNCTION(BlueprintEvent, DisplayName = "Tick")
     void BP_Tick(float DeltaSeconds) { }
 
+    // This function is only called once when the player starts inhaling.
     UFUNCTION(NotBlueprintCallable)
     void Inhale(FKey _ = EKeys::Invalid)
     {
@@ -210,6 +229,7 @@ class UManualBreathingComponent : UActorComponent
         InhaleTime = 0.0f; // Reset the inhale timer
         TimeSinceInhale = 0.0f; // Reset the time since last inhale
 
+        OnInhale.Broadcast();
         BP_OnInhale();
     }
 
@@ -221,8 +241,7 @@ class UManualBreathingComponent : UActorComponent
     void BP_OnInhale()
     { }
 
-    bool EnteredHoldBreath = false;
-
+    // This function is only called once when the player starts exhaling (releasing the inhale key).
     UFUNCTION(NotBlueprintCallable)
     void Exhale(FKey _ = EKeys::Invalid)
     {
@@ -232,6 +251,7 @@ class UManualBreathingComponent : UActorComponent
         InhaleTime = 0.0f; // Reset the inhale timer
         HoldBreathTime = 0.0f; // Reset the hold breath timer
 
+        OnExhale.Broadcast();
         BP_OnExhale();
     }
 
