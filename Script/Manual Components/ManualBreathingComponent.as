@@ -205,7 +205,7 @@ class UManualBreathingComponent : UActorComponent
         // Player has asphyxiated.
         if (Math::IsNearlyEqual(AsphyxiaEffect, 1, 0.1f))
         {
-            if (HeartbeatComponent.IsInCardiacArrest) return;
+            if (HeartbeatComponent.IsFlatlined) return;
             
             HeartbeatComponent.OnCardiacArrest();
         }

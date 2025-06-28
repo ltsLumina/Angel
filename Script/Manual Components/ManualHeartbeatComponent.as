@@ -50,11 +50,14 @@ class UManualHeartbeatComponent : UActorComponent
     UPROPERTY(Category = "Config | State | Flow", EditDefaultsOnly)
     float FlowSpeedMultiplier;
 
+    // Is the player dead.
     UPROPERTY(Category = "Config | Cardiac Arrest", VisibleAnywhere)
-    bool IsInCardiacArrest;
+    bool IsFlatlined;
 
+#if EDITOR
     UPROPERTY(Category = "Config | Cardiac Arrest", VisibleAnywhere, BlueprintGetter = GetAverageSurvivalTimeAtHighBPM, Meta=(Units="Seconds"))
     float AverageSurvivalTime;
+#endif
 
     // The chance of cardiac arrest occurring when the heart rate is above a certain threshold for a sustained period, which accumulates while the player is in a high BPM state.
     UPROPERTY(Category = "Config | Cardiac Arrest", EditDefaultsOnly,  Meta=(Units="Percent"))
@@ -94,6 +97,7 @@ class UManualHeartbeatComponent : UActorComponent
 
     const int SecondsInMinute = 60; // Total seconds in a minute. Used for 'beats per minute' calculations.
     FTimerHandle HeartBeatTimer;
+    AAngelPlayerCharacter Character;
 
     // Helper to convert percent property (1 = 1%) to normalized value (0.01 = 1%)
     float PercentToNormalized(float PercentValue)
@@ -110,6 +114,8 @@ class UManualHeartbeatComponent : UActorComponent
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
+        Character = GetAngelCharacter(GetOwner());
+
         BP_BeginPlay();
 
         Heartbeat(); // Trigger the first heartbeat immediately
@@ -120,7 +126,7 @@ class UManualHeartbeatComponent : UActorComponent
     {
         if (CurrentBPM <= MinBPM)
         {
-            if (IsInCardiacArrest) return;
+            if (IsFlatlined) return;
 
             // Trigger cardiac arrest if BPM is less than minimum
             OnCardiacArrest();
@@ -139,13 +145,13 @@ class UManualHeartbeatComponent : UActorComponent
     void Heartbeat()
     {
         if (!UseHeartbeat) return;
-        if (IsInCardiacArrest) return;
+        if (IsFlatlined) return;
 
+        // Decrement BPM if heartbeat is not paused
         if (!IsHeartbeatPaused) CurrentBPM = Math::Clamp(CurrentBPM - 1, MinBPM, MaxBPM);
 
         HeartBeatTimer = System::SetTimer(this, n"Heartbeat", GetBeatInterval(), false);
-        Print(f"Heartbeat: {CurrentBPM} BPM", GetBeatInterval(), FLinearColor(0.79, 0.25, 0.55));
-        if (IsHeartbeatPaused) Print("Heartbeat is paused!", GetBeatInterval(), FLinearColor(0.87, 0.27, 0.27));
+        Print(!IsHeartbeatPaused ? f"Heartbeat: {CurrentBPM} BPM" : "Heartbeat is paused!", GetBeatInterval(), FLinearColor(0.79, 0.25, 0.55));
 
         if (CurrentBPM > FlowRange.Y)
         {
@@ -194,41 +200,73 @@ class UManualHeartbeatComponent : UActorComponent
         if (CurrentBPM <= FlowRange.Y && CurrentBPM >= FlowRange.X)
         {
             Print("Heart rate in flow state!", GetBeatInterval(), FLinearColor::Green);
-            GameplayTag::AddGameplayTag(GetAngelCharacter(GetOwner()).GameplayTags, GameplayTags::Buffs_State_Flow);
+            
+            // If the flow state tag is not already present, trigger the effect gained event
+            if (!GameplayTag::HasTag(Character.GameplayTags, GameplayTags::Buffs_State_Flow, true))
+            {
+                GameplayTag::AddGameplayTag(GetAngelCharacter(GetOwner()).GameplayTags, GameplayTags::Buffs_State_Flow);
+                OnEffectGained(GameplayTags::Buffs_State_Flow);
+            }
         }
         else 
         {
-            GameplayTag::RemoveGameplayTag(GetAngelCharacter(GetOwner()).GameplayTags, GameplayTags::Buffs_State_Flow);
+            if (GameplayTag::HasTag(Character.GameplayTags, GameplayTags::Buffs_State_Flow, true))
+            {
+                GameplayTag::RemoveGameplayTag(Character.GameplayTags, GameplayTags::Buffs_State_Flow);
+                OnEffectLost(GameplayTags::Buffs_State_Flow);
+            }
         }
 
         // Check for fatigue state (BPM within fatigue range)
         if (CurrentBPM < FatigueRange.Y && CurrentBPM >= FatigueRange.X)
         {
             Print("Heart rate in fatigue state!", GetBeatInterval(), FLinearColor::Blue);
-            GameplayTag::AddGameplayTag(GetAngelCharacter(GetOwner()).GameplayTags, GameplayTags::Buffs_State_Fatigue);
+            
+            // If the fatigue state tag is not already present, trigger the effect gained event
+            if (!GameplayTag::HasTag(Character.GameplayTags, GameplayTags::Buffs_State_Fatigue, true))
+            {
+                GameplayTag::AddGameplayTag(Character.GameplayTags, GameplayTags::Buffs_State_Fatigue);
+                OnEffectGained(GameplayTags::Buffs_State_Fatigue);
+            }
         }
         else
         {
-            GameplayTag::RemoveGameplayTag(GetAngelCharacter(GetOwner()).GameplayTags, GameplayTags::Buffs_State_Fatigue);
+            if (GameplayTag::HasTag(Character.GameplayTags, GameplayTags::Buffs_State_Fatigue, true))
+            {
+                GameplayTag::RemoveGameplayTag(Character.GameplayTags, GameplayTags::Buffs_State_Fatigue);
+                OnEffectLost(GameplayTags::Buffs_State_Fatigue);
+            }
         }
         
         OnHeartBeat.Broadcast(CurrentBPM);
         BP_OnHeartBeat(CurrentBPM);
     }
 
+    void OnEffectGained(FGameplayTag Tag)
+    {
+        Character.OnEffectGained.Broadcast(Tag, GetOwner());
+    }
+
+    void OnEffectLost(FGameplayTag Tag)
+    {
+        Character.OnEffectLost.Broadcast(Tag, GetOwner());
+    }
+
+
     UFUNCTION(CallInEditor, DisplayName = "Induce Cardiac Arrest")
     void OnCardiacArrest()
     {
-        if (IsInCardiacArrest) return;
+        if (IsFlatlined) return;
 
-        IsInCardiacArrest = true;
+        IsFlatlined = true;
 
         CurrentBPM = 0;
         System::ClearAndInvalidateTimerHandle(HeartBeatTimer);
 
-        UCameraComponent::Get(GetAngelCharacter(GetOwner())).PostProcessSettings.ColorGamma = FVector4(0.5f,0.5f,0.5f,0.5f);
-        UCameraComponent::Get(GetAngelCharacter(GetOwner())).bUsePawnControlRotation = false;
-        UCameraComponent::Get(GetAngelCharacter(GetOwner())).SetRelativeRotation(FRotator(0,0,90));
+        UCameraComponent Camera = UCameraComponent::Get(Character);
+        Camera.PostProcessSettings.ColorGamma = FVector4(0.5f,0.5f,0.5f,0.5f);
+        Camera.bUsePawnControlRotation = false;
+        Camera.SetRelativeRotation(FRotator(0,0,90));
 
         OnDeath.Broadcast();
         BP_OnCardiacArrest();
@@ -247,7 +285,6 @@ class UManualHeartbeatComponent : UActorComponent
     {
         CurrentBPM = Math::Clamp(CurrentBPM + Amount, MinBPM, MaxBPM);
         UpdateHeartBeatTimer();
-        //Print(f"BPM Increased: {CurrentBPM}", 1.0f, FLinearColor::Green);
     }
 
     UFUNCTION(CallInEditor)
@@ -255,13 +292,12 @@ class UManualHeartbeatComponent : UActorComponent
     {
         CurrentBPM = Math::Clamp(CurrentBPM - Amount, MinBPM, MaxBPM);
         UpdateHeartBeatTimer();
-        //Print(f"BPM Decreased: {CurrentBPM}", 1.0f, FLinearColor::Red);
     }
 
     void UpdateHeartBeatTimer()
     {
         System::ClearAndInvalidateTimerHandle(HeartBeatTimer);
-        HeartBeatTimer = System::SetTimer(this, n"Heartbeat", GetBeatInterval(), true);
+        HeartBeatTimer = System::SetTimer(this, n"Heartbeat", GetBeatInterval(), false);
     }
 
     UFUNCTION()
@@ -279,11 +315,12 @@ class UManualHeartbeatComponent : UActorComponent
     UFUNCTION(BlueprintPure)
     bool IsAlive()
     {
-        return IsValid(this) && UseHeartbeat && !IsInCardiacArrest;
+        return IsValid(this) && UseHeartbeat && !IsFlatlined;
     }
 
 // - utility func
 
+#if EDITOR
 /**
  * Calculate and return the average survival time in seconds at 220 BPM,
  * given the current cardiac arrest settings.
@@ -313,5 +350,5 @@ float GetAverageSurvivalTimeAtHighBPM()
 
     return timeToMinChance + timeAfterMinChance;
 }
-
+#endif
 };

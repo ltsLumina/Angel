@@ -39,13 +39,13 @@ class AManualGun : AActor
     void ConstructionScript()
     {
         CurrentAmmo = MaxAmmo;
+
+        SetOwner(GetAngelCharacter(0));
     }
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
-        SetOwner(GetAngelCharacter(0));
-
         BP_BeginPlay();
     }
 

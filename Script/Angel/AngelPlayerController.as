@@ -98,7 +98,7 @@ class AAngelPlayerController : APlayerController
 
         float Direction = ActionValue.GetAxis1D();
 
-        UHolster Holster = UHolster::Get(Gameplay::GetPlayerCharacter(0));
+        UHolsterComponent Holster = UHolsterComponent::Get(Gameplay::GetPlayerCharacter(0));
 
         if (IsValid(Holster))
         {

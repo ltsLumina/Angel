@@ -1,7 +1,23 @@
+event void FOnEffectGained(FGameplayTag EffectTag, AActor EffectInstigator);
+event void FOnEffectLost(FGameplayTag EffectTag, AActor EffectInstigator);
+
 class AAngelPlayerCharacter : ACharacter
 {
+    UPROPERTY(Category = "Player", NotVisible)
+    AAngelPlayerController AngelController;
+
     UPROPERTY(Category = "Player", EditDefaultsOnly)
     FGameplayTagContainer GameplayTags;
+
+// - events
+
+    UPROPERTY(Category = "Player", VisibleAnywhere)
+    FOnEffectGained OnEffectGained;
+
+    UPROPERTY(Category = "Player", VisibleAnywhere)
+    FOnEffectLost OnEffectLost;
+
+// - end
 
     UManualWalkingComponent ManualWalkingComponent;
     UManualReloadComponent ManualReloadComponent;
@@ -9,10 +25,8 @@ class AAngelPlayerCharacter : ACharacter
     UManualBreathingComponent ManualBreathingComponent;
     UManualHeartbeatComponent ManualHeartbeatComponent;
 
-    UHolster HolsterComponent;
-
-    UPROPERTY(Category = "Player", NotVisible)
-    AAngelPlayerController AngelController;
+    UHolsterComponent HolsterComponent;
+    UInventoryComponent InventoryComponent;
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
@@ -23,20 +37,21 @@ class AAngelPlayerCharacter : ACharacter
         ManualBreathingComponent = UManualBreathingComponent::Get(this);
         ManualHeartbeatComponent = UManualHeartbeatComponent::Get(this);
 
-        HolsterComponent = UHolster::Get(this);
+        HolsterComponent = UHolsterComponent::Get(this);
+        //InventoryComponent = UInventoryComponent::Get(this); // TODO
 
-        AngelController = GetAngelController(this);
+        AngelController = GetAngelController(this); // Equivalent to Cast<AAngelPlayerController>(this);
 
         BP_BeginPlay();
     }
 
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
+    UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
     void BP_BeginPlay() { }
 
     UFUNCTION(BlueprintOverride)
     void Tick(float DeltaSeconds)
     {
-        
+        BP_Tick(DeltaSeconds);
     }
 
     UFUNCTION(BlueprintEvent, DisplayName = "Tick")

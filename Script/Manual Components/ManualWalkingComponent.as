@@ -20,10 +20,6 @@ class UManualWalkingComponent : UActorComponent
     float MoveLegStaminaCost;
     default MoveLegStaminaCost = 25;
 
-    UPROPERTY(Category = "Gameplay | Stamina")
-    float RepeatInputStaminaPenalty;
-    default RepeatInputStaminaPenalty = 10;
-
     // Will begin to regenerate stamina after this amount of time, in seconds.
     UPROPERTY(Category = "Gameplay | Stamina")
     float StaminaRegenDelay;
