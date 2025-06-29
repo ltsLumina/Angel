@@ -29,14 +29,4 @@ class UGunComponent : UActorComponent
 
     UFUNCTION(BlueprintEvent, Meta = (DisplayName = "On Shoot"))
     void BP_OnShoot(AManualGun Gun) { }
-
-    void OnGunReloaded(AManualGun Gun)
-    {
-        Gun.OnReload();
-
-        BP_OnGunReloaded(Gun);
-    }
-
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "On Gun Reloaded"))
-    void BP_OnGunReloaded(AManualGun Gun) { }
 };

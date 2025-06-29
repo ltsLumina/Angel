@@ -61,15 +61,30 @@ class UManualWalkingComponent : UActorComponent
     UPROPERTY(Category = "Config | Movement", BlueprintGetter = GetCanMove, VisibleAnywhere)
     bool CanMove;
 
+    bool GetCanMoveOutput(bool&out MoveDelay, bool&out SufficientStamina, bool&out Input, bool&out InputMagnitude) const
+    {
+        MoveDelay = MoveDelayCondition();
+        SufficientStamina = StaminaCondition();
+        Input = InputCondition();
+        InputMagnitude = InputMagnitudeCondition();
+
+        bool Allowed = MoveDelay && SufficientStamina && Input && InputMagnitude;
+        return Allowed;
+    }
+
     /* Requires the following conditions to be true:
        1. Time since last input is greater than or equal to the input delay.
        2. Stamina is greater than the minimum required stamina.
        3. Move input is not zero (i.e., player is trying to move).
        4. Move input magnitude is greater than or equal to the minimum input magnitude.
     */
-    UFUNCTION(BlueprintPure, Category = "Gameplay | Movement")
-    bool GetCanMove() const { 
-        return MoveDelayCondition() && StaminaCondition() && InputCondition() && InputMagnitudeCondition();
+    UFUNCTION(BlueprintPure, Category = "Config | Movement")
+    bool GetCanMove() const
+    {
+        return MoveDelayCondition() && 
+               StaminaCondition() && 
+               InputCondition() && 
+               InputMagnitudeCondition();
     }
 
     bool MoveDelayCondition() const { return TimeSinceInput >= InputDelay;}
@@ -173,9 +188,10 @@ class UManualWalkingComponent : UActorComponent
     {
         if (Key == ExpectedMoveKey)
         {
-            if (!GetCanMove())
+            bool MoveDelay, SufficientStamina, Input, InputMagnitude;
+            if (!GetCanMoveOutput(MoveDelay, SufficientStamina, Input, InputMagnitude))
             {
-                Print(f"Cannot Move: GetCanMove() evaluated to: {GetCanMove()}", 1, FLinearColor(0.93, 0.29, 0.44));
+                Print(f"Cannot Move: Conditions not met. \n(Move Delay: {MoveDelay}, Sufficient Stamina: {SufficientStamina}, Input: {Input}, Input Magnitude: {InputMagnitude})", 5, FLinearColor(0.93, 0.29, 0.44));
                 return;
             }
 

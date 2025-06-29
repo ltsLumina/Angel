@@ -35,10 +35,19 @@ class AManualGun : AActor
     int ReloadSteps;
     default ReloadSteps = 3;
 
+    UPROPERTY(Category = "Config | Gun", EditDefaultsOnly)
+    TArray<FText> ReloadStepsText;
+
     UFUNCTION(BlueprintOverride)
     void ConstructionScript()
     {
         CurrentAmmo = MaxAmmo;
+
+        ReloadStepsText.Empty();
+        for (int i = 0; i < ReloadSteps; i++)
+        {
+            ReloadStepsText.Add(FText::FromString(f"Step {i + 1}"));
+        }
 
         SetOwner(GetAngelCharacter(0));
     }

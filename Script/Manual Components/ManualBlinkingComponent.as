@@ -7,9 +7,16 @@ class UManualBlinkingComponent : UActorComponent
     default UseBlinking = true;
 
     // The percentage of the screen that will be blurred during blinking. A value of 0.0 means no blur, and 1.0 means full blur.
-    UPROPERTY(Category = "Gameplay | Blinking", EditDefaultsOnly)
+    UPROPERTY(Category = "Gameplay | Blinking", NotEditable, NotVisible)
+    float BlurAmount;
+    default BlurAmount = 0.0; // Start with no blur
+
+    UPROPERTY(Category = "Gameplay | Blinking", EditDefaultsOnly, BlueprintGetter = GetBlurPercentage, Meta = (Units = "Percent"))
     float BlurPercentage;
     default BlurPercentage = 0.0; // Start with no blur
+
+    UFUNCTION(BlueprintPure, Category = "Gameplay | Blinking")
+    float GetBlurPercentage() { return BlurAmount * 100.0f; }
 
     // The rate at which the blur effect is applied. A higher value will make the blue reach the minimum focal distance faster.
     UPROPERTY(Category = "Gameplay | Blinking")
@@ -69,15 +76,15 @@ class UManualBlinkingComponent : UActorComponent
             BlurRate * FlowModifer);
 
         // Convert the current focal distance to a percentage of the maximum focal distance
-        BlurPercentage = 1.0f - ((Camera.PostProcessSettings.DepthOfFieldFocalDistance - MinFocalDistance) / (MaxFocalDistance - MinFocalDistance));
-        BlurPercentage = Math::Clamp(BlurPercentage, 0.0f, 1.0f);
+        BlurAmount = 1.0f - ((Camera.PostProcessSettings.DepthOfFieldFocalDistance - MinFocalDistance) / (MaxFocalDistance - MinFocalDistance));
+        BlurAmount = Math::Clamp(BlurAmount, 0.0f, 1.0f);
         
     }
 
     UFUNCTION(BlueprintCallable, Category = "Blinking")
     void Blink(FKey _)
     {
-        BlurPercentage = 0.0f;
+        BlurAmount = 0.0f;
         Camera.PostProcessSettings.ColorGamma = FVector4(0,0,0,0);
 
         System::SetTimer(this, n"OnBlink", 0.05f, false);
@@ -86,7 +93,7 @@ class UManualBlinkingComponent : UActorComponent
     UFUNCTION(NotBlueprintCallable, Category = "Blinking")
     void OnBlink()
     {
-        BlurPercentage = 1.0f;
+        BlurAmount = 1.0f;
         Camera.PostProcessSettings.DepthOfFieldFocalDistance = MaxFocalDistance; // Reset focal distance
         Camera.PostProcessSettings.ColorGamma = FVector4(1.0f, 1.0f, 1.0f, 1.0f); // Reset color gain
 
