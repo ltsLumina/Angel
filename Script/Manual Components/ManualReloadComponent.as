@@ -1,24 +1,24 @@
-event void FOnInitiateReload(AManualGun Gun);
-event void FOnReloadComplete(AManualGun Gun);
+//event void FOnInitiateReload(AManualGun Gun);
+//event void FOnReloadComplete(AManualGun Gun);
 
 class UManualReloadComponent : UActorComponent
 {
 // - config | reload
 
+    UPROPERTY(Category = "Config | Reload", VisibleAnywhere)
+    AManualGun EquippedGun;
+
     UPROPERTY(Category = "Config | Reload", BlueprintGetter = "GetIsReloading", VisibleAnywhere)
     bool IsReloading;
 
     UFUNCTION(BlueprintPure, Category = "Reload")
-    bool GetIsReloading() const { return ExpectedKeys.Num() > 0; }
-
-    UPROPERTY(Category = "Config | Reload", VisibleAnywhere)
-    TArray<FKey> IncomingKeys;
+    bool GetIsReloading() const { return GeneratedKeys.Num() > 0; }
 
     UPROPERTY(Category = "Config | Reload", EditDefaultsOnly)
     TArray<FKey> LegalKeys;
 
     UPROPERTY(Category = "Config | Reload", VisibleAnywhere)
-    TArray<FKey> ExpectedKeys;
+    TArray<FKey> GeneratedKeys;
 
     // Modifies the legal keys for the reload sequence to only use keys: 1, 2, and 3.
     UPROPERTY(Category = "Config | Reload | Debug", EditDefaultsOnly)
@@ -36,12 +36,13 @@ class UManualReloadComponent : UActorComponent
 
 // - events
 
+/*
     UPROPERTY(Category = "Events")
     FOnInitiateReload OnInitiateReloadEvent;
 
     UPROPERTY(Category = "Events")
     FOnReloadComplete OnReloadCompleteEvent;
-
+*/
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
@@ -70,13 +71,14 @@ class UManualReloadComponent : UActorComponent
 
         if (UseDebugReloadKeys)
         {
-            SequenceKeys.Add(EKeys::One);
-            SequenceKeys.Add(EKeys::Two);
-            SequenceKeys.Add(EKeys::Three);
+            int Steps = Math::Clamp(ReloadSteps, 1, 3);
+            if (Steps >= 1) SequenceKeys.Add(EKeys::One);
+            if (Steps >= 2) SequenceKeys.Add(EKeys::Two);
+            if (Steps >= 3) SequenceKeys.Add(EKeys::Three);
 
             for (int i = 0; i < ReloadSteps; ++i)
             {
-                Print(f"Debug Key: {i + 1}", Math::Min(ReloadSteps, 10), FLinearColor(0.58, 0.95, 0.49));
+                //Print(f"Debug Key: {i + 1}", Math::Min(ReloadSteps, 10), FLinearColor(0.58, 0.95, 0.49));
             }
         }
         else
@@ -94,32 +96,35 @@ class UManualReloadComponent : UActorComponent
             }
         }
 
-        ExpectedKeys = SequenceKeys;
+        GeneratedKeys = SequenceKeys;
         return SequenceKeys;
     }
 
     UFUNCTION(Category = "Reload")
     void InitiateReload(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
     {
+        EquippedGun = GetAngelCharacter(GetOwner()).HolsterComponent.EquippedGun;
+
+        if (!EquippedGun.ReloadStrategy.CanReload()) return;
+
         if (GetIsReloading())
         {
-            CancelReload(); // Cancel any ongoing reload if this is called again
+            CancelReload();
             return;
         }
 
-        IncomingKeys.Empty(); // Clear any previous incoming keys
-        ExpectedKeys = GenerateReloadKeys(UGunComponent::Get(GetOwner()).CurrentGun.ReloadSteps); // Generate a new sequence of keys for the reload
+        GeneratedKeys = GenerateReloadKeys(EquippedGun.ReloadStrategy.ReloadSteps);
+        // Always show "Ready/Eject" for the last step
+        EquippedGun.ReloadStrategy.ActionTexts.Last() = (EquippedGun.IsReady || EquippedGun.IsJammed) ? FText::FromString("Eject Round") : FText::FromString("Ready");
 
-        OnInitiateReloadEvent.Broadcast(GetAngelCharacter(GetOwner()).HolsterComponent.EquippedGun); // Broadcast the initiate reload event
         BP_OnInitiateReload();
     }
 
     UFUNCTION(Category = "Reload")
     void CancelReload()
     {
-        IncomingKeys.Empty(); // Clear any incoming keys
-        ExpectedKeys.Empty(); // Clear the expected keys
-        TimeSinceInput = 0; // Reset the input timer
+        GeneratedKeys.Empty();
+        TimeSinceInput = 0;
 
         Print("Reload cancelled!", 1.5f, FLinearColor(1.00, 0.45, 0.00));
     }
@@ -127,60 +132,29 @@ class UManualReloadComponent : UActorComponent
     UFUNCTION(BlueprintEvent, Category = "Reload", DisplayName = "On Initiate Reload")
     void BP_OnInitiateReload() { }
 
-    FTimerHandle ReloadTimer;
-
     UFUNCTION(NotBlueprintCallable)
     void OnKeyPressed(FKey Key)
     {
-        if (!LegalKeys.Contains(Key) || ExpectedKeys.Num() == 0) return; // Ignore keys that are not in the legal keys list
+        if (!LegalKeys.Contains(Key) || GeneratedKeys.Num() == 0) return;
 
         if (TimeSinceInput < InputDelay)
         {
-            // If the time since the last input is less than the delay, ignore this key press.
             Print(f"Input too fast! Wait {InputDelay - TimeSinceInput:.2f} seconds before the next key.", 1.5f, FLinearColor(1.0, 0.0, 0.0));
             return;
         }
-        else
+        else { TimeSinceInput = 0; }
+
+        int Index = GeneratedKeys.FindIndex(Key);
+        EquippedGun.ReloadStrategy.Reload(Index);
+        // If last step (Ready/Eject), clear sequence
+        if (Index == EquippedGun.ReloadStrategy.ReloadSteps - 1)
         {
-            TimeSinceInput = 0; // Reset the timer for the next input
+            GeneratedKeys.Empty();
         }
 
-        FKey NextKey = ExpectedKeys[IncomingKeys.Num()];
-
-        if (Key == NextKey)
-        {
-            IncomingKeys.Add(Key);
-            Print(f"Correct key!", 0.5f, FLinearColor(0.44, 0.93, 0.29));
-            BP_OnKeyPressed(true, IncomingKeys.Num() - 1);
-        }
-        else if (LegalKeys.Contains(Key))
-        {
-            // If the key is legal but not the expected one, we can print a message.
-            Print(f"Wrong key! Expected: {NextKey.GetDisplayName()}, but got: {Key.GetDisplayName()}", 1, FLinearColor(1.00, 0.45, 0.00));
-            BP_OnKeyPressed(false, IncomingKeys.Num() - 1);
-        }
-
-        if (IncomingKeys == ExpectedKeys)
-        {
-            ReloadComplete(GetAngelCharacter(GetOwner()).HolsterComponent.EquippedGun);
-            IncomingKeys.Empty(); // Reset after successful reload
-        }
+        BP_OnKeyPressed(Index);
     }
 
     UFUNCTION(BlueprintEvent, Category = "Reload", DisplayName = "Key Pressed")
-    void BP_OnKeyPressed(bool CorrectKey, int Index) { }
-
-    // BlueprintCallable if you want to call this function from Blueprints earlier than intended.
-    UFUNCTION(BlueprintCallable, Category = "Reload")
-    void ReloadComplete(AManualGun Gun)
-    {
-        ExpectedKeys.Empty(); // Clear the expected keys
-
-        Gun.OnReload();
-        OnReloadCompleteEvent.Broadcast(Gun); // Broadcast the reload complete event
-        BP_OnReloadComplete(Gun);
-    }
-
-    UFUNCTION(BlueprintEvent, Category = "Reload", DisplayName = "On Reload Complete")
-    void BP_OnReloadComplete(AManualGun Gun) { }
+    void BP_OnKeyPressed(int Index) { }
 };

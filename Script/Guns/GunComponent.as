@@ -20,10 +20,13 @@ class UGunComponent : UActorComponent
     UFUNCTION()
     void OnShoot(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, const UInputAction SourceAction)
     {
-        if (CurrentGun.GetCanShoot())
+        if (CurrentGun.IsReady && !CurrentGun.GetIsReloading())
         {
             CurrentGun.Shoot();
-            BP_OnShoot(CurrentGun);
+        }
+        else
+        {
+            PrintWarning("Cannot shoot! Gun is not ready or is reloading.", 2.0f, FLinearColor(1.0f, 0.5f, 0.0f));
         }
     }
 

@@ -4,62 +4,47 @@ class AManualGun : AActor
     UPROPERTY(DefaultComponent, RootComponent)
     USphereComponent Root;
 
-    UPROPERTY(DefaultComponent, Category = "Config | Gun")
+    UPROPERTY(DefaultComponent, Category = "Gun | Info")
     USkeletalMeshComponent GunMesh;
 
 // - config
 
-    UPROPERTY(Category = "Config | Gun", EditDefaultsOnly)
-    FName GunName; 
-    // Default the name to the class name, minus the BP_ prefix and any suffix.
+    UPROPERTY(Category = "Gun | Info", EditDefaultsOnly)
+    FName GunName;
     default GunName = GetClass().GetName();
 
-    UPROPERTY(Category = "Config | Gun", EditDefaultsOnly)
+    UPROPERTY(Category = "Gun | Info", EditDefaultsOnly)
+    bool HasMagazine;
+    default HasMagazine = true;
+
+    UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
     int CurrentAmmo;
     default CurrentAmmo = 6;
 
-    UPROPERTY(Category = "Config | Gun", EditDefaultsOnly)
+    UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
     int MaxAmmo;
     default MaxAmmo = 6;
 
-    UPROPERTY(Category = "Config | Gun", BlueprintGetter = GetCanShoot, VisibleAnywhere)
-    bool CanShoot;
+    UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
+    bool IsReady;
 
-    UFUNCTION(BlueprintPure, Category = "Gun")
-    bool GetCanShoot() const { return CurrentAmmo > 0 && !GetIsReloading(); }
+    UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly, Meta = (Units = "Percent"))
+    float JamChance = 5;
 
-    UFUNCTION(BlueprintPure, Category = "Gun")
+    UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
+    bool IsJammed;
+
+    UPROPERTY(Category = "Gun | Reload", EditAnywhere, Instanced)
+    UReloadStrategyBase ReloadStrategy;
+
+    UFUNCTION(BlueprintPure, Category = "Gun | Reload")
     bool GetIsReloading() const { return GetAngelCharacter(0).ManualReloadComponent.GetIsReloading(); }
-
-    UPROPERTY(Category = "Config | Gun", EditDefaultsOnly)
-    int ReloadSteps;
-    default ReloadSteps = 3;
-
-    UPROPERTY(Category = "Config | Gun", EditDefaultsOnly)
-    TArray<FText> ReloadStepsText;
 
     UFUNCTION(BlueprintOverride)
     void ConstructionScript()
     {
-        CurrentAmmo = MaxAmmo;
-
-        ReloadStepsText.Empty();
-        for (int i = 0; i < ReloadSteps; i++)
-        {
-            ReloadStepsText.Add(FText::FromString(f"Step {i + 1}"));
-        }
-
         SetOwner(GetAngelCharacter(0));
     }
-
-    UFUNCTION(BlueprintOverride)
-    void BeginPlay()
-    {
-        BP_BeginPlay();
-    }
-
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
-    void BP_BeginPlay() { }
 
     UFUNCTION(BlueprintOverride)
     void ActorBeginOverlap(AActor OtherActor)
@@ -68,21 +53,79 @@ class AManualGun : AActor
         GetAngelCharacter(0).HolsterComponent.EquipGun(this);
     }
 
-    UFUNCTION(Category = "Gun")
+    UFUNCTION(BlueprintEvent, Category = "Gun")
     void Shoot()
     {
-        if (GetCanShoot())
+        if (GetIsReloading()) return;
+
+        if (IsJammed)
         {
+            PrintWarning(f"{GunName} is jammed! Clear the jam before firing.", 2, FLinearColor(1.0, 0.2, 0.2));
+            return;
+        }
+        if (IsReady)
+        {
+            Print(f"{GunName} fired! Magazine: {CurrentAmmo - 1}/{MaxAmmo}", 2, FLinearColor(0.15, 0.32, 0.52));
+            UGunComponent::Get(GetAngelCharacter(0)).BP_OnShoot(this);
             CurrentAmmo--;
-            Print(f"{GunName} fired! (Ammo: {CurrentAmmo}/{MaxAmmo})", 2, FLinearColor(0.15, 0.32, 0.52));
+            // random chance to jam the gun
+            if ((Math::RandRange(0, 100) < JamChance) && CurrentAmmo > 0)
+            {
+                IsJammed = true;
+                IsReady = false;
+                PrintWarning(f"{GunName} jammed! Clear the jam before firing again.", 2, FLinearColor(1.0, 0.2, 0.2));
+            }
+            else if (CurrentAmmo == 0)
+            {
+                IsReady = false;
+                PrintWarning(f"{GunName} is empty! Slide locked back.", 2, FLinearColor(1.0, 0.5, 0.0));
+            }
+            // else: gun stays ready for next shot
+        }
+        else
+        {
+            PrintWarning(f"{GunName} trigger pulled but not ready!", 2, FLinearColor(1.0, 0.2, 0.2));
         }
     }
 
-    UFUNCTION(Category = "Gun")
-    void OnReload()
+    UFUNCTION(Category = "Gun | Reload")
+    void Ready()
     {
-        Print(f"{GunName} reloaded!", 2, FLinearColor(0.58, 0.95, 0.49));
-
-        CurrentAmmo = MaxAmmo;
+        if (!IsReady && CurrentAmmo > 0 && !IsJammed)
+        {
+            IsReady = true;
+            Print(f"{GunName} readied! Magazine: {CurrentAmmo}/{MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
+        }
+        else if (IsJammed)
+        {
+            PrintWarning(f"{GunName} is jammed! Cannot ready.", 2, FLinearColor(1.0, 0.2, 0.2));
+        }
+        else if (CurrentAmmo <= 0)
+        {
+            PrintWarning(f"No ammo to ready! Gun is empty.", 2, FLinearColor(1.0, 0.5, 0.0));
+        }
     }
+
+    UFUNCTION(Category = "Gun | Reload")
+    void Eject()
+    {
+        if (IsReady)
+        {
+            IsReady = false;
+            CurrentAmmo--;
+            if (CurrentAmmo < 0) CurrentAmmo = 0; // Prevent negative ammo
+            Print(f"{GunName} ejected a round! Magazine: {CurrentAmmo}/{MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
+        }
+        else if (IsJammed)
+        {
+            IsJammed = false;
+            Print(f"{GunName} jam cleared! Ejected round.", 2, FLinearColor(0.58, 0.95, 0.49));
+            Ready(); // After clearing jam, ready the gun
+        }
+        else
+        {
+            PrintWarning(f"{GunName} is not ready, nothing to eject.", 2, FLinearColor(1.0, 0.5, 0.0));
+        }
+    }
+    /* Reload is handled by UReloadStrategyBase */
 };

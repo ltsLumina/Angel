@@ -94,11 +94,12 @@ class AAngelPlayerController : APlayerController
     UFUNCTION()
     void CycleGun(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
     {
-        if (CycleGunTimer > 0.0f) return;
+        UHolsterComponent Holster = GetAngelCharacter(0).HolsterComponent;
+
+        if (CycleGunTimer > 0.0f || Holster.EquippedGun.GetIsReloading()) return;
 
         float Direction = ActionValue.GetAxis1D();
 
-        UHolsterComponent Holster = UHolsterComponent::Get(Gameplay::GetPlayerCharacter(0));
 
         if (IsValid(Holster))
         {
