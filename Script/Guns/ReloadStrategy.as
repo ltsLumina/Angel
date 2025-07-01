@@ -1,11 +1,11 @@
 UENUM()
-enum EReloadStep
+enum EGunState
 {
     RemoveMagazine = 0,
     InsertMagazine = 1,
     NotReady = 2,
     Ready = 3,
-    Eject = 4, // AKA 'Jammed'
+    Jammed = 4
 };
 
 UCLASS(Abstract, EditInlineNew)
@@ -26,8 +26,8 @@ class UReloadStrategyBase : UObject
     default ReloadKeys.Add(EKeys::R);
     default ReloadKeys.Add(EKeys::V);
 
-    UPROPERTY(Category = "Reload | Config", VisibleInstanceOnly)
-    EReloadStep CurrentReloadStep = EReloadStep::NotReady;
+    UPROPERTY(Category = "Reload", VisibleInstanceOnly)
+    EGunState GunState = EGunState::NotReady;
 
     UFUNCTION(BlueprintPure, Category = "Reload")
     int GetReloadSteps() const { return ReloadPrompts.Num(); }
@@ -36,15 +36,13 @@ class UReloadStrategyBase : UObject
     TArray<FText> ReloadPrompts;
 
     void Reload(int ActionIndex) { Gun = GetAngelCharacter(0).HolsterComponent.EquippedGun; }
-}
 
-UENUM()
-enum EMagazineReloadStep
-{
-    RemoveMagazine = 0,
-    InsertMagazine = 1,
-    ReadyOrEject = 2
-};
+    UFUNCTION()
+    void SetEmptyReloadStep()
+    {
+        GunState = EGunState::NotReady;
+    }
+}
 
 UCLASS(EditInlineNew)
 class UMagazineReloadStrategy : UReloadStrategyBase
@@ -64,7 +62,7 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         if (!Gun.HasMagazine)
         {
             PrintWarning("Cannot remove magazine! Gun does not have a magazine.", 2, FLinearColor(1.0, 0.5, 0.0));
-            CurrentReloadStep = EReloadStep::NotReady;
+            GunState = EGunState::NotReady;
             return;
         }
 
@@ -72,7 +70,7 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         Gun.HasMagazine = false;
         Print(f"{Gun.GunName} magazine removed! Current ammo: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
         Gun.IsReady = false; // Removing mag always un-readies
-        CurrentReloadStep = EReloadStep::InsertMagazine;
+        GunState = EGunState::InsertMagazine;
     }
 
     void InsertMagazine(int32 Amount = -1)
@@ -84,7 +82,6 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         else
         {
             PrintWarning("Magazine already inserted! Cannot insert again.", 2, FLinearColor(1.0, 0.5, 0.0));
-            CurrentReloadStep = EReloadStep::InsertMagazine;
             return;
         }
 
@@ -93,7 +90,7 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         Print(f"{Gun.GunName} magazine inserted! Magazine: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
         // After inserting mag, gun is NOT ready. Must perform Ready step next.
         Gun.IsReady = false;
-        CurrentReloadStep = EReloadStep::NotReady;
+        GunState = EGunState::NotReady;
     }
 
     void ReadyOrEject()
@@ -108,23 +105,19 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         {
             // Always allow ejecting to clear jam
             Gun.Eject();
-            CurrentReloadStep = EReloadStep::NotReady;
         }
         else if (Gun.IsReady)
         {
             // Eject a round (simulate losing it, do not decrement mag)
             Gun.Eject();
-            CurrentReloadStep = EReloadStep::Eject;
         }
-        else if (!Gun.IsReady && Gun.CurrentAmmo > 0)
+        else if (!Gun.IsReady && Gun.CurrentAmmo > 0 && Gun.HasMagazine)
         {
             Gun.Ready();
-            CurrentReloadStep = EReloadStep::Ready;
         }
         else if (!Gun.IsReady && Gun.CurrentAmmo <= 0)
         {
             PrintWarning("No ammo to ready! Gun is empty.", 2, FLinearColor(1.0, 0.5, 0.0));
-            CurrentReloadStep = EReloadStep::RemoveMagazine;
         }
     }
 
@@ -133,29 +126,32 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         Super::Reload(ActionIndex);
         switch (ActionIndex)
         {
-            case EMagazineReloadStep::RemoveMagazine:
+            case EGunState::RemoveMagazine:
                 RemoveMagazine();
                 break;
-            case EMagazineReloadStep::InsertMagazine:
+
+            case EGunState::InsertMagazine:
                 InsertMagazine();
                 break;
-            case EMagazineReloadStep::ReadyOrEject:
+
+            case EGunState::NotReady:
+            case EGunState::Ready:
+            case EGunState::Jammed:
                 ReadyOrEject();
                 break;
+
             default:
                 PrintError("Invalid reload action index!", 5, FLinearColor(1.0, 0.5, 0.0));
-                CurrentReloadStep = EReloadStep::NotReady;
+                GunState = EGunState::NotReady;
                 break;
         }
     }
-}
 
-UENUM()
-enum EShotgunReloadStep
-{
-    InsertShell = 0, // equivalent to InsertMagazine
-    ReadyOrEject = 1 // equivalent to ReadyOrEject
-};
+    void SetEmptyReloadStep() override
+    {
+        GunState = EGunState::RemoveMagazine;
+    }
+}
 
 UCLASS(EditInlineNew)
 class UShotgunReloadStrategy : UReloadStrategyBase
@@ -180,9 +176,9 @@ class UShotgunReloadStrategy : UReloadStrategyBase
             if (Gun.CurrentAmmo >= Gun.MaxAmmo)
             {
                 PrintWarning("Magazine full!", 2, FLinearColor(1.0, 0.5, 0.0));
-                if (CurrentReloadStep == EReloadStep::InsertMagazine)
+                if (GunState == EGunState::InsertMagazine)
                 {
-                    CurrentReloadStep = EReloadStep::NotReady; // After inserting shell, gun is NOT ready
+                    GunState = EGunState::NotReady; // After inserting shell, gun is NOT ready
                 }
             }
         }
@@ -204,23 +200,21 @@ class UShotgunReloadStrategy : UReloadStrategyBase
         {
             // Always allow ejecting to clear jam
             Gun.Eject();
-            CurrentReloadStep = EReloadStep::NotReady;
         }
         else if (Gun.IsReady)
         {
             // Eject a round
             Gun.Eject();
-            CurrentReloadStep = EReloadStep::Eject;
         }
         else if (!Gun.IsReady && Gun.CurrentAmmo > 0)
         {
             Gun.Ready();
-            CurrentReloadStep = EReloadStep::Ready;
+            GunState = EGunState::Ready;
         }
         else if (!Gun.IsReady && Gun.CurrentAmmo <= 0)
         {
             PrintWarning("No ammo to ready! Gun is empty.", 2, FLinearColor(1.0, 0.5, 0.0));
-            CurrentReloadStep = EReloadStep::NotReady;
+            GunState = EGunState::NotReady;
         }
     }
 
@@ -229,15 +223,20 @@ class UShotgunReloadStrategy : UReloadStrategyBase
         Super::Reload(ActionIndex);
         switch (ActionIndex)
         {
-            case 0:
+            case 0: // Insert Shell
                 InsertShell();
                 break;
-            case 1:
+            case 1: // Ready or Eject
                 ReadyOrEject();
                 break;
             default:
                 PrintError("Invalid reload action index!", 5, FLinearColor(1.0, 0.5, 0.0));
                 break;
         }
+    }
+
+    void SetEmptyReloadStep() override
+    {
+        GunState = EGunState::InsertMagazine;
     }
 }

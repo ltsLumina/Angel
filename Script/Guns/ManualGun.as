@@ -30,13 +30,9 @@ class AManualGun : AActor
     int MaxAmmo;
     default MaxAmmo = 6;
 
-    // Whether the gun is ready to fire. This is set to true when the gun is ready to shoot, and false when it has no ammo or is jammed.
-    UPROPERTY(Category = "Gun | Magazine", VisibleInstanceOnly, BlueprintReadOnly)
-    bool IsReady;
-
 // - jamming
 
-    UPROPERTY(Category = "Gun | Magazine", VisibleDefaultsOnly, BlueprintReadOnly, Meta = (Units = "Percent"))
+    UPROPERTY(Category = "Gun | Magazine", VisibleAnywhere, BlueprintReadOnly, Meta = (Units = "Percent"))
     float JamChance = 0;
 
     // Base chance of jamming the gun, used to calculate the risk of jamming.
@@ -52,9 +48,9 @@ class AManualGun : AActor
 
 // - shooting
 
-    // Whether the gun is in full-auto mode. If true, the gun will fire continuously while the trigger is held.
+    // Whether the gun is ready to fire. This is set to true when the gun is ready to shoot, and false when it has no ammo or is jammed.
     UPROPERTY(Category = "Gun | Shooting", VisibleInstanceOnly, BlueprintReadOnly)
-    bool IsAutomatic = false;
+    bool IsReady;
 
     // Whether the gun uses RPM (Rounds Per Minute) for firing rate. If true, the gun will fire at a rate based on RPM.
     // If false, the gun will fire based on the ShootCooldown time.
@@ -119,11 +115,7 @@ class AManualGun : AActor
         JamChance = BaseJamChance + JamRisk;
         ShootCooldown = UseRPM ? (MINUTE / RPM) : ShootCooldown;
 
-        if (TimeSinceLastShot < ShootCooldown)
-        {
-            //PrintWarning(f"{GunName} is cooling down! Wait {ShootCooldown - TimeSinceLastShot:.2f} seconds before firing again.", 2, FLinearColor(1.0, 0.5, 0.0));
-            return;
-        }
+        if (TimeSinceLastShot < ShootCooldown) return;
 
         if (!HasMagazine)
         {
@@ -143,21 +135,11 @@ class AManualGun : AActor
             CurrentAmmo--;
             UGunComponent::Get(GetAngelCharacter(0)).BP_OnShoot(this);
 
-            if (CurrentAmmo == 0)
+            if (CurrentAmmo <= 0)
             {
                 IsReady = false;
+                ReloadStrategy.SetEmptyReloadStep();
                 PrintWarning(f"{GunName} is empty! Slide locked back.", 2, FLinearColor(1.0, 0.5, 0.0));
-
-                // Only MagazineReloadStrategy handles removing the magazine
-                if (ReloadStrategy.IsA(UMagazineReloadStrategy)) 
-                { 
-                    ReloadStrategy.CurrentReloadStep = EReloadStep::RemoveMagazine; 
-                }
-                else if (ReloadStrategy.IsA(UShotgunReloadStrategy))
-                {
-                    ReloadStrategy.CurrentReloadStep = EReloadStep::InsertMagazine;
-                }
-
                 return; // Prevent jamming if no ammo left
             }
 
@@ -168,7 +150,7 @@ class AManualGun : AActor
             {
                 IsJammed = true;
                 IsReady = false;
-                ReloadStrategy.CurrentReloadStep = EReloadStep::Eject;
+                ReloadStrategy.GunState = EGunState::Jammed;
                 PrintWarning(f"{GunName} jammed! Clear the jam before firing again.", 2, FLinearColor(1.0, 0.2, 0.2));
             }
         }
@@ -184,6 +166,7 @@ class AManualGun : AActor
         if (!IsReady && CurrentAmmo > 0 && !IsJammed)
         {
             IsReady = true;
+            ReloadStrategy.GunState = EGunState::Ready;
             Print(f"{GunName} readied! Magazine: {CurrentAmmo}/{MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
         }
         else if (IsJammed)
@@ -202,27 +185,33 @@ class AManualGun : AActor
         if (IsReady)
         {
             IsReady = false;
+            ReloadStrategy.GunState = EGunState::NotReady;
+
             CurrentAmmo--;
-            if (CurrentAmmo < 0) CurrentAmmo = 0; // Prevent negative ammo
             Print(f"{GunName} ejected a round! Magazine: {CurrentAmmo}/{MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
+
+            if (CurrentAmmo <= 0)
+            {
+                PrintWarning("No ammo left after ejecting! Gun is empty.", 2, FLinearColor(1.0, 0.5, 0.0));
+                ReloadStrategy.SetEmptyReloadStep();
+            }
+            else
+            {
+                ReloadStrategy.GunState = EGunState::NotReady;
+            }
         }
         else if (IsJammed)
         {
             IsJammed = false;
+            ReloadStrategy.GunState = EGunState::Jammed; // Clear jam, gun is not ready
+
             CurrentAmmo--; // Ejecting a round clears the jam
             Print(f"{GunName} jam cleared! Ejected round.", 2, FLinearColor(0.58, 0.95, 0.49));
-            //Ready(); // After clearing jam, ready the gun
+            Ready();
 
             if (CurrentAmmo <= 0)
             {
-                if (ReloadStrategy.IsA(UMagazineReloadStrategy)) 
-                { 
-                    ReloadStrategy.CurrentReloadStep = EReloadStep::RemoveMagazine; 
-                }
-                else if (ReloadStrategy.IsA(UShotgunReloadStrategy))
-                {
-                    ReloadStrategy.CurrentReloadStep = EReloadStep::InsertMagazine;
-                }
+                ReloadStrategy.SetEmptyReloadStep();
             }
         }
         else
