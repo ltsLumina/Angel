@@ -1,3 +1,13 @@
+UENUM()
+enum EReloadStep
+{
+    RemoveMagazine = 0,
+    InsertMagazine = 1,
+    NotReady = 2,
+    Ready = 3,
+    Eject = 4, // AKA 'Jammed'
+};
+
 UCLASS(Abstract, EditInlineNew)
 class UReloadStrategyBase : UObject
 {
@@ -6,16 +16,26 @@ class UReloadStrategyBase : UObject
     UFUNCTION(BlueprintPure, Category = "Reload")
     bool CanReload() { return true; } // Default implementation, can be overridden
 
+    UPROPERTY(Category = "Reload", VisibleDefaultsOnly, BlueprintGetter = "GetReloadSteps")
+    int ReloadSteps = -1;
+
+    // The hotkeys used for reloading, e.g. 1, 2, 3, or R, X, V
     UPROPERTY(Category = "Reload", EditDefaultsOnly)
-    int ReloadSteps = 3;
+    TArray<FKey> ReloadKeys;
+    default ReloadKeys.Add(EKeys::X);
+    default ReloadKeys.Add(EKeys::R);
+    default ReloadKeys.Add(EKeys::V);
+
+    UPROPERTY(Category = "Reload | Config", VisibleInstanceOnly)
+    EReloadStep CurrentReloadStep = EReloadStep::NotReady;
+
+    UFUNCTION(BlueprintPure, Category = "Reload")
+    int GetReloadSteps() const { return ReloadPrompts.Num(); }
 
     UPROPERTY(Category = "Reload", EditDefaultsOnly)
-    TArray<FText> ActionTexts;
+    TArray<FText> ReloadPrompts;
 
     void Reload(int ActionIndex) { Gun = GetAngelCharacter(0).HolsterComponent.EquippedGun; }
-
-    UFUNCTION(BlueprintEvent, Category = "Reload")
-    void OnReload() { }
 }
 
 UENUM()
@@ -23,16 +43,16 @@ enum EMagazineReloadStep
 {
     RemoveMagazine = 0,
     InsertMagazine = 1,
-    ReadyOrEject = 2 // Renamed for clarity
+    ReadyOrEject = 2
 };
 
 UCLASS(EditInlineNew)
 class UMagazineReloadStrategy : UReloadStrategyBase
 {
     default ReloadSteps = 3;
-    default ActionTexts.Add(FText::FromString("Remove Magazine"));
-    default ActionTexts.Add(FText::FromString("Insert Magazine"));
-    default ActionTexts.Add(FText::FromString("Ready/Eject"));
+    default ReloadPrompts.Add(FText::FromString("Remove Magazine"));
+    default ReloadPrompts.Add(FText::FromString("Insert Magazine"));
+    default ReloadPrompts.Add(FText::FromString("Ready/Eject"));
 
     bool CanReload() override
     {
@@ -44,6 +64,7 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         if (!Gun.HasMagazine)
         {
             PrintWarning("Cannot remove magazine! Gun does not have a magazine.", 2, FLinearColor(1.0, 0.5, 0.0));
+            CurrentReloadStep = EReloadStep::NotReady;
             return;
         }
 
@@ -51,6 +72,7 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         Gun.HasMagazine = false;
         Print(f"{Gun.GunName} magazine removed! Current ammo: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
         Gun.IsReady = false; // Removing mag always un-readies
+        CurrentReloadStep = EReloadStep::InsertMagazine;
     }
 
     void InsertMagazine(int32 Amount = -1)
@@ -62,6 +84,7 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         else
         {
             PrintWarning("Magazine already inserted! Cannot insert again.", 2, FLinearColor(1.0, 0.5, 0.0));
+            CurrentReloadStep = EReloadStep::InsertMagazine;
             return;
         }
 
@@ -70,27 +93,38 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         Print(f"{Gun.GunName} magazine inserted! Magazine: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
         // After inserting mag, gun is NOT ready. Must perform Ready step next.
         Gun.IsReady = false;
+        CurrentReloadStep = EReloadStep::NotReady;
     }
 
     void ReadyOrEject()
     {
+        if (!Gun.HasMagazine)
+        {
+            PrintWarning("Cannot ready or eject! No magazine inserted.", 2, FLinearColor(1.0, 0.5, 0.0));
+            return;
+        }
+
         if (Gun.IsJammed)
         {
             // Always allow ejecting to clear jam
             Gun.Eject();
+            CurrentReloadStep = EReloadStep::NotReady;
         }
         else if (Gun.IsReady)
         {
             // Eject a round (simulate losing it, do not decrement mag)
             Gun.Eject();
+            CurrentReloadStep = EReloadStep::Eject;
         }
         else if (!Gun.IsReady && Gun.CurrentAmmo > 0)
         {
             Gun.Ready();
+            CurrentReloadStep = EReloadStep::Ready;
         }
         else if (!Gun.IsReady && Gun.CurrentAmmo <= 0)
         {
             PrintWarning("No ammo to ready! Gun is empty.", 2, FLinearColor(1.0, 0.5, 0.0));
+            CurrentReloadStep = EReloadStep::RemoveMagazine;
         }
     }
 
@@ -110,23 +144,25 @@ class UMagazineReloadStrategy : UReloadStrategyBase
                 break;
             default:
                 PrintError("Invalid reload action index!", 5, FLinearColor(1.0, 0.5, 0.0));
+                CurrentReloadStep = EReloadStep::NotReady;
                 break;
         }
     }
-
-    UFUNCTION(BlueprintOverride, Category = "Reload")
-    void OnReload() override 
-    { 
-        Print(f"{Gun.GunName} reloaded!", 2, FLinearColor(0.58, 0.95, 0.49));
-    }
 }
+
+UENUM()
+enum EShotgunReloadStep
+{
+    InsertShell = 0, // equivalent to InsertMagazine
+    ReadyOrEject = 1 // equivalent to ReadyOrEject
+};
 
 UCLASS(EditInlineNew)
 class UShotgunReloadStrategy : UReloadStrategyBase
 {
-    default ReloadSteps = 2; // Insert Shell, Ready
-    default ActionTexts.Add(FText::FromString("Insert Shell"));
-    default ActionTexts.Add(FText::FromString("Ready"));
+    default ReloadSteps = 2; // Insert Shell, ReadyOrEject
+    default ReloadPrompts.Add(FText::FromString("Insert Shell"));
+    default ReloadPrompts.Add(FText::FromString("Ready"));
 
     bool CanReload() override
     {
@@ -140,7 +176,15 @@ class UShotgunReloadStrategy : UReloadStrategyBase
         {
             Gun.CurrentAmmo++;
             Print(f"{Gun.GunName} shell inserted! Magazine: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
-            Gun.IsReady = false;
+
+            if (Gun.CurrentAmmo >= Gun.MaxAmmo)
+            {
+                PrintWarning("Magazine full!", 2, FLinearColor(1.0, 0.5, 0.0));
+                if (CurrentReloadStep == EReloadStep::InsertMagazine)
+                {
+                    CurrentReloadStep = EReloadStep::NotReady; // After inserting shell, gun is NOT ready
+                }
+            }
         }
         else
         {
@@ -148,9 +192,36 @@ class UShotgunReloadStrategy : UReloadStrategyBase
         }
     }
 
-    void Ready()
+    void ReadyOrEject()
     {
-        Gun.Ready();
+        if (Gun.CurrentAmmo <= 0)
+        {
+            PrintWarning("Cannot ready or eject! No ammo in the gun.", 2, FLinearColor(1.0, 0.5, 0.0));
+            return;
+        }
+
+        if (Gun.IsJammed)
+        {
+            // Always allow ejecting to clear jam
+            Gun.Eject();
+            CurrentReloadStep = EReloadStep::NotReady;
+        }
+        else if (Gun.IsReady)
+        {
+            // Eject a round
+            Gun.Eject();
+            CurrentReloadStep = EReloadStep::Eject;
+        }
+        else if (!Gun.IsReady && Gun.CurrentAmmo > 0)
+        {
+            Gun.Ready();
+            CurrentReloadStep = EReloadStep::Ready;
+        }
+        else if (!Gun.IsReady && Gun.CurrentAmmo <= 0)
+        {
+            PrintWarning("No ammo to ready! Gun is empty.", 2, FLinearColor(1.0, 0.5, 0.0));
+            CurrentReloadStep = EReloadStep::NotReady;
+        }
     }
 
     void Reload(int ActionIndex) override
@@ -162,17 +233,11 @@ class UShotgunReloadStrategy : UReloadStrategyBase
                 InsertShell();
                 break;
             case 1:
-                Ready();
+                ReadyOrEject();
                 break;
             default:
                 PrintError("Invalid reload action index!", 5, FLinearColor(1.0, 0.5, 0.0));
                 break;
         }
-    }
-
-    UFUNCTION(BlueprintOverride, Category = "Reload")
-    void OnReload() override 
-    {
-        Print(f"{Gun.GunName} reloaded!", 2, FLinearColor(0.58, 0.95, 0.49));
     }
 }

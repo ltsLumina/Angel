@@ -19,7 +19,7 @@ class AAngelPlayerController : APlayerController
     UInputAction ShootAction;
 
     UPROPERTY(Category = "Input")
-    UInputAction InitiateReloadAction;
+    UInputAction ADS_Action;
 
     UPROPERTY(Category = "Input")
     UInputAction InventoryAction;
@@ -53,11 +53,16 @@ class AAngelPlayerController : APlayerController
         InputComponent.BindKey(EKeys::E, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnKeyPressed"));
 
         // Shooting
-        InputComponent.BindAction(ShootAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"OnShoot"));
+        InputComponent.BindAction(ShootAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"Fire"));
+        
+        // ADS (Aim Down Sights)
+        InputComponent.BindAction(ADS_Action, ETriggerEvent::Started, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"StartADS"));
+        InputComponent.BindAction(ADS_Action, ETriggerEvent::Canceled, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"CancelledADS"));
+        InputComponent.BindAction(ADS_Action, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"OnADS"));
+        InputComponent.BindAction(ADS_Action, ETriggerEvent::Completed, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"EndADS"));
         
         // Reloading
         InputComponent.BindKey(EKeys::AnyKey, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualReloadComponent, n"OnKeyPressed"));
-        InputComponent.BindAction(InitiateReloadAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(ManualReloadComponent, n"InitiateReload"));
 
         // Blinking
         InputComponent.BindKey(EKeys::F, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualBlinkingComponent, n"Blink"));
@@ -71,6 +76,7 @@ class AAngelPlayerController : APlayerController
 
         // Gun Switching
         InputComponent.BindAction(SwitchGunAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"CycleGun"));
+        InputComponent.BindKey(EKeys::AnyKey, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"SelectGun"));
     }
 
     float CycleGunCooldown = 0.2f;
@@ -85,21 +91,20 @@ class AAngelPlayerController : APlayerController
         }
     }
 
-    UFUNCTION()
+    UFUNCTION(NotBlueprintCallable)
     void ToggleInventory(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
     {
         Print(f"Toggled inventory!");
     }
 
-    UFUNCTION()
+    UFUNCTION(NotBlueprintCallable)
     void CycleGun(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
     {
         UHolsterComponent Holster = GetAngelCharacter(0).HolsterComponent;
 
-        if (CycleGunTimer > 0.0f || Holster.EquippedGun.GetIsReloading()) return;
+        if (CycleGunTimer > 0.0f) return;
 
         float Direction = ActionValue.GetAxis1D();
-
 
         if (IsValid(Holster))
         {
@@ -107,6 +112,23 @@ class AAngelPlayerController : APlayerController
             Print(f"Cycle gun with direction: {DirectionString}", 2, FLinearColor(0.15, 0.32, 0.52));
             Holster.CycleGun(Direction);
             CycleGunTimer = CycleGunCooldown;
+        }
+    }
+
+    UFUNCTION(NotBlueprintCallable)
+    void SelectGun(FKey Key)
+    {
+        UHolsterComponent Holster = GetAngelCharacter(0).HolsterComponent;
+        if (!IsValid(Holster)) return;
+
+        int GunIndex = -1;
+        if (Key == EKeys::One) GunIndex = 0;
+        else if (Key == EKeys::Two) GunIndex = 1;
+        else if (Key == EKeys::Three) GunIndex = 2;
+
+        if (GunIndex >= 0 && GunIndex < Holster.Guns.Num())
+        {
+            Holster.SwitchGun(GunIndex);
         }
     }
 };

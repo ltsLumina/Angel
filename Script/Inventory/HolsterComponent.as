@@ -8,6 +8,9 @@ class UHolsterComponent : UActorComponent
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Holster")
     TArray<AManualGun> Guns;
 
+    UPROPERTY(EditDefaultsOnly, Category = "Holster | Debug")
+    int MaxGuns = 3;
+
     // The currently equipped gun
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Holster")
     AManualGun EquippedGun;
@@ -47,6 +50,7 @@ class UHolsterComponent : UActorComponent
                 Guns.Add(NewGun);
                 NewGun.AttachToComponent(ArmsMesh, n"GripPoint", EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, true);
                 NewGun.SetActorHiddenInGame(true);
+                NewGun.ActorTickEnabled = false;
             }
             else
             {
@@ -82,6 +86,7 @@ class UHolsterComponent : UActorComponent
                 for (AManualGun ExistingGun : Guns)
                 {
                     ExistingGun.SetActorHiddenInGame(true);
+                    ExistingGun.ActorTickEnabled = false;
                 }
             }
 
@@ -95,27 +100,21 @@ class UHolsterComponent : UActorComponent
             }
             
             Gun.SetActorHiddenInGame(false);
+            Gun.ActorTickEnabled = true;
 
             EquippedGun = Gun;
-            GunComponent.CurrentGun = Gun;
+            GunComponent.EquippedGun = Gun;
 
-            OnGunEquipped(Gun);
+            BP_OnGunEquipped(Gun, GunComponent);
         }
-    }
-
-    void OnGunEquipped(AManualGun Gun)
-    {
-        Gun.SetOwner(GetOwner());
-
-        BP_OnGunEquipped(Gun, GunComponent);
     }
 
     UFUNCTION(BlueprintEvent, Category = "Holster", Meta = (DisplayName = "Gun Equipped"))
     void BP_OnGunEquipped(AManualGun Gun, UGunComponent InGunComponent) 
     { }
 
-    UFUNCTION(Category = "Holster")
-    void CycleGun(float Direction = 1.0f)
+    UFUNCTION(Category = "Holster", Meta = (AdvancedDisplay= "OptionalIndex"))
+    void CycleGun(float Direction = 1.0f, int OptionalIndex = -1)
     {
         if (Guns.Num() == 0) return;
 
@@ -125,6 +124,12 @@ class UHolsterComponent : UActorComponent
         // Handle wrapping with float direction
         if (NextIndex < 0) NextIndex = NumGuns - 1;
         else if (NextIndex >= NumGuns) NextIndex = 0;
+
+        // If an optional index is provided, use it instead
+        if (OptionalIndex >= 0 && OptionalIndex < NumGuns)
+        {
+            NextIndex = OptionalIndex;
+        }
 
         SwitchGun(NextIndex);
     }
