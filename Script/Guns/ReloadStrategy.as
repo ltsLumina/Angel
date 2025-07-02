@@ -62,12 +62,13 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         if (!Gun.HasMagazine)
         {
             PrintWarning("Cannot remove magazine! Gun does not have a magazine.", 2, FLinearColor(1.0, 0.5, 0.0));
-            GunState = EGunState::NotReady;
             return;
         }
 
         Gun.CurrentAmmo = 0;
         Gun.HasMagazine = false;
+        Gun.BP_RemoveMag();
+
         Print(f"{Gun.GunName} magazine removed! Current ammo: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
         Gun.IsReady = false; // Removing mag always un-readies
         GunState = EGunState::InsertMagazine;
@@ -77,7 +78,8 @@ class UMagazineReloadStrategy : UReloadStrategyBase
     {
         if (!Gun.HasMagazine)
         {
-            Gun.HasMagazine = true; // Set magazine presence
+            Gun.HasMagazine = true;
+            Gun.BP_InsertMag();
         }
         else
         {
@@ -88,6 +90,7 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         int32 InsertAmount = (Amount < 0) ? Gun.MaxAmmo : Math::Clamp(Amount, 0, Gun.MaxAmmo);
         Gun.CurrentAmmo = InsertAmount;
         Print(f"{Gun.GunName} magazine inserted! Magazine: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
+
         // After inserting mag, gun is NOT ready. Must perform Ready step next.
         Gun.IsReady = false;
         GunState = EGunState::NotReady;

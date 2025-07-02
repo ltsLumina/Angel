@@ -158,15 +158,32 @@ class AManualGun : AActor
         {
             //PrintWarning(f"{GunName} trigger pulled but not ready!", 2, FLinearColor(1.0, 0.2, 0.2));
         }
+
+        BP_Shoot(ReloadStrategy.GunState);
     }
 
-    UFUNCTION(Category = "Gun | Reload")
+    UFUNCTION(BlueprintEvent, Category = "Gun | Shooting", DisplayName = "Shoot")
+    void BP_Shoot(EGunState GunState) { }
+
+    UFUNCTION(BlueprintEvent, NotBlueprintCallable, Category = "Gun | Reload", DisplayName = "Remove Mag")
+    void BP_RemoveMag() { }
+
+    UFUNCTION(BlueprintEvent, NotBlueprintCallable, Category = "Gun | Reload", DisplayName = "Insert Mag")
+    void BP_InsertMag() { }
+
+    UFUNCTION(BlueprintEvent, NotBlueprintCallable, Category = "Gun | Reload", DisplayName = "Ready")
+    void BP_Ready() { }
+
+    UFUNCTION(BlueprintEvent, NotBlueprintCallable, Category = "Gun | Reload", DisplayName = "Eject")
+    void BP_Eject() { }
+
     void Ready()
     {
         if (!IsReady && CurrentAmmo > 0 && !IsJammed)
         {
             IsReady = true;
             ReloadStrategy.GunState = EGunState::Ready;
+            BP_Ready();
             Print(f"{GunName} readied! Magazine: {CurrentAmmo}/{MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
         }
         else if (IsJammed)
@@ -179,7 +196,6 @@ class AManualGun : AActor
         }
     }
 
-    UFUNCTION(Category = "Gun | Reload")
     void Eject()
     {
         if (IsReady)
@@ -188,6 +204,7 @@ class AManualGun : AActor
             ReloadStrategy.GunState = EGunState::NotReady;
 
             CurrentAmmo--;
+            BP_Eject();
             Print(f"{GunName} ejected a round! Magazine: {CurrentAmmo}/{MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
 
             if (CurrentAmmo <= 0)
@@ -206,8 +223,10 @@ class AManualGun : AActor
             ReloadStrategy.GunState = EGunState::Jammed; // Clear jam, gun is not ready
 
             CurrentAmmo--; // Ejecting a round clears the jam
+            BP_Eject();
             Print(f"{GunName} jam cleared! Ejected round.", 2, FLinearColor(0.58, 0.95, 0.49));
-            Ready();
+
+            Ready(); // Auto-ready after clearing jam
 
             if (CurrentAmmo <= 0)
             {
@@ -219,5 +238,7 @@ class AManualGun : AActor
             PrintWarning(f"{GunName} is not ready, nothing to eject.", 2, FLinearColor(1.0, 0.5, 0.0));
         }
     }
+    
+
     /* Reload is handled by UReloadStrategyBase */
 };

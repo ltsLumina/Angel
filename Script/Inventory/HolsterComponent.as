@@ -28,10 +28,10 @@ class UHolsterComponent : UActorComponent
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
-        ArmsMesh = Cast<USkeletalMeshComponent>(GetOwner().GetComponentsByTag(USkeletalMeshComponent::StaticClass(), n"FirstPersonMesh")[0]);
+        ArmsMesh = Cast<USkeletalMeshComponent>(GetOwner().GetComponentsByTag(USkeletalMeshComponent, n"Character Arms")[0]);
         if (!IsValid(ArmsMesh))
         {
-            PrintError("Holster component requires a FirstPersonMesh component on the owner actor!");
+            PrintError("Holster component requires a 'Character Arms (Mesh)' component on the owner actor!");
             return;
         }
 
@@ -48,7 +48,7 @@ class UHolsterComponent : UActorComponent
             if (IsValid(NewGun))
             {
                 Guns.Add(NewGun);
-                NewGun.AttachToComponent(ArmsMesh, n"GripPoint", EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, true);
+                NewGun.AttachToComponent(ArmsMesh, n"ik_hand_gun", EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, true);
                 NewGun.SetActorHiddenInGame(true);
                 NewGun.ActorTickEnabled = false;
             }
