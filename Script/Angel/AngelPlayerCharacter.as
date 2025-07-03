@@ -1,13 +1,16 @@
 event void FOnEffectGained(FGameplayTag EffectTag, AActor EffectInstigator);
 event void FOnEffectLost(FGameplayTag EffectTag, AActor EffectInstigator);
 
-class AAngelPlayerCharacter : ACharacter
+class AAngelPlayerCharacter : AAngelscriptGASCharacter
 {
-    UPROPERTY(Category = "Player", NotVisible)
+    UPROPERTY(Category = "Player", NotVisible, BlueprintReadOnly)
     AAngelPlayerController AngelController;
 
     UPROPERTY(Category = "Player", EditDefaultsOnly)
     FGameplayTagContainer GameplayTags;
+
+    UPROPERTY(Category = "Player", EditDefaultsOnly)
+    UAngelGASAttributes Attributes;
 
 // - events
 
@@ -31,6 +34,8 @@ class AAngelPlayerCharacter : ACharacter
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
+        Attributes = Cast<UAngelGASAttributes>(AbilitySystem.RegisterAttributeSet(UAngelGASAttributes));
+
         ManualWalkingComponent = UManualWalkingComponent::Get(this);
         ManualReloadComponent = UManualReloadComponent::Get(this);
         ManualBlinkingComponent = UManualBlinkingComponent::Get(this);
@@ -38,7 +43,7 @@ class AAngelPlayerCharacter : ACharacter
         ManualHeartbeatComponent = UManualHeartbeatComponent::Get(this);
 
         HolsterComponent = UHolsterComponent::Get(this);
-        //InventoryComponent = UInventoryComponent::Get(this); // TODO
+        InventoryComponent = UInventoryComponent::Get(this);
 
         AngelController = GetAngelController(this); // Equivalent to Cast<AAngelPlayerController>(this);
 
