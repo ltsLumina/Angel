@@ -22,12 +22,7 @@ class AAngelPlayerCharacter : AAngelscriptGASCharacter
 
 // - end
 
-    UManualWalkingComponent ManualWalkingComponent;
     UManualReloadComponent ManualReloadComponent;
-    UManualBlinkingComponent ManualBlinkingComponent;
-    UManualBreathingComponent ManualBreathingComponent;
-    UManualHeartbeatComponent ManualHeartbeatComponent;
-
     UHolsterComponent HolsterComponent;
     UInventoryComponent InventoryComponent;
 
@@ -36,12 +31,7 @@ class AAngelPlayerCharacter : AAngelscriptGASCharacter
     {
         Attributes = Cast<UAngelGASAttributes>(AbilitySystem.RegisterAttributeSet(UAngelGASAttributes));
 
-        ManualWalkingComponent = UManualWalkingComponent::Get(this);
         ManualReloadComponent = UManualReloadComponent::Get(this);
-        ManualBlinkingComponent = UManualBlinkingComponent::Get(this);
-        ManualBreathingComponent = UManualBreathingComponent::Get(this);
-        ManualHeartbeatComponent = UManualHeartbeatComponent::Get(this);
-
         HolsterComponent = UHolsterComponent::Get(this);
         InventoryComponent = UInventoryComponent::Get(this);
 

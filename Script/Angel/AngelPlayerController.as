@@ -47,10 +47,7 @@ class AAngelPlayerController : APlayerController
         ManualHeartbeatComponent = UManualHeartbeatComponent::Get(Character);
 
         // Movement
-        InputComponent.BindAction(MoveAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnMove"));
-        InputComponent.BindAction(MoveAction, ETriggerEvent::Completed, FEnhancedInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnMoveCompleted"));
-        InputComponent.BindKey(EKeys::Q, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnKeyPressed"));
-        InputComponent.BindKey(EKeys::E, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualWalkingComponent, n"OnKeyPressed"));
+        
 
         // Shooting
         InputComponent.BindAction(ShootAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"Fire"));
@@ -62,14 +59,7 @@ class AAngelPlayerController : APlayerController
         InputComponent.BindAction(ADS_Action, ETriggerEvent::Completed, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"EndADS"));
         
         // Reloading
-        InputComponent.BindKey(EKeys::AnyKey, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualReloadComponent, n"OnKeyPressed"));
-
-        // Blinking
-        InputComponent.BindKey(EKeys::F, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualBlinkingComponent, n"Blink"));
-
-        // Breathing
-        InputComponent.BindKey(EKeys::SpaceBar, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualBreathingComponent, n"Inhale"));
-        InputComponent.BindKey(EKeys::SpaceBar, EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(ManualBreathingComponent, n"Exhale"));
+        InputComponent.BindKey(EKeys::R, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualReloadComponent, n"Reload"));
 
         // UI/Inventory
         InputComponent.BindAction(InventoryAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"ToggleInventory"));

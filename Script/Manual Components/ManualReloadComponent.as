@@ -43,13 +43,10 @@ class UManualReloadComponent : UActorComponent
     void BP_Tick(float DeltaSeconds) { }
 
     UFUNCTION(NotBlueprintCallable)
-    void OnKeyPressed(FKey Key)
+    void Reload(FKey Key)
     {
         // NOTE: This is done on each key press in-case the reload keys change dynamically, in the future.
         auto EquippedGun = GetAngelCharacter(0).HolsterComponent.EquippedGun;
-        auto ReloadKeys = EquippedGun.ReloadStrategy.ReloadKeys;
-
-        if (!ReloadKeys.Contains(Key) || ReloadKeys.Num() == 0) return;
 
         if (TimeSinceInput < InputDelay)
         {
@@ -58,12 +55,11 @@ class UManualReloadComponent : UActorComponent
         }
         else { TimeSinceInput = 0; }
 
-        int Index = ReloadKeys.FindIndex(Key);
-        EquippedGun.ReloadStrategy.Reload(Index);
+        EquippedGun.ReloadStrategy.Reload();
 
-        BP_OnKeyPressed(Index);
+        BP_OnReload();
     }
 
-    UFUNCTION(BlueprintEvent, Category = "Reload", DisplayName = "Key Pressed")
-    void BP_OnKeyPressed(int Index) { }
+    UFUNCTION(BlueprintEvent, Category = "Reload", DisplayName = "Reload Initiated")
+    void BP_OnReload() { }
 };
