@@ -6,11 +6,7 @@ class AAngelPlayerController : APlayerController
     UPROPERTY(Category = "Input", EditDefaultsOnly)
     UGunComponent GunComponent;
 
-    UManualWalkingComponent ManualWalkingComponent;
     UManualReloadComponent ManualReloadComponent;
-    UManualBlinkingComponent ManualBlinkingComponent;
-    UManualBreathingComponent ManualBreathingComponent;
-    UManualHeartbeatComponent ManualHeartbeatComponent;
 
     UPROPERTY(Category = "Input")
     UInputAction MoveAction;
@@ -40,15 +36,10 @@ class AAngelPlayerController : APlayerController
 
         AAngelPlayerCharacter Character = GetAngelCharacter(0);
 
-        ManualWalkingComponent = UManualWalkingComponent::Get(Character);
         ManualReloadComponent = UManualReloadComponent::Get(Character);
-        ManualBlinkingComponent = UManualBlinkingComponent::Get(Character);
-        ManualBreathingComponent = UManualBreathingComponent::Get(Character);
-        ManualHeartbeatComponent = UManualHeartbeatComponent::Get(Character);
 
         // Movement
         
-
         // Shooting
         InputComponent.BindAction(ShootAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"Fire"));
         

@@ -3,12 +3,6 @@
 
 class UManualReloadComponent : UActorComponent
 {
-// - config | reload
-
-    // Modifies the legal keys for the reload sequence to only use keys: 1, 2, and 3.
-    UPROPERTY(Category = "Reload | Debug", EditDefaultsOnly)
-    bool UseDebugReloadKeys;
-    default UseDebugReloadKeys = true;
 
 // - config | input
 

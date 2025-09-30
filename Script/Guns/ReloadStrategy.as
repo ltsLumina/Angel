@@ -18,12 +18,7 @@ class UReloadStrategyBase : UObject
     UPROPERTY(Category = "Reload", VisibleInstanceOnly)
     EGunState GunState = EGunState::NotReady;
 
-    UFUNCTION(BlueprintPure, Category = "Reload")
-    int GetReloadSteps() const { return ReloadPrompts.Num(); }
-
-    UPROPERTY(Category = "Reload", EditDefaultsOnly)
-    TArray<FText> ReloadPrompts;
-
+    // Setup gun stuff, like getting a reference to the gun.
     void Reload() { Gun = GetAngelCharacter(0).HolsterComponent.EquippedGun; }
 }
 
