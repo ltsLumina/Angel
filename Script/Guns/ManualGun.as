@@ -112,7 +112,7 @@ class AManualGun : AActor
 
         if (IsReady)
         {
-            Print(f"{GunName} fired! Magazine: {CurrentAmmo - 1}/{MaxAmmo}", 2, FLinearColor(0.15, 0.32, 0.52));
+            //Print(f"{GunName} fired! Magazine: {CurrentAmmo - 1}/{MaxAmmo}", 2, FLinearColor(0.15, 0.32, 0.52));
             TimeSinceLastShot = 0;
             CurrentAmmo--;
             UGunComponent::Get(GetAngelCharacter(0)).BP_OnShoot(this);
@@ -157,6 +157,12 @@ class AManualGun : AActor
         }
     }
 
+    UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
+    int RecoilIndex;
 
-    /* Reload is handled by UReloadStrategyBase */
+    UFUNCTION(BlueprintPure, Category = "Gun | Magazine")
+    bool WithinRange(int Min, int Max)
+    {
+        return RecoilIndex >= Min && RecoilIndex <= Max;
+    }
 };
