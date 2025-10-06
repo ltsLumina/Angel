@@ -115,13 +115,19 @@ class AManualGun : AActor
             //Print(f"{GunName} fired! Magazine: {CurrentAmmo - 1}/{MaxAmmo}", 2, FLinearColor(0.15, 0.32, 0.52));
             TimeSinceLastShot = 0;
             CurrentAmmo--;
+            System::SetTimer(this, n"TryStartRecoil", RecoilKickDuration, false);
+            BP_RecoilStarted();
+
+            System::SetTimer(this, n"BP_RecoilEnded", RecoilKickDuration, false);
+            RecoilIndex++;
+            
             UGunComponent::Get(GetAngelCharacter(0)).BP_OnShoot(this);
 
             if (CurrentAmmo <= 0)
             {
                 IsReady = false;
                 ReloadStrategy.GunState = EGunState::NotReady;
-                PrintWarning(f"{GunName} is empty! Slide locked back.", 2, FLinearColor(1.0, 0.5, 0.0));
+                PrintWarning(f"{GunName} is empty!", 2, FLinearColor(1.0, 0.5, 0.0));
                 return; // Prevent jamming if no ammo left
             }
         }
@@ -158,11 +164,125 @@ class AManualGun : AActor
     }
 
     UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
+    float VerticalRecoil = 0.15;
+
+    /** 
+     * X = Right, Y = Left
+     * Positive Value means look right, Negative means look left
+    */
+    UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
+    FVector2D HorizontalRecoil = FVector2D(0.1, -0.2);
+
+    UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
+    TArray<FVector2D> RecoilRange;
+
+    UPROPERTY(Category = "Gun | Recoil", VisibleInstanceOnly)
     int RecoilIndex;
 
     UFUNCTION(BlueprintPure, Category = "Gun | Magazine")
-    bool WithinRange(int Min, int Max)
+    bool IsWithinRecoilRange(int RecoilStep)
     {
-        return RecoilIndex >= Min && RecoilIndex <= Max;
+        if (RecoilStep < 0 || RecoilStep >= RecoilRange.Num()) return false;
+        return RecoilIndex >= RecoilRange[RecoilStep].X && RecoilIndex <= RecoilRange[RecoilStep].Y;
+    }
+
+    FTimerHandle RecoilSettleTimerHandle;
+
+    /**
+     * Applies recoil to the player's view based on predefined recoil patterns.
+     * This function checks the current recoil index against defined recoil ranges
+     * and applies vertical or horizontal recoil accordingly.
+     */
+    UFUNCTION(Category = "Gun | Magazine")
+    void Recoil()
+    {
+        if (IsWithinRecoilRange(0))
+        {
+            Pitch(VerticalRecoil);
+        }
+        else if (IsWithinRecoilRange(1))
+        {
+            Pitch(Math::RandRange(-0.05, 0.05));
+            Yaw(HorizontalRecoil.X);
+        }
+        else if (IsWithinRecoilRange(2))
+        {
+            Pitch(Math::RandRange(-0.05, 0.05));
+            Yaw(HorizontalRecoil.Y);
+        }
+        else if (IsWithinRecoilRange(3))
+        {
+            Pitch(Math::RandRange(-0.05, 0.05));
+            Yaw(HorizontalRecoil.X);
+        }
+        else
+        {
+            PrintError("Recoil index out of range!");
+        }
+    }
+
+    /**
+     * The duration (in seconds) for which the recoil effect is applied.
+     * This value determines how quickly the recoil settles back to the original position.
+     * Default is set to 0.05 seconds.
+     */
+    UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
+    float RecoilKickDuration = 0.05;
+
+    UFUNCTION(NotBlueprintCallable)
+    void TryStartRecoil()
+    {
+        if (TimeSinceLastShot > 0.2)
+        {
+            RecoilSettleTimerHandle = System::SetTimer(this, n"SettleRecoil", 0.01, true, true);
+            System::SetTimer(this, n"StopRecoil", RecoilKickDuration, false);
+        }
+        else
+        {
+            System::SetTimer(this, n"TryStartRecoil", 0.01, false);
+        }
+    }
+
+    UFUNCTION(NotBlueprintCallable)
+    void StopRecoil()
+    {
+        System::ClearAndInvalidateTimerHandle(RecoilSettleTimerHandle);
+        RecoilIndex = 0;
+
+        BP_RecoilEnded();
+    }
+
+    UFUNCTION()
+    void SettleRecoil()
+    {
+        Pitch(-VerticalRecoil);
+    }
+
+    UFUNCTION(BlueprintEvent, DisplayName = "Recoil Started")
+    void BP_RecoilStarted() { }
+
+    UFUNCTION(BlueprintEvent, DisplayName = "Recoil Ended")
+    void BP_RecoilEnded() { }
+
+    /** 
+     * Positive Value means look up, Negative means look down
+     * @param Value The amount to pitch the view.
+    */
+    UFUNCTION()
+    void Pitch(float Value)
+    {
+        auto Character = GetAngelCharacter(0);
+        Character.AddControllerPitchInput(Value * -1);
+    }
+
+    /** 
+     * Positive Value means look right, Negative means look left
+     * @param Value The amount to yaw the view.
+    */
+    UFUNCTION()
+    void Yaw(float Value)
+    {
+        auto Character = GetAngelCharacter(0);
+        Character.AddControllerYawInput(Value);
     }
 };
