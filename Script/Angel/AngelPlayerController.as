@@ -6,7 +6,7 @@ class AAngelPlayerController : APlayerController
     UPROPERTY(Category = "Input", EditDefaultsOnly)
     UGunComponent GunComponent;
 
-    UManualReloadComponent ManualReloadComponent;
+    UReloadComponent ReloadComponent;
 
     UPROPERTY(Category = "Input")
     UInputAction MoveAction;
@@ -35,8 +35,7 @@ class AAngelPlayerController : APlayerController
         EnhancedInputSubsystem.AddMappingContext(Context, 0, FModifyContextOptions());
 
         AAngelPlayerCharacter Character = GetAngelCharacter(0);
-
-        ManualReloadComponent = UManualReloadComponent::Get(Character);
+        ReloadComponent = UReloadComponent::Get(Character);
 
         // Movement
         
@@ -50,7 +49,7 @@ class AAngelPlayerController : APlayerController
         InputComponent.BindAction(ADS_Action, ETriggerEvent::Completed, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"EndADS"));
         
         // Reloading
-        InputComponent.BindKey(EKeys::R, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ManualReloadComponent, n"Reload"));
+        InputComponent.BindKey(EKeys::R, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ReloadComponent, n"Reload"));
 
         // UI/Inventory
         InputComponent.BindAction(InventoryAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"ToggleInventory"));

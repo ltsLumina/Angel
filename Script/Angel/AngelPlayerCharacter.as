@@ -3,6 +3,9 @@ event void FOnEffectLost(FGameplayTag EffectTag, AActor EffectInstigator);
 
 class AAngelPlayerCharacter : AAngelscriptGASCharacter
 {
+    UPROPERTY(Category = "Player", DefaultComponent)
+    UReloadComponent ManualReloadComponent;
+
     UPROPERTY(Category = "Player", NotVisible, BlueprintReadOnly)
     AAngelPlayerController AngelController;
 
@@ -22,7 +25,6 @@ class AAngelPlayerCharacter : AAngelscriptGASCharacter
 
 // - end
 
-    UManualReloadComponent ManualReloadComponent;
     UHolsterComponent HolsterComponent;
     UInventoryComponent InventoryComponent;
 
@@ -31,7 +33,7 @@ class AAngelPlayerCharacter : AAngelscriptGASCharacter
     {
         Attributes = Cast<UAngelGASAttributes>(AbilitySystem.RegisterAttributeSet(UAngelGASAttributes));
 
-        ManualReloadComponent = UManualReloadComponent::Get(this);
+        ManualReloadComponent = UReloadComponent::Get(this);
         HolsterComponent = UHolsterComponent::Get(this);
         InventoryComponent = UInventoryComponent::Get(this);
 

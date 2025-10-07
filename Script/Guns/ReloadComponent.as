@@ -1,7 +1,7 @@
 //event void FOnInitiateReload(AManualGun Gun);
 //event void FOnReloadComplete(AManualGun Gun);
 
-class UManualReloadComponent : UActorComponent
+class UReloadComponent : UActorComponent
 {
 
 // - config | input
@@ -14,13 +14,6 @@ class UManualReloadComponent : UActorComponent
     default InputDelay = 0.5; // Time in seconds before the next input is considered valid
 
 // - events
-
-    UFUNCTION(BlueprintOverride)
-    void BeginPlay()
-    {
-        BP_BeginPlay();
-    }
-
 
     UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
     void BP_BeginPlay() { }

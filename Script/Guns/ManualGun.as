@@ -50,6 +50,14 @@ class AManualGun : AActor
     UPROPERTY(Category = "Gun | Shooting", VisibleInstanceOnly, Meta = (Units = "Seconds"))
     float TimeSinceLastShot = 0;
 
+// - recoil
+
+    UPROPERTY(BlueprintReadOnly, Category = "Gun | Recoil", VisibleInstanceOnly)
+    int RecoilIndex;
+
+    UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly, Meta = (Units = "Seconds"))
+    bool IsFirstShotAccurate = true;
+
 // - end
 
     const int MINUTE = 60;
@@ -91,8 +99,22 @@ class AManualGun : AActor
     {
         TimeSinceLastShot += DeltaSeconds;
 
+        // Assumes player has not fired for a while, reset recoil index
+        if (TimeSinceLastShot > ShootCooldown * 2) 
+            RecoilIndex = 0;
+
+        // first shot accuracy
+        if (TimeSinceLastShot > 0.35 && RecoilIndex == 0) 
+            IsFirstShotAccurate = true;
+
+        if (RecoilIndex == 0) 
+            StopHorizontalRecoil();
+
         BP_Tick(DeltaSeconds);
     }
+
+    UFUNCTION(BlueprintEvent)
+    void StopHorizontalRecoil() { }
 
     UFUNCTION(BlueprintEvent, DisplayName = "Tick")
     void BP_Tick(float DeltaSeconds) { }
@@ -141,15 +163,6 @@ class AManualGun : AActor
         BP_Shoot(ReloadStrategy.GunState);
     }
 
-    UFUNCTION(BlueprintEvent, Category = "Gun | Shooting", DisplayName = "Shoot")
-    void BP_Shoot(EGunState GunState) { }
-
-    UFUNCTION(BlueprintEvent, NotBlueprintCallable, Category = "Gun | Reload", DisplayName = "Reload")
-    void BP_OnReload() { }
-
-    UFUNCTION(BlueprintEvent, NotBlueprintCallable, Category = "Gun | Reload", DisplayName = "Ready")
-    void BP_Ready() { }
-
     void Ready()
     {
         if (!IsReady && CurrentAmmo > 0)
@@ -165,132 +178,12 @@ class AManualGun : AActor
         }
     }
 
-    UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
-    float VerticalRecoil = 0.15;
+    UFUNCTION(BlueprintEvent, Category = "Gun | Shooting", DisplayName = "Shoot")
+    void BP_Shoot(EGunState GunState) { }
 
-    UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
-    FVector2D HorizontalRecoil = FVector2D(5, -5);
+    UFUNCTION(BlueprintEvent, NotBlueprintCallable, Category = "Gun | Reload", DisplayName = "Reload")
+    void BP_OnReload() { }
 
-    UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
-    TArray<FVector2D> RecoilRange;
-
-    UPROPERTY(Category = "Gun | Recoil", VisibleInstanceOnly)
-    int RecoilIndex;
-
-    UFUNCTION(BlueprintPure, Category = "Gun | Magazine")
-    bool IsWithinRecoilRange(int RecoilStep)
-    {
-        if (RecoilStep < 0 || RecoilStep >= RecoilRange.Num()) return false;
-        return RecoilIndex >= RecoilRange[RecoilStep].X && RecoilIndex <= RecoilRange[RecoilStep].Y;
-    }
-
-    FTimerHandle RecoilSettleTimerHandle;
-
-    /**
-     * Applies recoil to the player's view based on predefined recoil patterns.
-     * This function checks the current recoil index against defined recoil ranges
-     * and applies vertical or horizontal recoil accordingly.
-     */
-    UFUNCTION(Category = "Gun | Magazine")
-    void Recoil()
-    {
-        if (IsWithinRecoilRange(0))
-        {
-            //Pitch(VerticalRecoil);
-            RecoilVerticalTest();
-        }
-        else if (IsWithinRecoilRange(1)) // left
-        {
-            //Pitch(Math::RandRange(0, 0.01));
-            //Yaw(HorizontalRecoil.X);
-            RecoilSidewaysTest();
-        }
-        else if (IsWithinRecoilRange(2)) // right
-        {
-            //Pitch(Math::RandRange(0, 0.01));
-            //Yaw(HorizontalRecoil.Y);
-            RecoilSidewaysTest();
-        }
-        else if (IsWithinRecoilRange(3)) // left again
-        {
-            //Pitch(Math::RandRange(-0.05, 0.05));
-            //Yaw(HorizontalRecoil.X);
-            RecoilSidewaysTest();
-        }
-        else
-        {
-            PrintError("Recoil index out of range!");
-        }
-    }
-
-    UFUNCTION(BlueprintEvent)
-    void RecoilVerticalTest() { }
-
-    UFUNCTION(BlueprintEvent)
-    void RecoilSidewaysTest() { }
-
-    /**
-     * The duration (in seconds) for which the recoil effect is applied.
-     * This value determines how quickly the recoil settles back to the original position.
-     * Default is set to 0.05 seconds.
-     */
-    UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
-    float RecoilKickDuration = 0.05;
-
-    UFUNCTION(NotBlueprintCallable)
-    void TryStartRecoil()
-    {
-        if (TimeSinceLastShot > 0.2)
-        {
-            RecoilSettleTimerHandle = System::SetTimer(this, n"SettleRecoil", 0.01, true, true);
-            System::SetTimer(this, n"StopRecoil", RecoilKickDuration, false);
-        }
-        else
-        {
-            System::SetTimer(this, n"TryStartRecoil", 0.01, false);
-        }
-    }
-
-    UFUNCTION(NotBlueprintCallable)
-    void StopRecoil()
-    {
-        System::ClearAndInvalidateTimerHandle(RecoilSettleTimerHandle);
-        RecoilIndex = 0;
-
-        BP_RecoilEnded();
-    }
-
-    UFUNCTION()
-    void SettleRecoil()
-    {
-        Pitch(-VerticalRecoil);
-    }
-
-    UFUNCTION(BlueprintEvent, DisplayName = "Recoil Started")
-    void BP_RecoilStarted() { }
-
-    UFUNCTION(BlueprintEvent, DisplayName = "Recoil Ended")
-    void BP_RecoilEnded() { }
-
-    /** 
-     * Positive Value means look up, Negative means look down
-     * @param Value The amount to pitch the view.
-    */
-    UFUNCTION()
-    void Pitch(float Value)
-    {
-        auto Character = GetAngelCharacter(0);
-        Character.AddControllerPitchInput(Value * -1);
-    }
-
-    /** 
-     * Positive Value means look right, Negative means look left
-     * @param Value The amount to yaw the view.
-    */
-    UFUNCTION()
-    void Yaw(float Value)
-    {
-        auto Character = GetAngelCharacter(0);
-        Character.AddControllerYawInput(Value * -1);
-    }
+    UFUNCTION(BlueprintEvent, NotBlueprintCallable, Category = "Gun | Reload", DisplayName = "Ready")
+    void BP_Ready() { }
 };

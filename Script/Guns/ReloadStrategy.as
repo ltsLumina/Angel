@@ -40,6 +40,7 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         return Gun.CurrentAmmo < Gun.MaxAmmo && Gun.HasMagazine;
     }
 
+    UFUNCTION()
     void RemoveMagazine()
     {
         if (!Gun.HasMagazine)
