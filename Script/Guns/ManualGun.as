@@ -115,16 +115,18 @@ class AManualGun : AActor
             //Print(f"{GunName} fired! Magazine: {CurrentAmmo - 1}/{MaxAmmo}", 2, FLinearColor(0.15, 0.32, 0.52));
             TimeSinceLastShot = 0;
             CurrentAmmo--;
-            System::SetTimer(this, n"TryStartRecoil", RecoilKickDuration, false);
-            BP_RecoilStarted();
+            //System::SetTimer(this, n"TryStartRecoil", RecoilKickDuration, false);
+            //BP_RecoilStarted();
 
-            System::SetTimer(this, n"BP_RecoilEnded", RecoilKickDuration, false);
+            //System::SetTimer(this, n"BP_RecoilEnded", RecoilKickDuration, false);
             RecoilIndex++;
             
             UGunComponent::Get(GetAngelCharacter(0)).BP_OnShoot(this);
 
             if (CurrentAmmo <= 0)
             {
+                BP_Shoot(ReloadStrategy.GunState);
+                
                 IsReady = false;
                 ReloadStrategy.GunState = EGunState::NotReady;
                 PrintWarning(f"{GunName} is empty!", 2, FLinearColor(1.0, 0.5, 0.0));
@@ -166,12 +168,8 @@ class AManualGun : AActor
     UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
     float VerticalRecoil = 0.15;
 
-    /** 
-     * X = Right, Y = Left
-     * Positive Value means look right, Negative means look left
-    */
     UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
-    FVector2D HorizontalRecoil = FVector2D(0.1, -0.2);
+    FVector2D HorizontalRecoil = FVector2D(5, -5);
 
     UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly)
     TArray<FVector2D> RecoilRange;
@@ -198,28 +196,38 @@ class AManualGun : AActor
     {
         if (IsWithinRecoilRange(0))
         {
-            Pitch(VerticalRecoil);
+            //Pitch(VerticalRecoil);
+            RecoilVerticalTest();
         }
-        else if (IsWithinRecoilRange(1))
+        else if (IsWithinRecoilRange(1)) // left
         {
-            Pitch(Math::RandRange(-0.05, 0.05));
-            Yaw(HorizontalRecoil.X);
+            //Pitch(Math::RandRange(0, 0.01));
+            //Yaw(HorizontalRecoil.X);
+            RecoilSidewaysTest();
         }
-        else if (IsWithinRecoilRange(2))
+        else if (IsWithinRecoilRange(2)) // right
         {
-            Pitch(Math::RandRange(-0.05, 0.05));
-            Yaw(HorizontalRecoil.Y);
+            //Pitch(Math::RandRange(0, 0.01));
+            //Yaw(HorizontalRecoil.Y);
+            RecoilSidewaysTest();
         }
-        else if (IsWithinRecoilRange(3))
+        else if (IsWithinRecoilRange(3)) // left again
         {
-            Pitch(Math::RandRange(-0.05, 0.05));
-            Yaw(HorizontalRecoil.X);
+            //Pitch(Math::RandRange(-0.05, 0.05));
+            //Yaw(HorizontalRecoil.X);
+            RecoilSidewaysTest();
         }
         else
         {
             PrintError("Recoil index out of range!");
         }
     }
+
+    UFUNCTION(BlueprintEvent)
+    void RecoilVerticalTest() { }
+
+    UFUNCTION(BlueprintEvent)
+    void RecoilSidewaysTest() { }
 
     /**
      * The duration (in seconds) for which the recoil effect is applied.
@@ -283,6 +291,6 @@ class AManualGun : AActor
     void Yaw(float Value)
     {
         auto Character = GetAngelCharacter(0);
-        Character.AddControllerYawInput(Value);
+        Character.AddControllerYawInput(Value * -1);
     }
 };
