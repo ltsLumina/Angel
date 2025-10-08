@@ -26,7 +26,7 @@ class UReloadComponent : UActorComponent
         BP_Tick(DeltaSeconds);
     }
 
-    UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Tick"))
+    UFUNCTION(BlueprintEvent, DisplayName = "Tick")
     void BP_Tick(float DeltaSeconds) { }
 
     UFUNCTION(NotBlueprintCallable)

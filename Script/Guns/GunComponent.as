@@ -9,7 +9,10 @@ class UGunComponent : UActorComponent
     UFUNCTION()
     void Fire(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, const UInputAction SourceAction)
     {
-        EquippedGun.Shoot();
+        if (EquippedGun.Shoot())
+        {
+            BP_OnShoot(EquippedGun);
+        }
     }
 
     UFUNCTION(BlueprintEvent, Meta = (DisplayName = "On Shoot"))
