@@ -24,12 +24,12 @@ class UDamageFalloff : UObject
 				FVector DamageValues = DamageMap[Range];
 				if (Headshot)
 				{
-					Print(f"Headshot damage at {Distance}m: {DamageValues.X}", 2, FLinearColor(1.00, 0.00, 0.00));
+					//Print(f"Headshot damage at {Distance}m: {DamageValues.X}", 2, FLinearColor(1.00, 0.00, 0.00));
 					return DamageValues.X;
 				}
 				else
 				{
-					Print(f"Body/Leg damage at {Distance}m: {DamageValues.Y}", 2, FLinearColor(0.02, 1.00, 0.02));
+					//Print(f"Body/Leg damage at {Distance}m: {DamageValues.Y}", 2, FLinearColor(0.02, 1.00, 0.02));
 					return DamageValues.Y;
 				}
 			}
