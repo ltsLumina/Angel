@@ -10,7 +10,7 @@ class UDamageFalloff : UObject
     TMap<FVector2D, FVector> DamageMap;
 
     UFUNCTION(BlueprintPure)
-	float GetDamageAtDistance(float Distance, bool Headshot)
+	float GetDamageAtDistance(float Distance, EBodyPart BodyPart)
 	{
 		// Sort keys to ensure correct range checking
 		TArray<FVector2D> SortedKeys;
@@ -22,15 +22,20 @@ class UDamageFalloff : UObject
 			if (Distance <= Range.Y)
 			{
 				FVector DamageValues = DamageMap[Range];
-				if (Headshot)
+				if (BodyPart == EBodyPart::Head)
 				{
 					//Print(f"Headshot damage at {Distance}m: {DamageValues.X}", 2, FLinearColor(1.00, 0.00, 0.00));
 					return DamageValues.X;
 				}
-				else
+				else if (BodyPart == EBodyPart::Body)
 				{
 					//Print(f"Body/Leg damage at {Distance}m: {DamageValues.Y}", 2, FLinearColor(0.02, 1.00, 0.02));
 					return DamageValues.Y;
+				}
+				else if (BodyPart == EBodyPart::Legs)
+				{
+					//Print(f"Legs damage at {Distance}m: {DamageValues.Z}", 2, FLinearColor(0.20, 0.55, 0.20));
+					return DamageValues.Z;
 				}
 			}
 		}

@@ -1,5 +1,8 @@
 class AAngelTrainingDummy : ACharacter
 {
+	UPROPERTY(DefaultComponent, RootComponent)
+	USceneComponent Root;
+
 	UPROPERTY(Category = "Dummy | Health", VisibleAnywhere, BlueprintReadOnly, Meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "100.0", UIMax = "100.0"))
 	float TotalHealth = 150;
 
