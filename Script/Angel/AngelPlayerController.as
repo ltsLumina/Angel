@@ -3,9 +3,10 @@ class AAngelPlayerController : APlayerController
     UPROPERTY(DefaultComponent)
     UEnhancedInputComponent InputComponent;
 
-    UPROPERTY(Category = "Input", EditDefaultsOnly)
+    UPROPERTY(Category = "Input")
     UGunComponent GunComponent;
 
+    UPROPERTY(Category = "Input")
     UReloadComponent ReloadComponent;
 
     UPROPERTY(Category = "Input")

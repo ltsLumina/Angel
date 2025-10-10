@@ -3,65 +3,64 @@ event void FOnEffectLost(FGameplayTag EffectTag, AActor EffectInstigator);
 
 class AAngelPlayerCharacter : AAngelscriptGASCharacter
 {
-    UPROPERTY(Category = "Player", DefaultComponent)
-    UReloadComponent ManualReloadComponent;
+	UPROPERTY(Category = "Player", NotVisible, BlueprintReadOnly)
+	AAngelPlayerController AngelController;
 
-    UPROPERTY(Category = "Player", NotVisible, BlueprintReadOnly)
-    AAngelPlayerController AngelController;
+	UPROPERTY(Category = "Player", EditDefaultsOnly)
+	FGameplayTagContainer GameplayTags;
 
-    UPROPERTY(Category = "Player", EditDefaultsOnly)
-    FGameplayTagContainer GameplayTags;
+	UPROPERTY(Category = "Player", EditDefaultsOnly)
+	UAngelGASAttributes Attributes;
 
-    UPROPERTY(Category = "Player", EditDefaultsOnly)
-    UAngelGASAttributes Attributes;
+	// - events
 
-// - events
+	UPROPERTY(Category = "Player", VisibleAnywhere)
+	FOnEffectGained OnEffectGained;
 
-    UPROPERTY(Category = "Player", VisibleAnywhere)
-    FOnEffectGained OnEffectGained;
+	UPROPERTY(Category = "Player", VisibleAnywhere)
+	FOnEffectLost OnEffectLost;
 
-    UPROPERTY(Category = "Player", VisibleAnywhere)
-    FOnEffectLost OnEffectLost;
+	// - end
 
-// - end
+	UReloadComponent ReloadComponent;
+	UHolsterComponent HolsterComponent;
+	UInventoryComponent InventoryComponent;
 
-    UHolsterComponent HolsterComponent;
-    UInventoryComponent InventoryComponent;
+	UFUNCTION(BlueprintOverride)
+	void BeginPlay()
+	{
+		Attributes = Cast<UAngelGASAttributes>(AbilitySystem.RegisterAttributeSet(UAngelGASAttributes));
 
-    UFUNCTION(BlueprintOverride)
-    void BeginPlay()
-    {
-        Attributes = Cast<UAngelGASAttributes>(AbilitySystem.RegisterAttributeSet(UAngelGASAttributes));
+		ReloadComponent = UReloadComponent::Get(this);
+		HolsterComponent = UHolsterComponent::Get(this);
+		InventoryComponent = UInventoryComponent::Get(this);
 
-        ManualReloadComponent = UReloadComponent::Get(this);
-        HolsterComponent = UHolsterComponent::Get(this);
-        InventoryComponent = UInventoryComponent::Get(this);
+		AngelController = GetAngelController(this); // Equivalent to Cast<AAngelPlayerController>(this);
 
-        AngelController = GetAngelController(this); // Equivalent to Cast<AAngelPlayerController>(this);
+		BP_BeginPlay();
+	}
 
-        BP_BeginPlay();
-    }
+	UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
+	void BP_BeginPlay()
+	{}
 
-    UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
-    void BP_BeginPlay() { }
+	UFUNCTION(BlueprintOverride)
+	void Tick(float DeltaSeconds)
+	{
+		BP_Tick(DeltaSeconds);
+	}
 
-    UFUNCTION(BlueprintOverride)
-    void Tick(float DeltaSeconds)
-    {
-        BP_Tick(DeltaSeconds);
-    }
-
-    UFUNCTION(BlueprintEvent, DisplayName = "Tick")
-    void BP_Tick(float DeltaSeconds) { }
-
+	UFUNCTION(BlueprintEvent, DisplayName = "Tick")
+	void BP_Tick(float DeltaSeconds)
+	{}
 };
 
 AAngelPlayerCharacter GetAngelCharacter(AActor Actor)
 {
-    return Cast<AAngelPlayerCharacter>(Actor);
+	return Cast<AAngelPlayerCharacter>(Actor);
 }
 
 AAngelPlayerCharacter GetAngelCharacter(int PlayerIndex)
 {
-    return Cast<AAngelPlayerCharacter>(Gameplay::GetPlayerCharacter(PlayerIndex));
+	return Cast<AAngelPlayerCharacter>(Gameplay::GetPlayerCharacter(PlayerIndex));
 }

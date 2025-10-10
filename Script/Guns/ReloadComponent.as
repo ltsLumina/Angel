@@ -1,6 +1,7 @@
 //event void FOnInitiateReload(AManualGun Gun);
 //event void FOnReloadComplete(AManualGun Gun);
 
+UCLASS(Abstract)
 class UReloadComponent : UActorComponent
 {
 
@@ -42,7 +43,7 @@ class UReloadComponent : UActorComponent
         }
         else { TimeSinceInput = 0; }
 
-        EquippedGun.ReloadStrategy.Reload();
+        EquippedGun.Reload();
 
         BP_OnReload();
     }

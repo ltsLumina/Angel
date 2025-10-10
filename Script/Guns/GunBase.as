@@ -1,5 +1,5 @@
 UCLASS(Abstract)
-class AManualGun : AActor
+class AGunBase : AActor
 {
 	UPROPERTY(DefaultComponent, RootComponent)
 	USphereComponent Root;
@@ -15,12 +15,6 @@ class AManualGun : AActor
 
 	// - damage
 
-	UPROPERTY(Category = "Gun | Damage", EditDefaultsOnly)
-	float BaseDamage = 40;
-
-	UPROPERTY(Category = "Gun | Damage", EditDefaultsOnly)
-	float HeadshotMultiplier = 2;
-
     UPROPERTY(Category = "Gun | Damage", EditDefaultsOnly, Instanced)
     UDamageFalloff DamageFalloff;
 
@@ -29,14 +23,23 @@ class AManualGun : AActor
 	UPROPERTY(Category = "Gun | Reload", Instanced)
 	UReloadStrategyBase ReloadStrategy;
 
-	UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
+	UPROPERTY(Category = "Gun | Magazine", VisibleInstanceOnly)
 	bool HasMagazine = true;
 
-	UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
-	int CurrentAmmo = 6;
+	UPROPERTY(Category = "Gun | Magazine", EditConst, BlueprintReadWrite)
+	int CurrentAmmo = 30;
+	default CurrentAmmo = MaxAmmo;
 
 	UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
-	int MaxAmmo = 6;
+	int MaxAmmo = 30;
+
+	UPROPERTY(Category = "Gun | Magazine", EditConst)
+	int ReserveAmmo = 60;
+	default ReserveAmmo = MaxReserveAmmo;
+
+	UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
+	int MaxReserveAmmo = 60;
+	default MaxReserveAmmo = 60;
 
 	// - shooting
 
@@ -45,19 +48,13 @@ class AManualGun : AActor
 	bool IsReady;
 
 	UFUNCTION(BlueprintPure)
-	bool GetIsReady() const
-	{
-		return ReloadStrategy.GunState == EGunState::Ready;
-	}
+	bool GetIsReady() { return ReloadStrategy.GunState == EGunState::Ready; }
 
 	UPROPERTY(Category = "Gun | Shooting", VisibleInstanceOnly, BlueprintReadOnly, BlueprintGetter = "GetIsFiring")
 	bool IsFiring;
 
 	UFUNCTION(BlueprintPure)
-	bool GetIsFiring() const
-	{
-		return TimeSinceLastShot < ShootCooldown;
-	}
+	bool GetIsFiring() { return TimeSinceLastShot < ShootCooldown; }
 
 	// Whether the gun uses RPM (Rounds Per Minute) for firing rate. If true, the gun will fire at a rate based on RPM.
 	// If false, the gun will fire based on the ShootCooldown time.
@@ -78,7 +75,7 @@ class AManualGun : AActor
 	UPROPERTY(BlueprintReadOnly, Category = "Gun | Recoil", VisibleInstanceOnly)
 	int RecoilIndex;
 
-	UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly, Meta = (Units = "Seconds"))
+	UPROPERTY(Category = "Gun | Recoil", VisibleInstanceOnly, Meta = (Units = "Seconds"))
 	bool IsFirstShotAccurate = true;
 
 	// - end
@@ -89,13 +86,6 @@ class AManualGun : AActor
 	bool GetIsADS() const
 	{
 		return UGunComponent::Get(GetAngelCharacter(0)).IsADS;
-	}
-
-	UFUNCTION(BlueprintOverride)
-	void ConstructionScript()
-	{
-		SetOwner(GetOwner());
-		CurrentAmmo = MaxAmmo; // Reset ammo to max on construction
 	}
 
 	UFUNCTION(BlueprintOverride)
@@ -180,6 +170,11 @@ class AManualGun : AActor
 		}
 
 		return false;
+	}
+
+	void Reload()
+	{
+		ReloadStrategy.Reload();
 	}
 
 	void Ready()

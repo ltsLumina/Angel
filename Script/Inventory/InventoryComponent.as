@@ -106,6 +106,7 @@ class UItemInstanceData : UObject
     // optional: enchantments, custom properties, owner, etc.
 };
 
+UCLASS(Abstract)
 class UInventoryComponent : UActorComponent
 {
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")

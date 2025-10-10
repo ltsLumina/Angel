@@ -1,7 +1,7 @@
 class UGunComponent : UActorComponent
 {
     UPROPERTY(Category = "Config | Gun", VisibleAnywhere)
-    AManualGun EquippedGun;
+    AGunBase EquippedGun;
 
     UPROPERTY(Category = "Config | Gun", VisibleAnywhere)
     bool IsADS;
@@ -16,7 +16,7 @@ class UGunComponent : UActorComponent
     }
 
     UFUNCTION(BlueprintEvent, Meta = (DisplayName = "On Shoot"))
-    void BP_OnShoot(AManualGun Gun) { }
+    void BP_OnShoot(AGunBase Gun) { }
 
 // - ADS
 

@@ -10,7 +10,7 @@ enum EGunState
 UCLASS(Abstract, EditInlineNew)
 class UReloadStrategyBase : UObject
 {
-    AManualGun Gun;
+    AGunBase Gun;
 
     UFUNCTION(BlueprintPure, Category = "Reload")
     bool CanReload() { return true; } // Default implementation, can be overridden

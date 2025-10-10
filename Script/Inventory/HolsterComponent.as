@@ -1,19 +1,20 @@
+UCLASS(Abstract)
 class UHolsterComponent : UActorComponent
 {
     // The classes of guns that can be holstered
     UPROPERTY(BlueprintReadOnly, Category = "Holster")
-    TArray<TSubclassOf<AManualGun>> InitialGuns;
+    TArray<TSubclassOf<AGunBase>> InitialGuns;
 
     // The guns that are currently in the holster
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Holster")
-    TArray<AManualGun> Guns;
+    TArray<AGunBase> Guns;
 
     UPROPERTY(EditDefaultsOnly, Category = "Holster | Debug")
     int MaxGuns = 3;
 
     // The currently equipped gun
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Holster")
-    AManualGun EquippedGun;
+    AGunBase EquippedGun;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Holster")
     int EquippedGunIndex;
@@ -42,9 +43,9 @@ class UHolsterComponent : UActorComponent
             return;
         }
 
-        for (TSubclassOf<AManualGun> GunClass : InitialGuns)
+        for (TSubclassOf<AGunBase> GunClass : InitialGuns)
         {
-            AManualGun NewGun = SpawnActor(GunClass);
+            AGunBase NewGun = SpawnActor(GunClass);
             if (IsValid(NewGun))
             {
                 Guns.Add(NewGun);
@@ -76,14 +77,14 @@ class UHolsterComponent : UActorComponent
     void BP_BeginPlay() { }
 
     UFUNCTION(Category = "Holster")
-    void EquipGun(AManualGun Gun)
+    void EquipGun(AGunBase Gun)
     {
         if (IsValid(Gun))
         {
             if (IsValid(EquippedGun))
             {
                 // Hide all guns
-                for (AManualGun ExistingGun : Guns)
+                for (AGunBase ExistingGun : Guns)
                 {
                     ExistingGun.SetActorHiddenInGame(true);
                     ExistingGun.ActorTickEnabled = false;
@@ -99,6 +100,7 @@ class UHolsterComponent : UActorComponent
                 Gun.AttachToComponent(ArmsMesh, n"GripPoint", EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, true);
             }
             
+            Gun.SetOwner(GetOwner());
             Gun.SetActorHiddenInGame(false);
             Gun.ActorTickEnabled = true;
 
@@ -110,7 +112,7 @@ class UHolsterComponent : UActorComponent
     }
 
     UFUNCTION(BlueprintEvent, Category = "Holster", Meta = (DisplayName = "Gun Equipped"))
-    void BP_OnGunEquipped(AManualGun Gun, UGunComponent InGunComponent) 
+    void BP_OnGunEquipped(AGunBase Gun, UGunComponent InGunComponent) 
     { }
 
     UFUNCTION(Category = "Holster", Meta = (AdvancedDisplay= "OptionalIndex"))
