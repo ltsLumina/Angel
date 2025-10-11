@@ -27,6 +27,8 @@ class AAngelPlayerController : APlayerController
     UPROPERTY(Category = "Input")
     UInputMappingContext Context;
 
+    default CheatClass = UAngelCheatManager;
+
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {

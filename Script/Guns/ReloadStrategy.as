@@ -37,7 +37,7 @@ class UMagazineReloadStrategy : UReloadStrategyBase
 
     bool CanReload() override
     {
-        return Gun.CurrentAmmo < Gun.MaxAmmo && Gun.HasMagazine;
+        return Gun.CurrentAmmo < Gun.MaxAmmo && Gun.HasMagazine && Gun.ReserveAmmo > 0;
     }
 
     UFUNCTION()
@@ -49,7 +49,6 @@ class UMagazineReloadStrategy : UReloadStrategyBase
             return;
         }
 
-        Gun.CurrentAmmo = 0;
         Gun.HasMagazine = false;
 
         Print(f"{Gun.GunName}'s magazine removed! Current ammo: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
@@ -58,7 +57,7 @@ class UMagazineReloadStrategy : UReloadStrategyBase
     }
 
     UFUNCTION() // Called in Blueprint when the animation has completed.
-    void InsertMagazine(int32 Amount = -1)
+    void InsertMagazine(int Amount)
     {
         if (!Gun.HasMagazine)
         {
@@ -70,8 +69,9 @@ class UMagazineReloadStrategy : UReloadStrategyBase
             return;
         }
 
-        int32 InsertAmount = (Amount < 0) ? Gun.MaxAmmo : Math::Clamp(Amount, 0, Gun.MaxAmmo);
-        Gun.CurrentAmmo = InsertAmount;
+        int InsertAmount = Math::Clamp(Math::Min(Amount, Gun.ReserveAmmo), 0, Gun.MaxAmmo - Gun.CurrentAmmo);
+        Gun.CurrentAmmo += InsertAmount;
+        Gun.ReserveAmmo = Math::Max(Gun.ReserveAmmo - InsertAmount, 0);
         Print(f"{Gun.GunName} magazine inserted! Magazine: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
 
         // After inserting mag, gun is NOT ready. Ready state is set by animation completion in Blueprint event graph.

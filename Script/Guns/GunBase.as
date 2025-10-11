@@ -120,8 +120,7 @@ class AGunBase : AActor
 			RecoilIndex = 0;
 
 		// first shot accuracy
-		if (TimeSinceLastShot > 0.35 && RecoilIndex == 0)
-			IsFirstShotAccurate = true;
+		IsFirstShotAccurate = TimeSinceLastShot > 3 && RecoilIndex == 0;
 
 		if (RecoilIndex == 0)
 			StopHorizontalRecoil();
@@ -145,7 +144,7 @@ class AGunBase : AActor
 		if (TimeSinceLastShot < ShootCooldown)
 			return false;
 
-		if (!HasMagazine)
+		if (!HasMagazine || CurrentAmmo <= 0)
 		{
 			// PrintWarning(f"{GunName} has no magazine! Cannot fire.", 2, FLinearColor(1.0, 0.5, 0.0));
 			return false;
