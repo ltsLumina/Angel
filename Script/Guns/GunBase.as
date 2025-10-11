@@ -78,6 +78,11 @@ class AGunBase : AActor
 	UPROPERTY(Category = "Gun | Recoil", VisibleInstanceOnly, Meta = (Units = "Seconds"))
 	bool IsFirstShotAccurate = true;
 
+	// - audio
+
+	UPROPERTY(Category = "Gun | Audio", EditDefaultsOnly)
+	USoundCue ShootSound;
+
 	// - end
 
 	const int MINUTE = 60;
@@ -107,6 +112,8 @@ class AGunBase : AActor
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
 	{
+		CurrentAmmo = MaxAmmo;
+
 		Ready();
 	}
 
