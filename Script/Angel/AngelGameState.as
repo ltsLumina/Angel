@@ -22,20 +22,34 @@ class AAngelGameState : AGameStateBase
 	UPROPERTY(Category = "Game Phase", VisibleInstanceOnly, BlueprintReadOnly)
 	EGamePhase PreviousPhase = EGamePhase::RoundEnd;
 
-    UPROPERTY(Category = "Game State", EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(Category = "Game State", VisibleInstanceOnly, BlueprintReadOnly)
+	int Round;
+
+	UPROPERTY(Category = "Game State", VisibleInstanceOnly, BlueprintReadOnly)
+	const int RoundsToWin = 13;
+
+    UPROPERTY(Category = "Game State", EditInstanceOnly, BlueprintReadOnly)
     bool FreezeTimer = false;
+
+	UPROPERTY(Category = "Teams", VisibleInstanceOnly, BlueprintReadOnly)
+	int AllyScore;
+	default AllyScore = 0;
+
+	UPROPERTY(Category = "Teams", VisibleInstanceOnly, BlueprintReadOnly)
+	int EnemyScore;
+	default EnemyScore = 0;
 
 	UPROPERTY(Category = "Buy Phase", EditDefaultsOnly, BlueprintReadOnly)
 	float BuyPhaseDuration = 30.0f;
 
-	UPROPERTY(Category = "Buy Phase", VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Buy Phase", VisibleInstanceOnly, BlueprintReadOnly)
 	float BuyPhaseTimeRemaining;
 	default BuyPhaseTimeRemaining = BuyPhaseDuration;
 
 	UPROPERTY(Category = "Game Phase", EditDefaultsOnly, BlueprintReadOnly)
 	float RoundDuration = 100.0f;
 
-	UPROPERTY(Category = "Game Phase", VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Game Phase", VisibleInstanceOnly, BlueprintReadOnly)
 	float RoundTimeRemaining;
 	default RoundTimeRemaining = RoundDuration;
 
@@ -45,7 +59,7 @@ class AAngelGameState : AGameStateBase
 	UPROPERTY(Category = "Round End", EditDefaultsOnly, BlueprintReadOnly)
 	float RoundEndDuration = 7.0f;
 
-	UPROPERTY(Category = "Round End", VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Round End", VisibleInstanceOnly, BlueprintReadOnly)
 	float RoundEndTimeRemaining;
 	default RoundEndTimeRemaining = RoundEndDuration;
 
@@ -147,8 +161,8 @@ class AAngelGameState : AGameStateBase
 	{
 		CurrentPhase = EGamePhase::BuyPhase;
 		BuyPhaseTimeRemaining = BuyPhaseDuration;
-		OnBuyPhaseStart.Broadcast();
 
+		OnBuyPhaseStart.Broadcast();
 		return CurrentPhase;
 	}
 
@@ -157,8 +171,10 @@ class AAngelGameState : AGameStateBase
 	{
 		CurrentPhase = EGamePhase::GamePhase;
 		RoundTimeRemaining = RoundDuration;
-		OnRoundStart.Broadcast();
 
+		Round++;
+
+		OnRoundStart.Broadcast();
 		return CurrentPhase;
 	}
 
@@ -167,8 +183,12 @@ class AAngelGameState : AGameStateBase
 	{
 		CurrentPhase = EGamePhase::RoundEnd;
 		RoundEndTimeRemaining = RoundEndDuration;
-		OnRoundEnd.Broadcast();
 
+		AllyScore++; // Temporary scoring logic for testing
+		EnemyScore = Math::Max(AllyScore - 1, 0);
+		Print(f"Score Update - Allies: {AllyScore} | Enemies: {EnemyScore}", 5, FLinearColor::Green);
+
+		OnRoundEnd.Broadcast();
 		return CurrentPhase;
 	}
 
@@ -237,3 +257,8 @@ class AAngelGameState : AGameStateBase
 		}
 	}
 };
+
+AAngelGameState GetAngelGameState()
+{
+	return Cast<AAngelGameState>(Gameplay::GetGameState());
+}

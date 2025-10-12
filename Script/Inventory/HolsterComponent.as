@@ -45,18 +45,7 @@ class UHolsterComponent : UActorComponent
 
         for (TSubclassOf<AGunBase> GunClass : InitialGuns)
         {
-            AGunBase NewGun = SpawnActor(GunClass);
-            if (IsValid(NewGun))
-            {
-                Guns.Add(NewGun);
-                NewGun.AttachToComponent(ArmsMesh, n"ik_hand_gun", EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, true);
-                NewGun.SetActorHiddenInGame(true);
-                NewGun.ActorTickEnabled = false;
-            }
-            else
-            {
-                PrintError(f"Failed to spawn gun of class: {GunClass.DefaultObject.GetName()}");
-            }
+            CreateGun(GunClass);
         }
 
         // Initialize the equipped gun to the first gun in the list, if available
@@ -75,6 +64,38 @@ class UHolsterComponent : UActorComponent
 
     UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
     void BP_BeginPlay() { }
+
+    UFUNCTION()
+    AGunBase CreateGun(TSubclassOf<AGunBase> GunClass)
+    {
+        AGunBase NewGun = SpawnActor(GunClass);
+            if (IsValid(NewGun))
+            {
+                Guns.Add(NewGun);
+                NewGun.AttachToComponent(ArmsMesh, n"ik_hand_gun", EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, true);
+                NewGun.SetActorHiddenInGame(true);
+                NewGun.ActorTickEnabled = false;
+                return NewGun;
+            }
+            else
+            {
+                PrintError(f"Failed to spawn gun of class: {GunClass.DefaultObject.GetName()}");
+                return nullptr;
+            }
+    }
+
+    UFUNCTION(Category = "Holster")
+    void GrantGun(TSubclassOf<AGunBase> GunClass)
+    {
+        if (!HasGun(GunClass))
+        {
+            EquipGun(CreateGun(GunClass));
+        }
+        else
+        {
+            ReplaceGun(GunClass, GunClass);
+        }
+    }
 
     UFUNCTION(Category = "Holster")
     void EquipGun(AGunBase Gun)
@@ -109,6 +130,39 @@ class UHolsterComponent : UActorComponent
 
             BP_OnGunEquipped(Gun, GunComponent);
         }
+    }
+
+    bool HasGun(TSubclassOf<AGunBase> GunClass)
+    {
+        for (AGunBase Gun : Guns)
+        {
+            if (Gun.IsA(GunClass))
+                return true;
+        }
+        return false;
+    }
+
+    UFUNCTION(Category = "Holster")
+    void ReplaceGun(TSubclassOf<AGunBase> OldGun, TSubclassOf<AGunBase> NewGun)
+    {
+        for (int i = 0; i < Guns.Num(); i++)
+        {
+            if (Guns[i].IsA(OldGun))
+            {
+                AGunBase NewGunInstance = CreateGun(NewGun);
+                if (IsValid(NewGunInstance))
+                {
+                    Guns[i].DestroyActor();
+                    Guns[i] = NewGunInstance;
+                    if (EquippedGun.IsA(OldGun))
+                    {
+                        EquipGun(NewGunInstance);
+                    }
+                }
+                return;
+            }
+        }
+        PrintError(f"Cannot replace gun: {OldGun.DefaultObject.GetName()} not found in holster.");
     }
 
     UFUNCTION(BlueprintEvent, Category = "Holster", Meta = (DisplayName = "Gun Equipped"))

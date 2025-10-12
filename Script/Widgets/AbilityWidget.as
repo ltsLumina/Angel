@@ -42,11 +42,6 @@ class UAbilityWidget : UUserWidget
 	void BP_Construct()
 	{}
 
-	UFUNCTION(BlueprintOverride)
-	void Tick(FGeometry MyGeometry, float DeltaTime)
-	{
-	}
-
 	UFUNCTION()
 	void CommitWidget()
 	{

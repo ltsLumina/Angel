@@ -5,6 +5,10 @@ class UShopItemWidget : UUserWidget
 	FText ItemName;
 	default ItemName = FText::FromString("???");
 
+	UPROPERTY(Category = "UI", NotVisible, BlueprintReadOnly)
+	FName ItemID;
+	default ItemID = n"unknown_item";
+
 	UPROPERTY(Category = "UI", BlueprintReadOnly)
 	int ItemCost;
 	default ItemCost = 2900;
@@ -12,7 +16,7 @@ class UShopItemWidget : UUserWidget
 	UPROPERTY(Category = "UI", BlueprintReadOnly)
 	UTexture2D ItemIcon;
 
-    UPROPERTY(Category = "UI", BlueprintReadOnly)
+    UPROPERTY(Category = "UI")
     bool IsOwned;
 
 	UPROPERTY(Category = "UI", BlueprintReadOnly, BindWidget)
@@ -30,14 +34,35 @@ class UShopItemWidget : UUserWidget
 		if (IsValid(ItemIcon))
 			Icon.SetBrushFromTexture(ItemIcon);
         ItemName = FText::FromString(ItemName.ToString().ToUpper());
+		ItemID = FName(ItemName.ToString());
 		GunName.SetText(ItemName);
 		CostText.SetText(GetPrettyCost());
         
         BP_PreConstruct(IsDesignTime);
 	}
 
-    UFUNCTION(BlueprintEvent, DisplayName = "Pre Construct")
+	UFUNCTION(BlueprintOverride)
+	void Construct()
+	{
+		if (IsValid(GunClass))
+		{
+			auto Character = GetAngelCharacter(0);
+
+			IsOwned = Character.HolsterComponent.HasGun(GunClass);
+			if (IsOwned)
+			{
+				CostText.Text = FText::FromString("OWNED");
+			}
+		}
+
+		BP_Construct();
+	}
+	
+	UFUNCTION(BlueprintEvent, DisplayName = "Pre Construct")
     void BP_PreConstruct(bool IsDesignTime) { }
+
+	UFUNCTION(BlueprintEvent, DisplayName = "Construct")
+	void BP_Construct() { }
 
 	FText GetPrettyCost()
 	{
@@ -64,12 +89,20 @@ class UShopItemWidget : UUserWidget
 	UFUNCTION(BlueprintOverride)
 	FEventReply OnMouseButtonDown(FGeometry MyGeometry, FPointerEvent MouseEvent)
 	{
-		if (IsOwned)
-			return FEventReply::Unhandled();
+		Purchase();
+		return FEventReply::Handled();
+	}
 
-		Print(f"Clicked on shop {ItemName}");
+	UPROPERTY(Category = "Shop")
+	TSubclassOf<AGunBase> GunClass;
+
+	void Purchase()
+	{
+		Print(f"Purchased {ItemName}");
         CostText.Text = FText::FromString("OWNED");
         IsOwned = true;
-		return FEventReply::Handled();
+
+		auto Character = GetAngelCharacter(0);
+		Character.HolsterComponent.GrantGun(GunClass);
 	}
 }
