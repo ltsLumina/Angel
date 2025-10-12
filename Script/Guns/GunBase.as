@@ -26,14 +26,14 @@ class AGunBase : AActor
 	UPROPERTY(Category = "Gun | Magazine", VisibleInstanceOnly)
 	bool HasMagazine = true;
 
-	UPROPERTY(Category = "Gun | Magazine", EditConst, BlueprintReadWrite)
+	UPROPERTY(Category = "Gun | Magazine", VisibleInstanceOnly, BlueprintReadWrite)
 	int CurrentAmmo = 30;
 	default CurrentAmmo = MaxAmmo;
 
 	UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
 	int MaxAmmo = 30;
 
-	UPROPERTY(Category = "Gun | Magazine", EditConst)
+	UPROPERTY(Category = "Gun | Magazine", VisibleInstanceOnly)
 	int ReserveAmmo = 60;
 	default ReserveAmmo = MaxReserveAmmo;
 
@@ -56,23 +56,31 @@ class AGunBase : AActor
 	UFUNCTION(BlueprintPure)
 	bool GetIsFiring() { return TimeSinceLastShot < ShootCooldown; }
 
-	// Whether the gun uses RPM (Rounds Per Minute) for firing rate. If true, the gun will fire at a rate based on RPM.
-	// If false, the gun will fire based on the ShootCooldown time.
-	UPROPERTY(Category = "Gun | Shooting", EditDefaultsOnly, BlueprintReadOnly)
-	bool UseRPM = false;
+	/**
+	 * The fire rate of the gun, in rounds per second.
+	 * This is used to calculate the shoot cooldown.
+	 */
+	UPROPERTY(Category = "Gun | Shooting", EditDefaultsOnly, BlueprintReadOnly, Meta = (ClampMin = "0.1", ClampMax = "30.0", UIMin = "0.1", UIMax = "30.0"))
+	float FireRate = 9.75;
 
-	UPROPERTY(Category = "Gun | Shooting", EditDefaultsOnly, Meta = (Units = "Seconds", EditCondition = "!UseRPM", EditConditionHides))
-	float ShootCooldown = 0.5;
+	/**
+	 * The rounds per minute (RPM) of the gun, calculated from the fire rate.
+	 * This is a derived property and is read-only.
+	 */
+	UPROPERTY(Category = "Gun | Shooting", VisibleAnywhere, BlueprintReadOnly)
+	float RPM;
+	default RPM = FireRate * MINUTE;
 
-	UPROPERTY(Category = "Gun | Shooting", EditDefaultsOnly, BlueprintReadOnly, Meta = (EditCondition = "UseRPM", EditConditionHides))
-	float RPM = 600;
+	UPROPERTY(Category = "Gun | Shooting", VisibleAnywhere, BlueprintReadOnly, Meta = (Units = "Seconds"))
+	float ShootCooldown = 0.1;
+	default ShootCooldown = 1.0 / FireRate;
 
-	UPROPERTY(Category = "Gun | Shooting", VisibleInstanceOnly, Meta = (Units = "Seconds"))
+	UPROPERTY(Category = "Gun | Shooting", VisibleInstanceOnly, BlueprintReadOnly, Meta = (Units = "Seconds"))
 	float TimeSinceLastShot = 0;
 
 	// - recoil
 
-	UPROPERTY(BlueprintReadOnly, Category = "Gun | Recoil", VisibleInstanceOnly)
+	UPROPERTY(Category = "Gun | Recoil", VisibleInstanceOnly, BlueprintReadOnly)
 	int RecoilIndex;
 
 	UPROPERTY(Category = "Gun | Recoil", VisibleInstanceOnly, Meta = (Units = "Seconds"))
@@ -88,7 +96,7 @@ class AGunBase : AActor
 	const int MINUTE = 60;
 
 	UFUNCTION(BlueprintPure, Category = "Gun | Info")
-	bool GetIsADS() const
+	bool GetIsADS()
 	{
 		return UGunComponent::Get(GetAngelCharacter(0)).IsADS;
 	}
@@ -113,6 +121,9 @@ class AGunBase : AActor
 	void BeginPlay()
 	{
 		CurrentAmmo = MaxAmmo;
+
+		ShootCooldown = 1.0 / FireRate;
+		RPM = FireRate * MINUTE;
 
 		Ready();
 	}
@@ -146,8 +157,6 @@ class AGunBase : AActor
 	UFUNCTION(BlueprintEvent, Category = "Gun")
 	bool Shoot()
 	{
-		ShootCooldown = UseRPM ? (MINUTE / RPM) : ShootCooldown;
-
 		if (TimeSinceLastShot < ShootCooldown)
 			return false;
 
