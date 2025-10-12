@@ -27,6 +27,9 @@ class AAngelPlayerController : APlayerController
     UPROPERTY(Category = "Input")
     UInputMappingContext Context;
 
+    UPROPERTY(Category = "Shop", EditDefaultsOnly)
+    TSubclassOf<UShopWidget> ShopWidgetClass;
+
     default CheatClass = UAngelCheatManager;
 
     UFUNCTION(BlueprintOverride)
@@ -60,6 +63,10 @@ class AAngelPlayerController : APlayerController
         // Gun Switching
         InputComponent.BindAction(SwitchGunAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"CycleGun"));
         InputComponent.BindKey(EKeys::AnyKey, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"SelectGun"));
+
+        // -- menus
+
+        InputComponent.BindKey(EKeys::B, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ToggleShop"));
     }
 
     float CycleGunCooldown = 0.2f;
@@ -113,6 +120,29 @@ class AAngelPlayerController : APlayerController
         {
             Holster.SwitchGun(GunIndex);
         }
+    }
+
+    UUserWidget ShopWidget;
+
+    UFUNCTION()
+    void ToggleShop(FKey Key)
+    {
+        if (ShopWidget != nullptr && ShopWidget.IsInViewport())
+        {
+            ShopWidget.RemoveFromParent();
+            ShopWidget = nullptr;
+
+            Widget::SetInputMode_GameOnly(this, true);
+            EnableInput(this);
+            bShowMouseCursor = false;
+            return;
+        }
+
+        ShopWidget = WidgetBlueprint::CreateWidget(ShopWidgetClass, this);
+        ShopWidget.AddToViewport();
+        Widget::SetInputMode_UIOnlyEx(this, ShopWidget, EMouseLockMode::LockInFullscreen);
+        DisableInput(this);
+        bShowMouseCursor = true;
     }
 };
 
