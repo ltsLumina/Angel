@@ -1,3 +1,5 @@
+event void OnDeath();
+
 class AAngelTrainingDummy : ACharacter
 {
 	UPROPERTY(DefaultComponent, RootComponent)
@@ -23,11 +25,33 @@ class AAngelTrainingDummy : ACharacter
 	UPROPERTY(Category = "Dummy | Armor", EditDefaultsOnly, Meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
 	float AbsorptionRatio = 0.66f;
 
+	UPROPERTY(Category = "Dummy", VisibleAnywhere)
+	OnDeath OnDeath;
+
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
 	{
         Refresh();
 	}
+
+	UFUNCTION(BlueprintOverride)
+	void PointDamage(float Damage, const UDamageType DamageType, FVector HitLocation, FVector HitNormal,
+					 UPrimitiveComponent HitComponent, FName BoneName, FVector ShotFromDirection,
+					 AController InstigatedBy, AActor DamageCauser, FHitResult HitInfo)
+	{
+		float RemainingHealth;
+		float RemainingArmor;
+		TakeDamage(Damage, RemainingHealth, RemainingArmor);
+		Print(f"Health: {RemainingHealth}\nArmor: {RemainingArmor}\nDamage Taken: {Damage}", 1.5f, FLinearColor(0.20, 1.00, 0.30));
+
+		BP_PointDamage(Damage, DamageType, HitLocation, HitNormal, HitComponent, BoneName,
+					   ShotFromDirection, InstigatedBy, DamageCauser, HitInfo);
+	}
+
+	UFUNCTION(BlueprintEvent, Category = "Damage", DisplayName = "Point Damage")
+	void BP_PointDamage(float Damage, const UDamageType DamageType, FVector HitLocation, FVector HitNormal,
+					 UPrimitiveComponent HitComponent, FName BoneName, FVector ShotFromDirection,
+					 AController InstigatedBy, AActor DamageCauser, FHitResult HitInfo) {}
 
 	UFUNCTION(Category = "Damage")
 	void TakeDamage(float Damage, float&out RemainingHealth, float&out RemainingArmor)
@@ -73,6 +97,7 @@ class AAngelTrainingDummy : ACharacter
         if (Health <= 0)
         {
             Death();
+			OnDeath.Broadcast();
         }
 	}
 

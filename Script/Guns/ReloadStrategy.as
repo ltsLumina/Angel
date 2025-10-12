@@ -52,7 +52,6 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         Gun.HasMagazine = false;
 
         Print(f"{Gun.GunName}'s magazine removed! Current ammo: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
-        Gun.IsReady = false; // Removing mag always un-readies
         GunState = EGunState::InsertMagazine;
     }
 
@@ -75,7 +74,6 @@ class UMagazineReloadStrategy : UReloadStrategyBase
         Print(f"{Gun.GunName} magazine inserted! Magazine: {Gun.CurrentAmmo}/{Gun.MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
 
         // After inserting mag, gun is NOT ready. Ready state is set by animation completion in Blueprint event graph.
-        Gun.IsReady = false;
         GunState = EGunState::NotReady;
     }
 
@@ -92,7 +90,7 @@ class UShotgunReloadStrategy : UReloadStrategyBase
     bool CanReload() override
     {
         Gun = GetAngelCharacter(0).HolsterComponent.EquippedGun;
-        return Gun.CurrentAmmo < Gun.MaxAmmo || !Gun.IsReady;
+        return Gun.CurrentAmmo < Gun.MaxAmmo || !Gun.GetIsReady();
     }
 
     void InsertShell()

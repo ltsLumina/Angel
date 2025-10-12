@@ -18,6 +18,32 @@ struct FBulletHit
     FName HitBoneName;
     UPROPERTY()
     FBodyPartHit HitBodyPart;
+
+    FBulletHit()
+    {
+        BlockingHit = false;
+        PlayerHit = false;
+        Headshot = false;
+        Distance = 0.0f;
+        Location = FVector::ZeroVector;
+        HitActor = nullptr;
+        HitPlayer = nullptr;
+        HitBoneName = NAME_None;
+        HitBodyPart = FBodyPartHit();
+    }
+
+    FBulletHit(bool InBlockingHit, bool InPlayerHit, bool InHeadshot, float InDistance, FVector InLocation, AActor InHitActor, AAngelTrainingDummy InHitPlayer, FName InHitBoneName, FBodyPartHit InHitBodyPart)
+    {
+        BlockingHit = InBlockingHit;
+        PlayerHit = InPlayerHit;
+        Headshot = InHeadshot;
+        Distance = InDistance;
+        Location = InLocation;
+        HitActor = InHitActor;
+        HitPlayer = InHitPlayer;
+        HitBoneName = InHitBoneName;
+        HitBodyPart = InHitBodyPart;
+    }
 };
 
 struct FBodyPartHit
@@ -30,4 +56,37 @@ struct FBodyPartHit
     bool Legs;
     UPROPERTY()
     EBodyPart BodyPart;
+
+    FBodyPartHit()
+    {
+        Head = false;
+        Body = false;
+        Legs = false;
+        BodyPart = EBodyPart::Body;
+    }
+
+    FBodyPartHit(bool InHead, bool InBody, bool InLegs, EBodyPart InBodyPart)
+    {
+        Head = InHead;
+        Body = InBody;
+        Legs = InLegs;
+        BodyPart = InBodyPart;
+    }
 };
+
+struct FEquipMode
+{
+    UPROPERTY()
+    EEquipSpeed Mode;
+
+    UPROPERTY()
+    float EquipTime;
+}
+
+struct FBulletSpreadData
+{
+    float ConeWidth; 
+    float ConeHeight;
+    float ErrorAngle;
+    bool IsAccurate;
+}

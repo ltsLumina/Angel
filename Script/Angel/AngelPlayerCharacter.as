@@ -12,6 +12,16 @@ class AAngelPlayerCharacter : AAngelscriptGASCharacter
 	UPROPERTY(Category = "Player", EditDefaultsOnly)
 	UAngelGASAttributes Attributes;
 
+	// - flags
+
+	UPROPERTY(Category = "Player", VisibleAnywhere)
+	EAngelMovementState MovementState;
+	default MovementState = EAngelMovementState::Still;
+
+	UPROPERTY(Category = "Player", VisibleAnywhere)
+	EAngelMovementState PreviousMovementState;
+	default PreviousMovementState = EAngelMovementState::Run;
+
 	// - events
 
 	UPROPERTY(Category = "Player", VisibleAnywhere)

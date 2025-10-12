@@ -23,7 +23,7 @@ class UGunComponent : UActorComponent
     UFUNCTION(NotBlueprintCallable, Category = "ADS")
     void StartADS(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, const UInputAction SourceAction)
     {
-        IsADS = true;
+        IsADS = false;
     }
 
     UFUNCTION(NotBlueprintCallable, Category = "ADS")
@@ -34,7 +34,7 @@ class UGunComponent : UActorComponent
 
 
     UFUNCTION(NotBlueprintCallable, Category = "ADS")
-    void OnADS(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, const UInputAction SourceAction)
+    void TriggeredADS(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, const UInputAction SourceAction)
     {
         IsADS = true;
     }
