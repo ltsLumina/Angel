@@ -392,6 +392,9 @@ class AGunBase : AActor
 	FVector TraceStart;
 	FVector TraceEnd;
 
+	// for debug only.
+	EDrawDebugTrace DebugTrace = EDrawDebugTrace::None;
+
 	FVector GetTargetPoint(float MaxDistance = 10000.0f)
 	{
 		UCameraComponent Camera = UCameraComponent::Get(GetAngelCharacter(GetOwner()));
@@ -402,7 +405,7 @@ class AGunBase : AActor
 		TraceEnd = CameraLocation + CameraForward * MaxDistance;
 
 		FHitResult Hit;
-		System::LineTraceSingle(TraceStart, TraceEnd, ETraceTypeQuery::TraceTypeQuery3, false, TArray<AActor>(), EDrawDebugTrace::ForDuration, Hit, true, FLinearColor::Red, FLinearColor::Green, 2.0f);
+		System::LineTraceSingle(TraceStart, TraceEnd, ETraceTypeQuery::TraceTypeQuery3, false, TArray<AActor>(), DebugTrace, Hit, true, FLinearColor::Red, FLinearColor::Green, 2.0f);
 
 		FVector TargetPoint = Hit.bBlockingHit ? Hit.Location : TraceEnd;
 		return TargetPoint;
@@ -421,7 +424,7 @@ class AGunBase : AActor
 		FVector BulletDirection = ApplySpread(AimDirection, GetSpread(), SpreadData);
 
 		FVector End = TraceStart + BulletDirection * MaxDistance;
-		BlockingHit = System::LineTraceMulti(TraceStart, End, ETraceTypeQuery::TraceTypeQuery3, false, TArray<AActor>(), EDrawDebugTrace::ForDuration, Hits, true, FLinearColor::Yellow, FLinearColor::Green, 2.0f);
+		BlockingHit = System::LineTraceMulti(TraceStart, End, ETraceTypeQuery::TraceTypeQuery3, false, TArray<AActor>(), DebugTrace, Hits, true, FLinearColor::Yellow, FLinearColor::Green, 2.0f);
 
 		// System::DrawDebugConeInDegrees(TraceStart, AimDirection, 10000.0f, SpreadData.ConeWidth, SpreadData.ConeHeight, 36, FLinearColor::DPink, 10, 1);
 
@@ -445,19 +448,16 @@ class AGunBase : AActor
 			PlayerHit.BoneName,
 			GetBodyPartHit(PlayerHit.Component));
 
-#if EDITOR
-		for (FHitResult Hit : Hits)
-		{
-			Print(f" - Hit Actor: {Hit.Actor.GetActorLabel()} at distance {Hit.Distance / 100}m", 2, FLinearColor(0.15, 0.52, 0.44));
-		}
-#endif
-
 		if (BulletHit.PlayerHit)
 			BulletHit.HitPlayer.OnDeath.AddUFunction(this, n"OnTargetDeath");
 
+		HitSFX();
+		bool Penetrated = false;
+		SpawnDecal(Penetrated);
+
 		Gameplay::ApplyPointDamage(
 			BulletHit.HitActor,
-			DamageFalloff.GetDamageAtDistance(BulletHit.Distance, BulletHit.HitBodyPart.BodyPart),
+			DamageFalloff.GetDamageAtDistance(BulletHit.Distance, BulletHit.HitBodyPart.BodyPart) * (Penetrated ? 0.8f : 1.0f),
 			BulletDirection,
 			PlayerHit,
 			GetAngelCharacter(0).Controller,
@@ -465,11 +465,6 @@ class AGunBase : AActor
 			TSubclassOf<UDamageType>(UDamageType));
 
 		Gameplay::PlaySoundAtLocation(ShootSound, GetActorLocation(), FRotator::ZeroRotator, 1.0f, 1.0f, 0.0f, DefaultAttenuation);
-
-		HitSFX();
-
-		SpawnDecal();
-
 		return Hits;
 	}
 
@@ -492,21 +487,28 @@ class AGunBase : AActor
 		}
 		else if (!BulletHit.PlayerHit)
 		{
-			Gameplay::PlaySound2D(GroundHitSound);
+			Gameplay::PlaySoundAtLocation(GroundHitSound, BulletHit.Location, FRotator::ZeroRotator, 1.0f, 1.0f, 0.0f, DefaultAttenuation);
 		}
 	}
 
-	void SpawnDecal()
+	void SpawnDecal(bool&out Penetrated)
 	{
 		for (FHitResult Hit : Hits)
 		{
 			if (Hit.Actor.IsA(AAngelPlayerCharacter) || Hit.Actor.IsA(AAngelTrainingDummy))
 				continue;
-				
-			bool Penetrated = Hits.FindIndex(Hit) == 0;
-			UMaterialInterface DecalMaterial = Penetrated ? BulletPenetrationDecal : BulletHitDecal;
 
-			UDecalComponent Decal = Gameplay::SpawnDecalAtLocation(DecalMaterial, FVector(8.0f, 8.0f, 8.0f), Hit.Location, GetAngelCharacter(0).ControlRotation, 15.0f);
+			int i = Hits.FindIndex(Hit);
+
+			if (i < Hits.Num() - 1) // Not the last hit
+			{
+				Penetrated = true;
+			}
+
+			UMaterialInterface DecalMaterial = Penetrated ? BulletPenetrationDecal : BulletHitDecal;
+			FRotator DecalRotation = Penetrated ? GetAngelCharacter(0).ControlRotation : Hit.ImpactNormal.Rotation();
+
+			UDecalComponent Decal = Gameplay::SpawnDecalAtLocation(DecalMaterial, FVector(8.0f, 8.0f, 8.0f), Hit.Location, DecalRotation, 15.0f);
 			if (IsValid(Decal))
 			{
 				Decal.SetFadeScreenSize(0);
@@ -518,18 +520,22 @@ class AGunBase : AActor
 	UFUNCTION()
 	void OnTargetDeath()
 	{
-		GetAngelPlayerState(0).MultikillCount++;
+		auto PlayerState = GetAngelPlayerState(0);
+		PlayerState.MultikillCount++;
 
-		int Index = Math::Clamp(GetAngelPlayerState(0).MultikillCount - 1, 0, MultikillSounds.Num() - 1);
-		USoundBase Sound = MultikillSounds[Index];
-		Gameplay::PlaySound2D(Sound);
-
-		if (GetAngelPlayerState(0).MultikillCount >= 5)
+		if (PlayerState.MultikillCount <= 5)
 		{
-			Gameplay::PlaySound2D(MultikillAceSound);
-		}
+			int Index = Math::Clamp(PlayerState.MultikillCount - 1, 0, MultikillSounds.Num() - 1);
+			USoundBase Sound = MultikillSounds[Index];
+			Gameplay::PlaySound2D(Sound);
 
-		System::SetTimer(this, n"ResetMultikill", 1.5f, false);
+			if (PlayerState.MultikillCount == 5)
+			{
+				Gameplay::PlaySound2D(MultikillAceSound);
+			}
+
+			System::SetTimer(this, n"ResetMultikill", 4, false);
+		}
 
 		BP_OnTargetDeath();
 	}
