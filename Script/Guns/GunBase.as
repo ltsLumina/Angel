@@ -431,41 +431,51 @@ class AGunBase : AActor
 		if (!BlockingHit)
 		{
 			Print("Trace did not hit anything!", 2, FLinearColor(1.0, 0.5, 0.0));
+			ShootSFX();
 			return TArray<FHitResult>();
 		}
 
-		// The last hit in the array is the closest blocking hit, which is the player hit, if any
-		FHitResult PlayerHit = Hits.Last();
+		FHitResult LastHit = Hits.Last();
 
 		BulletHit = FBulletHit(
-			PlayerHit.bBlockingHit,
-			PlayerHit.Actor.IsA(AAngelTrainingDummy),
-			GetBodyPartHit(PlayerHit.Component).Head,
-			ToMeters(PlayerHit.Distance),
-			PlayerHit.Location,
-			PlayerHit.Actor,
-			Cast<AAngelTrainingDummy>(PlayerHit.Actor),
-			PlayerHit.BoneName,
-			GetBodyPartHit(PlayerHit.Component));
+			LastHit.bBlockingHit,
+			LastHit.Actor.IsA(AAngelTrainingDummy),
+			GetBodyPartHit(LastHit.Component).Head,
+			ToMeters(LastHit.Distance),
+			LastHit.Location,
+			LastHit.Actor,
+			Cast<AAngelTrainingDummy>(LastHit.Actor),
+			LastHit.BoneName,
+			GetBodyPartHit(LastHit.Component));
 
 		if (BulletHit.PlayerHit)
 			BulletHit.HitPlayer.OnDeath.AddUFunction(this, n"OnTargetDeath");
 
+		ShootSFX();
 		HitSFX();
+
 		bool Penetrated = false;
-		SpawnDecal(Penetrated);
+		CreateImpactDecal(Penetrated);
 
-		Gameplay::ApplyPointDamage(
-			BulletHit.HitActor,
-			DamageFalloff.GetDamageAtDistance(BulletHit.Distance, BulletHit.HitBodyPart.BodyPart) * (Penetrated ? 0.8f : 1.0f),
-			BulletDirection,
-			PlayerHit,
-			GetAngelCharacter(0).Controller,
-			this,
-			TSubclassOf<UDamageType>(UDamageType));
+		if (BulletHit.PlayerHit)
+			Gameplay::ApplyPointDamage(
+				BulletHit.HitActor,
+				DamageFalloff.GetDamageAtDistance(BulletHit.Distance, BulletHit.HitBodyPart.BodyPart) * (Penetrated ? 0.8f : 1.0f),
+				BulletDirection,
+				LastHit,
+				GetAngelCharacter(0).Controller,
+				this,
+				TSubclassOf<UDamageType>(UDamageType));
 
-		Gameplay::PlaySoundAtLocation(ShootSound, GetActorLocation(), FRotator::ZeroRotator, 1.0f, 1.0f, 0.0f, DefaultAttenuation);
 		return Hits;
+	}
+
+	void ShootSFX()
+	{
+		if (CurrentAmmo > 0)
+			Gameplay::PlaySoundAtLocation(ShootSound, GetActorLocation(), FRotator::ZeroRotator, 1.0f, 1.0f, 0.0f, DefaultAttenuation);
+		//else 
+			//Gameplay::PlaySoundAtLocation(DryFireSound, GetActorLocation(), FRotator::ZeroRotator, 0.6f, 0.8f, 0.0f, DefaultAttenuation);
 	}
 
 	void HitSFX()
@@ -491,7 +501,7 @@ class AGunBase : AActor
 		}
 	}
 
-	void SpawnDecal(bool&out Penetrated)
+	void CreateImpactDecal(bool&out Penetrated)
 	{
 		for (FHitResult Hit : Hits)
 		{
