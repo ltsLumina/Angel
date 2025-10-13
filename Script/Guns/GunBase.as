@@ -7,11 +7,14 @@ class AGunBase : AActor
 	UPROPERTY(DefaultComponent, Category = "Gun | Info")
 	USkeletalMeshComponent GunMesh;
 
-	// - config
+	// - info
 
 	UPROPERTY(Category = "Gun | Info", EditDefaultsOnly)
 	FName GunName;
 	default GunName = GetClass().GetName();
+
+	UPROPERTY(Category = "Gun | Info", EditDefaultsOnly, BlueprintReadOnly, Meta = (ClampMin = "0", UIMin = "0", ClampMax = "5000", UIMax = "5000"))
+	int Price = 2900;
 
 	// - movement
 	UPROPERTY(Category = "Gun | Movement", EditDefaultsOnly, Meta = (ClampMin = "0.1", UIMin = "0.1", ClampMax = "6.75", UIMax = "6.75", Units = "m/s"))
@@ -155,6 +158,18 @@ class AGunBase : AActor
 
 	// - Accuracy
 
+	/**
+	 * The number of bullets that are guaranteed to be perfectly accurate (no spread).
+	 */
+	UPROPERTY(Category = "Gun | Accuracy | Bullets", EditDefaultsOnly, Meta = (ClampMin = "0", UIMin = "0", ClampMax = "30", UIMax = "30"))
+	int ProtectedBullets = 3;
+
+	/**
+	 * The number of bullets after which the spread reaches its maximum value.
+	 */
+	UPROPERTY(Category = "Gun | Accuracy | Bullets", VisibleInstanceOnly, BlueprintReadOnly, Meta = (ClampMin = "1", UIMin = "1", ClampMax = "30", UIMax = "30"))
+	int MaxSpreadBullet = 9;
+
 	UPROPERTY(Category = "Gun | Accuracy | 1st Shot Spread", EditDefaultsOnly, Meta = (Units = "Degrees"))
 	float StandingSpread = 0.25f;
 	UPROPERTY(Category = "Gun | Accuracy | 1st Shot Spread", EditDefaultsOnly, Meta = (Units = "Degrees"))
@@ -175,6 +190,8 @@ class AGunBase : AActor
 	float CrouchPenalty = 1.5f;
 
 	// - accuracy helpers
+
+	float Increment;
 
 	UFUNCTION(BlueprintPure, Category = "Gun | Accuracy")
 	float GetSpread()
@@ -207,13 +224,33 @@ class AGunBase : AActor
 				break;
 		}
 
-		Spread += RecoilIndex * 0.05f;
+		if (RecoilIndex > ProtectedBullets)
+		{
+			float Alpha = Math::Clamp(float(RecoilIndex - ProtectedBullets) / float(MaxSpreadBullet - ProtectedBullets), 0.0f, 1.0f);
+			float MaxSpread = (State == EAngelMovementState::Crouch || State == EAngelMovementState::CrouchWalk) ? CrouchMaxSpread : StandingMaxSpread;
+			Increment = Math::Lerp(0.0f, MaxSpread - Spread, Alpha);
+		}
+		else // within protected bullets
+		{
+			Increment = 0;
+		}
+
+		Spread += Increment;
 
 		Print(f"Spread: {Spread} degrees", 1, FLinearColor(0.5, 0.5, 1.0));
 		return Spread;
 	}
 
+	UFUNCTION(BlueprintPure, Category = "Gun | Accuracy")
+	bool IsBulletProtected()
+	{
+		return RecoilIndex <= ProtectedBullets;
+	}
+
 	// - recoil
+
+	UPROPERTY(Category = "Gun | Recoil", EditDefaultsOnly, Meta = (ClampMin = "1.0", UIMin = "1.0", ClampMax = "3.0", UIMax = "3.0"))
+	float VerticalRecoilRunningMultiplier = 2.0f;
 
 	/**
 	 * The current index in the recoil pattern. This increments with each shot fired.
@@ -261,7 +298,6 @@ class AGunBase : AActor
 
 	// - aiming
 
-	const int MINUTE = 60;
 
 	UPROPERTY(Category = "Gun | Scope", VisibleInstanceOnly, BlueprintGetter = "GetIsScoped")
 	bool IsScoped;
@@ -309,6 +345,8 @@ class AGunBase : AActor
 	UMaterialInterface BulletPenetrationDecal;
 
 	// - end
+
+	const int MINUTE = 60;
 
 	UFUNCTION(BlueprintOverride)
 	void ActorBeginOverlap(AActor OtherActor)
@@ -432,6 +470,8 @@ class AGunBase : AActor
 		{
 			Print("Trace did not hit anything!", 2, FLinearColor(1.0, 0.5, 0.0));
 			ShootSFX();
+			
+			BulletHit = FBulletHit();
 			return TArray<FHitResult>();
 		}
 

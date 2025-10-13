@@ -4,11 +4,7 @@ class UShopWidget : UUserWidget
     UFUNCTION(BlueprintOverride)
     void Construct()
     {
-        // Make sure the widget can receive keyboard input so we can close it with the B key.
-        // Input mode is set to UI Only in the player controller when opening the shop,
-        // which means the widget must be focusable to receive key events.
-        bIsFocusable = true;
-        SetKeyboardFocus();
+        
     }
 
     UFUNCTION(BlueprintOverride)

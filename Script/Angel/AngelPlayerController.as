@@ -132,28 +132,38 @@ class AAngelPlayerController : APlayerController
 	UFUNCTION()
 	void ToggleShop(FKey Key)
 	{
-        auto GameState = GetAngelGameState();
-        if (IsValid(GameState) && GameState.CurrentPhase != EGamePhase::BuyPhase)
-        {
-            PrintWarning("Can only open shop during Buy Phase!", 3);
-            return;
-        }
+		auto GameState = GetAngelGameState();
+		if (IsValid(GameState) && GameState.CurrentPhase != EGamePhase::BuyPhase)
+		{
+			PrintWarning("Can only open shop during Buy Phase!", 3);
+			return;
+		}
 
 		if (IsValid(ShopWidget) && ShopWidget.IsInViewport())
 		{
 			ShopWidget.RemoveFromParent();
-
-			Widget::SetInputMode_GameOnly(this, true);
-			EnableInput(this);
+			
+			SetIgnoreLookInput(false);
 			bShowMouseCursor = false;
-			return;
-		}
 
-		ShopWidget = WidgetBlueprint::CreateWidget(ShopWidgetClass, this);
-		ShopWidget.AddToViewport();
-		Widget::SetInputMode_UIOnlyEx(this, ShopWidget, EMouseLockMode::LockInFullscreen);
-		DisableInput(this);
-		bShowMouseCursor = true;
+			Widget::SetInputMode_GameOnly(this, bFlushInput = false);
+		}
+		else
+		{
+			ShopWidget = WidgetBlueprint::CreateWidget(ShopWidgetClass, this);
+			ShopWidget.AddToViewport();
+
+			Widget::SetInputMode_GameAndUIEx(this, ShopWidget, EMouseLockMode::DoNotLock, false, bFlushInput = false);
+
+			SetIgnoreLookInput(true);
+			bShowMouseCursor = true;
+
+
+			FEventReply Handled = FEventReply::Handled();
+			FVector2D ViewportSize = WidgetLayout::ViewportSize;
+			FVector2D Center = ViewportSize / 2;
+			Widget::SetMousePosition(Handled, Center);
+		}
 	}
 };
 
