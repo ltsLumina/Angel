@@ -538,7 +538,8 @@ class AGunBase : AActor
 		}
 		else if (!BulletHit.PlayerHit)
 		{
-			Gameplay::PlaySoundAtLocation(GroundHitSound, BulletHit.Location, FRotator::ZeroRotator, 1.0f, 1.0f, 0.0f, DefaultAttenuation);
+			float PitchMultiplier = Math::Clamp(1.0f - (BulletHit.Distance / 10000.0f), 0.75f, 1.0f); // Closer impacts sound higher pitched
+			Gameplay::PlaySoundAtLocation(GroundHitSound, BulletHit.Location, FRotator::ZeroRotator, 1.0f, PitchMultiplier, 0.0f, DefaultAttenuation);
 		}
 	}
 

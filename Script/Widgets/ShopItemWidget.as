@@ -44,17 +44,11 @@ class UShopItemWidget : UUserWidget
 	{
 		if (IsValid(ItemIcon))
 			Icon.SetBrushFromTexture(ItemIcon);
+		
 		ItemName = FText::FromString(ItemName.ToString().ToUpper());
 		ItemID = FName(ItemName.ToString());
 		GunName.SetText(ItemName);
-		if (IsOwned)
-		{
-			CostText.Text = FText::FromString("OWNED");
-		}
-		else
-		{
-			CostText.SetText(GetPrettyCost());
-		}
+		CostText.Text = IsOwned ? FText::FromString("OWNED") : GetPrettyCost();
 
 		BP_PreConstruct(IsDesignTime);
 	}
@@ -130,7 +124,7 @@ class UShopItemWidget : UUserWidget
 	FEventReply OnMouseButtonUp(FGeometry MyGeometry, FPointerEvent MouseEvent)
 	{
 		Background.SetOpacity(PreviousOpacity);
-		
+
 		Purchase();
 		return FEventReply::Handled();
 	}
@@ -148,5 +142,6 @@ class UShopItemWidget : UUserWidget
 	}
 
 	UFUNCTION(BlueprintEvent, DisplayName = "Purchased")
-	void Purchased(TSubclassOf<AGunBase> InGunClass, int InCost) { }
+	void Purchased(TSubclassOf<AGunBase> InGunClass, int InCost)
+	{}
 }
