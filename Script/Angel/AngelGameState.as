@@ -1,5 +1,4 @@
 event void BuyPhaseStartEvent();
-event void BuyPhaseEndEvent();
 event void RoundStartEvent();
 event void RoundEndEvent();
 
@@ -21,6 +20,9 @@ class AAngelGameState : AGameStateBase
 
 	UPROPERTY(Category = "Game Phase", VisibleInstanceOnly, BlueprintReadOnly)
 	EGamePhase PreviousPhase = EGamePhase::RoundEnd;
+
+	UPROPERTY(Category = "Game State", VisibleInstanceOnly, BlueprintReadOnly)
+	EWinCondition LastWinCondition = EWinCondition::TimeExpired;
 
 	UPROPERTY(Category = "Game State", VisibleInstanceOnly, BlueprintReadOnly)
 	int Round;
@@ -63,10 +65,10 @@ class AAngelGameState : AGameStateBase
 	float RoundEndTimeRemaining;
 	default RoundEndTimeRemaining = RoundEndDuration;
 
+	// - events
+
 	UPROPERTY(Category = "Events")
 	BuyPhaseStartEvent OnBuyPhaseStart;
-	UPROPERTY(Category = "Events")
-	BuyPhaseEndEvent OnBuyPhaseEnd;
 	UPROPERTY(Category = "Events")
 	RoundStartEvent OnRoundStart;
 	UPROPERTY(Category = "Events")
@@ -82,10 +84,6 @@ class AAngelGameState : AGameStateBase
 	void BP_BuyPhaseStarted()
 	{}
 
-	UFUNCTION(BlueprintEvent, DisplayName = "Buy Phase Ended")
-	void BP_BuyPhaseEnded()
-	{}
-
 	UFUNCTION(BlueprintEvent, DisplayName = "Round Started")
 	void BP_RoundStarted()
 	{}
@@ -98,7 +96,6 @@ class AAngelGameState : AGameStateBase
 	void BeginPlay()
 	{
 		OnBuyPhaseStart.AddUFunction(this, n"BP_BuyPhaseStarted");
-		OnBuyPhaseEnd.AddUFunction(this, n"BP_BuyPhaseEnded");
 		OnRoundStart.AddUFunction(this, n"BP_RoundStarted");
 		OnRoundEnd.AddUFunction(this, n"BP_RoundEnded");
 
@@ -136,7 +133,7 @@ class AAngelGameState : AGameStateBase
         }
     }
 
-	UFUNCTION()
+	UFUNCTION(Category = "Game Phase", CallInEditor)
 	EGamePhase NextPhase()
 	{
 		switch (CurrentPhase)
@@ -156,7 +153,7 @@ class AAngelGameState : AGameStateBase
 		}
 	}
 
-	UFUNCTION()
+	UFUNCTION(Category = "Game Phase", CallInEditor)
 	EGamePhase StartBuyPhase()
 	{
 		CurrentPhase = EGamePhase::BuyPhase;
@@ -166,19 +163,94 @@ class AAngelGameState : AGameStateBase
 		return CurrentPhase;
 	}
 
-	UFUNCTION()
+	UFUNCTION(Category = "Game Phase", CallInEditor)
 	EGamePhase StartRound()
 	{
 		CurrentPhase = EGamePhase::GamePhase;
 		RoundTimeRemaining = RoundDuration;
+		
+		AAngelPlayerCharacter Character = GetAngelCharacter(0);
+		AAngelPlayerState PlayerState = GetAngelPlayerState(0);
+
+
+		GetAngelController(0).ToggleShop(ForceClose = true);
 
 		Round++;
+
+		ETeam Team = PlayerState.Team;
+		ECreditsGrantedReason Reason = GetReason(Team, LastWinCondition);
+		PlayerState.GrantCredits(GetCreditsForReason(Reason), Reason);
 
 		OnRoundStart.Broadcast();
 		return CurrentPhase;
 	}
 
-	UFUNCTION()
+	ECreditsGrantedReason GetReason(ETeam Team, EWinCondition Condition)
+	{
+		if (Team == ETeam::Attackers)
+		{
+			switch (Condition)
+			{
+				case EWinCondition::DefendersEliminated:
+					return ECreditsGrantedReason::RoundWin;
+				case EWinCondition::SpikeDetonated:
+					return ECreditsGrantedReason::RoundWin;
+				case EWinCondition::TimeExpired:
+					return ECreditsGrantedReason::RoundLoss;
+				case EWinCondition::SpikeDefused:
+					return ECreditsGrantedReason::RoundLoss;
+				case EWinCondition::AttackersEliminated:
+					return ECreditsGrantedReason::RoundLoss;
+				default:
+					return ECreditsGrantedReason::RoundLoss;
+			}
+		}
+		else if (Team == ETeam::Defenders)
+		{
+			switch (Condition)
+			{
+				case EWinCondition::DefendersEliminated:
+					return ECreditsGrantedReason::RoundLoss;
+				case EWinCondition::SpikeDetonated:
+					return ECreditsGrantedReason::RoundLoss;
+				case EWinCondition::TimeExpired:
+					return ECreditsGrantedReason::RoundWin;
+				case EWinCondition::SpikeDefused:
+					return ECreditsGrantedReason::RoundWin;
+				case EWinCondition::AttackersEliminated:
+					return ECreditsGrantedReason::RoundWin;
+				default:
+					return ECreditsGrantedReason::RoundLoss;
+			}
+		}
+
+		return ECreditsGrantedReason::StartingCredits;
+	}
+
+	int GetCreditsForReason(ECreditsGrantedReason Reason)
+	{
+		switch (Reason)
+		{
+			case ECreditsGrantedReason::StartingCredits:
+				return 800;
+			case ECreditsGrantedReason::Kill:
+				return 200;
+			case ECreditsGrantedReason::PlantSpike:
+				return 300;
+			case ECreditsGrantedReason::RoundWin:
+				return 3000;
+			case ECreditsGrantedReason::RoundLoss:
+				return 1900;
+			case ECreditsGrantedReason::RoundLoss_2x:
+				return 2400;
+			case ECreditsGrantedReason::RoundLoss_3x_Onwards:
+				return 2900;
+			default:
+				return 0;
+		}
+	}
+
+	UFUNCTION(Category = "Game Phase", CallInEditor)
 	EGamePhase EndRound()
 	{
 		CurrentPhase = EGamePhase::RoundEnd;

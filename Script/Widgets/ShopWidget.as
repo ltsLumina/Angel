@@ -15,7 +15,7 @@ class UShopWidget : UUserWidget
             auto Controller = GetAngelController(0);
             if (IsValid(Controller))
             {
-                Controller.ToggleShop(EKeys::B);
+                Controller.ToggleShop();
                 return FEventReply::Handled();
             }
         }

@@ -73,3 +73,10 @@ class UPhantomFalloff : UDamageFalloff
 	default DamageMap.Add(FVector2D(0, 20), FVector(156, 39, 33));
 	default DamageMap.Add(FVector2D(20, 50), FVector(140, 35, 29));
 }
+
+UCLASS(EditInlineNew)
+class UClassicFalloff : UDamageFalloff
+{
+	default DamageMap.Add(FVector2D(0, 30), FVector(78, 26, 22));
+	default DamageMap.Add(FVector2D(30, 50), FVector(66, 22, 18));
+}

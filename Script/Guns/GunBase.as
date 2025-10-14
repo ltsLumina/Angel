@@ -13,8 +13,14 @@ class AGunBase : AActor
 	FName GunName;
 	default GunName = GetClass().GetName();
 
+	UPROPERTY(Category = "Gun | Info", EditDefaultsOnly)
+	UTexture2D Icon;
+
 	UPROPERTY(Category = "Gun | Info", EditDefaultsOnly, BlueprintReadOnly, Meta = (ClampMin = "0", UIMin = "0", ClampMax = "5000", UIMax = "5000"))
 	int Price = 2900;
+
+	UPROPERTY(Category = "Gun | Info", EditDefaultsOnly)
+	EGunType GunType = EGunType::Rifle;
 
 	// - movement
 	UPROPERTY(Category = "Gun | Movement", EditDefaultsOnly, Meta = (ClampMin = "0.1", UIMin = "0.1", ClampMax = "6.75", UIMax = "6.75", Units = "m/s"))
@@ -141,8 +147,18 @@ class AGunBase : AActor
 	UFUNCTION(Category = "Gun | Shooting", BlueprintPure)
 	bool GetIsFiring()
 	{
+		return TriggeredTime > ShootCooldown;
+	}
+
+	UPROPERTY(Category = "Gun | Shooting", VisibleInstanceOnly, BlueprintReadOnly, BlueprintGetter = "GetIsOnShootCooldown")
+	bool IsOnShootCooldown;
+
+	UFUNCTION(Category = "Gun | Shooting", BlueprintPure)
+	bool GetIsOnShootCooldown()
+	{
 		return TimeSinceLastShot < ShootCooldown;
 	}
+
 
 	/**
 	 * Whether the first shot after a pause is perfectly accurate (no recoil).
@@ -275,24 +291,24 @@ class AGunBase : AActor
 
 	// - reload
 
-	UPROPERTY(Category = "Gun | Reload", Instanced)
+	UPROPERTY(Category = "Gun | Reload | Magazine", Instanced)
 	UReloadStrategyBase ReloadStrategy;
 
-	UPROPERTY(Category = "Gun | Magazine", VisibleInstanceOnly)
+	UPROPERTY(Category = "Gun | Reload | Magazine", VisibleInstanceOnly)
 	bool HasMagazine = true;
 
-	UPROPERTY(Category = "Gun | Magazine", VisibleInstanceOnly, BlueprintReadWrite)
+	UPROPERTY(Category = "Gun | Reload | Magazine", VisibleInstanceOnly, BlueprintReadWrite)
 	int CurrentAmmo = 30;
 	default CurrentAmmo = MaxAmmo;
 
-	UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
+	UPROPERTY(Category = "Gun | Reload | Magazine", EditDefaultsOnly)
 	int MaxAmmo = 30;
 
-	UPROPERTY(Category = "Gun | Magazine", VisibleInstanceOnly)
+	UPROPERTY(Category = "Gun | Reload | Magazine", VisibleInstanceOnly)
 	int ReserveAmmo = 60;
 	default ReserveAmmo = MaxReserveAmmo;
 
-	UPROPERTY(Category = "Gun | Magazine", EditDefaultsOnly)
+	UPROPERTY(Category = "Gun | Reload | Magazine", EditDefaultsOnly)
 	int MaxReserveAmmo = 60;
 	default MaxReserveAmmo = 60;
 
@@ -347,22 +363,6 @@ class AGunBase : AActor
 	// - end
 
 	const int MINUTE = 60;
-
-	UFUNCTION(BlueprintOverride)
-	void ActorBeginOverlap(AActor OtherActor)
-	{
-		if (!OtherActor.IsA(AAngelPlayerCharacter))
-			return;
-
-		if (GetAngelCharacter(0).HolsterComponent.Guns.Num() >= GetAngelCharacter(0).HolsterComponent.MaxGuns)
-		{
-			PrintWarning("Holster is full! Cannot equip more guns.", 2, FLinearColor(1.0, 0.5, 0.0));
-			return;
-		}
-
-		SetActorEnableCollision(false);
-		GetAngelCharacter(0).HolsterComponent.EquipGun(this);
-	}
 
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
@@ -449,9 +449,10 @@ class AGunBase : AActor
 		return TargetPoint;
 	}
 
+	UPROPERTY(Category = "Gun | Shooting", VisibleInstanceOnly)
 	FBulletSpreadData SpreadData;
 	TArray<FHitResult> Hits;
-	UPROPERTY()
+	UPROPERTY(Category = "Gun | Shooting", VisibleInstanceOnly)
 	FBulletHit BulletHit;
 	bool BlockingHit;
 
@@ -567,7 +568,7 @@ class AGunBase : AActor
 		}
 	}
 
-	UFUNCTION()
+	UFUNCTION(Category = "Gun | Kill", BlueprintCallable)
 	void OnTargetDeath()
 	{
 		auto PlayerState = GetAngelPlayerState(0);
@@ -600,10 +601,30 @@ class AGunBase : AActor
 	void BP_OnTargetDeath()
 	{}
 
+	float ElapsedTime;
+	float TriggeredTime;
+
 	UFUNCTION(BlueprintEvent, Category = "Gun")
-	bool Shoot()
+	bool Shoot(float InElapsedTime, float InTriggeredTime)
 	{
-		if (TimeSinceLastShot < ShootCooldown)
+		this.ElapsedTime = InElapsedTime;
+		this.TriggeredTime = InTriggeredTime;
+
+		switch (FireMode)
+		{
+			case EFireMode::Semi:
+			case EFireMode::Burst:
+				// Only allow firing on initial press in semi and burst modes
+				if (GetIsFiring())
+					return false;
+				break;
+
+			case EFireMode::Auto:
+				// Allow holding down the trigger in auto mode
+				break;
+		}
+
+		if (GetIsOnShootCooldown())
 			return false;
 
 		if (!HasMagazine || CurrentAmmo <= 0)

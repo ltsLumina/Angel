@@ -63,6 +63,12 @@ class AAngelPlayerCharacter : AAngelscriptGASCharacter
 	UFUNCTION(BlueprintEvent, DisplayName = "Tick")
 	void BP_Tick(float DeltaSeconds)
 	{}
+
+	UFUNCTION()
+	void UseAbility(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, const UInputAction SourceAction)
+	{
+		
+	}
 };
 
 AAngelPlayerCharacter GetAngelCharacter(AActor Actor)

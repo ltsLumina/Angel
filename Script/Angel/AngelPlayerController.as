@@ -19,13 +19,16 @@ class AAngelPlayerController : APlayerController
 	UInputAction ADS_Action;
 
 	UPROPERTY(Category = "Input")
-	UInputAction InventoryAction;
-
-	UPROPERTY(Category = "Input")
 	UInputAction SwitchGunAction;
 
 	UPROPERTY(Category = "Input")
-	UInputMappingContext Context;
+	UInputAction AbilityAction;
+
+	UPROPERTY(Category = "Input")
+	UInputMappingContext IMC_Gameplay;
+
+	UPROPERTY(Category = "Input")
+	UInputMappingContext IMC_Shop;
 
 	UPROPERTY(Category = "Shop", EditDefaultsOnly)
 	TSubclassOf<UShopWidget> ShopWidgetClass;
@@ -38,7 +41,7 @@ class AAngelPlayerController : APlayerController
 		PushInputComponent(InputComponent);
 
 		UEnhancedInputLocalPlayerSubsystem EnhancedInputSubsystem = UEnhancedInputLocalPlayerSubsystem::Get(this);
-		EnhancedInputSubsystem.AddMappingContext(Context, 0, FModifyContextOptions());
+		EnhancedInputSubsystem.AddMappingContext(IMC_Gameplay, 0, FModifyContextOptions());
 
 		AAngelPlayerCharacter Character = GetAngelCharacter(0);
 		ReloadComponent = UReloadComponent::Get(Character);
@@ -57,16 +60,16 @@ class AAngelPlayerController : APlayerController
 		// Reloading
 		InputComponent.BindKey(EKeys::R, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ReloadComponent, n"Reload"));
 
-		// UI/Inventory
-		InputComponent.BindAction(InventoryAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"ToggleInventory"));
-
 		// Gun Switching
 		InputComponent.BindAction(SwitchGunAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(this, n"CycleGun"));
 		InputComponent.BindKey(EKeys::AnyKey, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"SelectGun"));
 
+		// Ability
+		InputComponent.BindAction(AbilityAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(Character, n"UseAbility"));
+
 		// -- menus
 
-		InputComponent.BindKey(EKeys::B, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ToggleShop"));
+		InputComponent.BindKey(EKeys::B, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ToggleShopInternal"));
 	}
 
 	float CycleGunCooldown = 0.2f;
@@ -121,7 +124,7 @@ class AAngelPlayerController : APlayerController
 		else if (Key == EKeys::Three)
 			GunIndex = 2;
 
-		if (GunIndex >= 0 && GunIndex < Holster.Guns.Num())
+		if (GunIndex >= 0 && GunIndex < Holster.HolsteredGuns.Num())
 		{
 			Holster.SwitchGun(GunIndex);
 		}
@@ -129,8 +132,14 @@ class AAngelPlayerController : APlayerController
 
 	UUserWidget ShopWidget;
 
-	UFUNCTION()
-	void ToggleShop(FKey Key)
+	UFUNCTION(NotBlueprintCallable)
+	private void ToggleShopInternal(FKey Key)
+	{
+		ToggleShop();
+	}
+
+	UFUNCTION(Category = "Shop")
+	void ToggleShop(bool ForceClose = false)
 	{
 		auto GameState = GetAngelGameState();
 		if (IsValid(GameState) && GameState.CurrentPhase != EGamePhase::BuyPhase)
@@ -139,30 +148,23 @@ class AAngelPlayerController : APlayerController
 			return;
 		}
 
-		if (IsValid(ShopWidget) && ShopWidget.IsInViewport())
+		if ((IsValid(ShopWidget) && ShopWidget.IsInViewport()))
 		{
 			ShopWidget.RemoveFromParent();
-			
-			SetIgnoreLookInput(false);
-			bShowMouseCursor = false;
+			ShopWidget = nullptr;
 
+			bShowMouseCursor = false;
 			Widget::SetInputMode_GameOnly(this, bFlushInput = false);
+			SwitchMappingContext(this, IMC_Gameplay, 0);
 		}
-		else
+		else if (!ForceClose)
 		{
 			ShopWidget = WidgetBlueprint::CreateWidget(ShopWidgetClass, this);
 			ShopWidget.AddToViewport();
 
-			Widget::SetInputMode_GameAndUIEx(this, ShopWidget, EMouseLockMode::DoNotLock, false, bFlushInput = false);
-
-			SetIgnoreLookInput(true);
 			bShowMouseCursor = true;
-
-
-			FEventReply Handled = FEventReply::Handled();
-			FVector2D ViewportSize = WidgetLayout::ViewportSize;
-			FVector2D Center = ViewportSize / 2;
-			Widget::SetMousePosition(Handled, Center);
+			Widget::SetInputMode_GameAndUIEx(this, nullptr, EMouseLockMode::DoNotLock, false, bFlushInput = false);
+			SwitchMappingContext(this, IMC_Shop, 0);
 		}
 	}
 };
@@ -175,4 +177,32 @@ AAngelPlayerController GetAngelController(APawn Pawn)
 AAngelPlayerController GetAngelController(int PlayerIndex)
 {
 	return Cast<AAngelPlayerController>(Gameplay::GetPlayerController(PlayerIndex));
+}
+
+void SwitchMappingContext(APlayerController PC, UInputMappingContext NewContext, int Priority = 0)
+{
+	UEnhancedInputLocalPlayerSubsystem EnhancedInputSubsystem = UEnhancedInputLocalPlayerSubsystem::Get(PC);
+	if (IsValid(EnhancedInputSubsystem))
+	{
+		EnhancedInputSubsystem.ClearAllMappings();
+		EnhancedInputSubsystem.AddMappingContext(NewContext, Priority, FModifyContextOptions());
+	}
+	else
+	{
+		PrintError("Failed to get EnhancedInputLocalPlayerSubsystem!");
+	}
+}
+
+void SwapMappingContext(APlayerController PC, UInputMappingContext OldContext, UInputMappingContext NewContext, int Priority = 0)
+{
+	UEnhancedInputLocalPlayerSubsystem EnhancedInputSubsystem = UEnhancedInputLocalPlayerSubsystem::Get(PC);
+	if (IsValid(EnhancedInputSubsystem))
+	{
+		EnhancedInputSubsystem.RemoveMappingContext(OldContext, FModifyContextOptions());
+		EnhancedInputSubsystem.AddMappingContext(NewContext, Priority, FModifyContextOptions());
+	}
+	else
+	{
+		PrintError("Failed to get EnhancedInputLocalPlayerSubsystem!");
+	}
 }
