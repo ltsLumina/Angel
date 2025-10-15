@@ -1,28 +1,37 @@
-UCLASS(Abstract) // TODO: redo this script
+UCLASS(Abstract)
 class UHolsterComponent : UActorComponent
 {
-	UPROPERTY(BlueprintReadOnly, Category = "Holster")
+	UPROPERTY(Category = "Holster | Guns", EditDefaultsOnly, BlueprintReadOnly)
 	TArray<TSubclassOf<AGunBase>> InitialGuns;
 
-	// The guns that are currently in the holster
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Holster")
+	UPROPERTY(Category = "Holster | Guns", VisibleAnywhere, BlueprintReadOnly)
 	TArray<AGunBase> HolsteredGuns;
 
-	// The currently equipped gun
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Holster")
+	UPROPERTY(Category = "Holster | Guns", VisibleAnywhere, BlueprintReadOnly)
 	AGunBase EquippedGun;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Holster")
+	UPROPERTY(Category = "Holster | Guns", VisibleInstanceOnly, BlueprintReadOnly, BlueprintGetter = GetEquippedGunIndex)
 	int EquippedGunIndex;
 
-	UPROPERTY(Category = "Holster", VisibleAnywhere, BlueprintReadOnly)
-	AGunBase Sidearm;
+	UPROPERTY(Category = "Holster | Current", VisibleAnywhere, BlueprintReadOnly)
+	AGunBase Primary; // always has index 0
 
-	UPROPERTY(Category = "Holster", VisibleAnywhere, BlueprintReadOnly)
-	AGunBase Primary;
+	UPROPERTY(Category = "Holster | Current", VisibleAnywhere, BlueprintReadOnly)
+	AGunBase Sidearm; // always has index 1
+
+	// - holster helpers
+	UFUNCTION(BlueprintPure)
+	int GetEquippedGunIndex()
+	{
+		return HolsteredGuns.FindIndex(EquippedGun);
+	}
+
+	// - flags
+
+	UPROPERTY(Category = "Holster", VisibleAnywhere)
+	bool IsEquipping;
 
 	USkeletalMeshComponent ArmsMesh;
-	UGunComponent GunComponent;
 
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
@@ -34,45 +43,37 @@ class UHolsterComponent : UActorComponent
 			return;
 		}
 
-		GunComponent = UGunComponent::Get(GetOwner());
-		if (!IsValid(UGunComponent::Get(GetOwner())))
-		{
-			PrintError("Holster component requires a GunComponent on the owner actor!");
-			return;
-		}
-
 		for (TSubclassOf<AGunBase> GunClass : InitialGuns)
 		{
-			CreateGun(GunClass);
+			GrantGun(GunClass, false);
 		}
 
-		// Initialize the equipped gun to the first gun in the list, if available
 		if (HolsteredGuns.Num() > 0)
 		{
-			EquipGun(HolsteredGuns[0]);
+			EquipGun(HolsteredGuns[0], FEquipData(EEquipSpeed::Fast, true));
 		}
 
-		// Call the Blueprint BeginPlay event
 		BP_BeginPlay();
 	}
 
-	UFUNCTION(BlueprintEvent, Meta = (DisplayName = "Begin Play"))
+	UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
 	void BP_BeginPlay()
 	{}
 
-	UFUNCTION()
+	/*
+			Sidearm = NewGun.GunType == EGunType::Sidearm ? NewGun : Sidearm;
+			Primary = NewGun.GunType != EGunType::Sidearm ? NewGun : Primary;
+	*/
+
+	UFUNCTION(Category = "Holster")
 	AGunBase CreateGun(TSubclassOf<AGunBase> GunClass)
 	{
 		AGunBase NewGun = SpawnActor(GunClass);
 		if (IsValid(NewGun))
 		{
-			HolsteredGuns.Add(NewGun);
 			NewGun.AttachToComponent(ArmsMesh, n"ik_hand_gun", EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, true);
+			//NewGun.AttachToComponent(ArmsMesh, n"GripPoint", EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, true);
 			NewGun.SetActorHiddenInGame(true);
-			NewGun.ActorTickEnabled = false;
-
-			Sidearm = NewGun.GunType == EGunType::Sidearm ? NewGun : Sidearm;
-			Primary = NewGun.GunType != EGunType::Sidearm ? NewGun : Primary;
 			return NewGun;
 		}
 		else
@@ -82,83 +83,88 @@ class UHolsterComponent : UActorComponent
 		}
 	}
 
+	/**
+	 * Equips the specified gun by instance, hiding all others.
+	 * @param Gun The gun to equip.
+	 * @param Speed The speed at which to equip the gun.
+	 * @param Refresh If true, the gun's ammo will be refilled to max. (useful for testing or when purchasing a new gun)
+	 */
 	UFUNCTION(Category = "Holster")
-	void GrantGun(TSubclassOf<AGunBase> GunClass)
+	void EquipGun(AGunBase Gun, FEquipData EquipData)
 	{
-		if (!IsValid(GunClass))
+		for (AGunBase ExistingGun : HolsteredGuns)
 		{
-			PrintError("Cannot grant null gun class!" +
-					   "\nCheck that the GunClass is valid.");
-			return;
+			ExistingGun.SetActorHiddenInGame(true);
 		}
 
-		if (!HasGun(GunClass))
+		// If the gun isn't already in our holster, add it
+		if (!HolsteredGuns.Contains(Gun))
 		{
-			EquipGun(CreateGun(GunClass));
-		}
-		else
-		{
-			for (AGunBase Gun : HolsteredGuns)
+			if (Gun.GunType == EGunType::Sidearm && HasSidearm())
 			{
-				if (Gun.IsA(GunClass))
-				{
-					EquipGun(Gun, true);
-					return;
-				}
+				// replace existing sidearm
+				HolsteredGuns.Remove(Sidearm);
+				Sidearm.DestroyActor();
+
+				Sidearm = Gun;
+				Print("Replaced existing sidearm with new one.");
 			}
-		}
-	}
-
-	UFUNCTION(Category = "Holster")
-	void EquipGun(AGunBase Gun, bool Refresh = false)
-	{
-		if (IsValid(Gun))
-		{
-			if (IsValid(EquippedGun))
+			else if (Gun.GunType != EGunType::Sidearm && !HasPrimary())
 			{
-				// Hide all guns
-				for (AGunBase ExistingGun : HolsteredGuns)
-				{
-					ExistingGun.SetActorHiddenInGame(true);
-					ExistingGun.ActorTickEnabled = false;
-				}
-			}
+				// replace existing primary
+				HolsteredGuns.Remove(Primary);
+				Primary.DestroyActor();
 
-			if (!HolsteredGuns.Contains(Gun))
-			{
-				// Gun is not in the holster, add it
-				HolsteredGuns.Add(Gun);
-
-				// Set the new gun as the equipped gun
-				Gun.AttachToComponent(ArmsMesh, n"GripPoint", EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, true);
+				Primary = Gun;
+				Print("Replaced existing primary with new one.");
 			}
 
 			Gun.SetOwner(GetOwner());
-			Gun.SetActorHiddenInGame(false);
-			Gun.ActorTickEnabled = true;
-
-			if (Refresh)
-			{
-				Gun.CurrentAmmo = Gun.MaxAmmo;
-				Gun.ReserveAmmo = Gun.MaxReserveAmmo;
-			}
-
-			EquippedGun = Gun;
-			GunComponent.EquippedGun = Gun;
-			EquippedGunIndex = HolsteredGuns.FindIndex(Gun);
-
-			Sidearm = Gun.GunType == EGunType::Sidearm ? Gun : Sidearm;
-			Primary = Gun.GunType != EGunType::Sidearm ? Gun : Primary;
-
-			BP_OnGunEquipped(Gun, GunComponent);
+			Gun.SetActorHiddenInGame(false); // <<<<<<<<<<<< TODO
+			HolsteredGuns.Add(Gun);
 		}
+
+		if (EquipData.Reload)
+		{
+			Gun.CurrentAmmo = Gun.MaxAmmo;
+			Gun.ReserveAmmo = Gun.MaxReserveAmmo;
+		}
+
+		EquippedGun = Gun;
+		Primary = Gun.GunType != EGunType::Sidearm ? Gun : Primary;
+		Sidearm = Gun.GunType == EGunType::Sidearm ? Gun : Sidearm;
+
+		BP_GunEquipped(Gun, EquipData.Speed); // regular equip uses normal speed. Can be overridden based on context.
 	}
 
-	bool HasGun(TSubclassOf<AGunBase> GunClass)
+	/**
+	 *  Equip gun by class, if it exists in the holster.
+	 */
+	UFUNCTION(Category = "Holster")
+	void EquipGunByClass(TSubclassOf<AGunBase> GunClass, FEquipData EquipData)
 	{
 		for (AGunBase Gun : HolsteredGuns)
 		{
-			if (Gun.IsA(GunClass))
+			if (IsValid(Gun) && Gun.GetClass() == GunClass)
+			{
+				EquipGun(Gun, EquipData);
+				return;
+			}
+		}
+
+		PrintError(f"Cannot equip gun of class {GunClass.DefaultObject.GetName()} because it is not in the holster.");
+	}
+
+	UFUNCTION(BlueprintEvent, Category = "Holster", DisplayName = "Gun Equipped")
+	void BP_GunEquipped(AGunBase Gun, EEquipSpeed Speed = EEquipSpeed::Normal)
+	{}
+
+	UFUNCTION(BlueprintPure, Category = "Holster | Guns")
+	bool HasGunOfType(EGunType Type)
+	{
+		for (AGunBase Gun : HolsteredGuns)
+		{
+			if (IsValid(Gun) && Gun.GunType == Type)
 			{
 				return true;
 			}
@@ -166,46 +172,57 @@ class UHolsterComponent : UActorComponent
 		return false;
 	}
 
-	AGunBase GetGun(TSubclassOf<AGunBase> GunClass)
+	UFUNCTION(BlueprintPure, Category = "Holster | Guns")
+	bool HasPrimary()
+	{
+		return IsValid(Primary);
+	}
+
+	UFUNCTION(BlueprintPure, Category = "Holster | Guns")
+	bool HasSidearm()
+	{
+		return IsValid(Sidearm);
+	}
+
+	UFUNCTION(BlueprintPure, Category = "Holster | Guns")
+	bool HasGun(TSubclassOf<AGunBase> GunClass)
 	{
 		for (AGunBase Gun : HolsteredGuns)
 		{
-			if (Gun.IsA(GunClass))
+			if (IsValid(Gun) && Gun.GetClass() == GunClass)
 			{
-				return Gun;
+				return true;
 			}
 		}
-		return nullptr;
+		return false;
 	}
 
 	UFUNCTION(Category = "Holster")
-	void ReplaceGun(TSubclassOf<AGunBase> OldGun, TSubclassOf<AGunBase> NewGun)
+	void GrantGun(TSubclassOf<AGunBase> GunClass, bool AutoEquip = true, FEquipData EquipData = FEquipData())
 	{
-		for (int i = 0; i < HolsteredGuns.Num(); i++)
+		if (!HasGun(GunClass))
 		{
-			if (HolsteredGuns[i].IsA(OldGun))
+			AGunBase NewGun = CreateGun(GunClass);
+			if (IsValid(NewGun))
 			{
-				AGunBase NewGunInstance = CreateGun(NewGun);
-				if (IsValid(NewGunInstance))
+				NewGun.SetOwner(GetOwner());
+				NewGun.SetActorHiddenInGame(true);
+				HolsteredGuns.Add(NewGun);
+				Print(f"Granted new gun: {NewGun.GetName()}");
+
+				if (AutoEquip)
 				{
-					HolsteredGuns[i].DestroyActor();
-					HolsteredGuns[i] = NewGunInstance;
-					if (EquippedGun.IsA(OldGun))
-					{
-						EquipGun(NewGunInstance);
-					}
+					EquipGun(NewGun, EquipData);
 				}
-				return;
 			}
 		}
-		PrintError(f"Cannot replace gun: {OldGun.DefaultObject.GetName()} not found in holster.");
+		else
+		{
+			EquipGunByClass(GunClass, FEquipData(EEquipSpeed::Normal, true));
+		}
 	}
 
-	UFUNCTION(BlueprintEvent, Category = "Holster", Meta = (DisplayName = "Gun Equipped"))
-	void BP_OnGunEquipped(AGunBase Gun, UGunComponent InGunComponent)
-	{}
-
-	UFUNCTION(Category = "Holster", Meta = (AdvancedDisplay = "OptionalIndex"))
+	UFUNCTION(Category = "Holster", DisplayName = "OptionalIndex")
 	void CycleGun(float Direction = 1.0f, int OptionalIndex = -1)
 	{
 		if (HolsteredGuns.Num() == 0)
@@ -234,7 +251,7 @@ class UHolsterComponent : UActorComponent
 	{
 		if (HolsteredGuns.IsValidIndex(Index))
 		{
-			EquipGun(HolsteredGuns[Index]);
+			EquipGun(HolsteredGuns[Index], FEquipData(EEquipSpeed::Normal));
 			EquippedGunIndex = Index;
 		}
 		else

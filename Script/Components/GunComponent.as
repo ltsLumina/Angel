@@ -1,17 +1,21 @@
 class UGunComponent : UActorComponent
 {
     UPROPERTY(Category = "Config | Gun", VisibleAnywhere)
-    AGunBase EquippedGun;
-
-    UPROPERTY(Category = "Config | Gun", VisibleAnywhere)
     bool IsADS;
+
+    UHolsterComponent HolsterComponent;
 
     UFUNCTION()
     void Fire(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, const UInputAction SourceAction)
     {
-        if (EquippedGun.Shoot(ElapsedTime, TriggeredTime))
+        if (!IsValid(HolsterComponent))
+            HolsterComponent = UHolsterComponent::Get(GetOwner());
+
+        if (HolsterComponent.IsEquipping) return;
+
+        if (HolsterComponent.EquippedGun.Shoot(ElapsedTime, TriggeredTime))
         {
-            BP_OnShoot(EquippedGun);
+            BP_OnShoot(HolsterComponent.EquippedGun);
         }
     }
 

@@ -78,8 +78,8 @@ class AGunBase : AActor
 	// - equip
 	UPROPERTY(Category = "Gun | Equip", EditDefaultsOnly, Meta = (Units = "Seconds"))
 	TMap<EEquipSpeed, float> EquipTimes;
-	default EquipTimes.Add(EEquipSpeed::Normal, 0.6);
-	default EquipTimes.Add(EEquipSpeed::Fast, 0.4);
+	default EquipTimes.Add(EEquipSpeed::Normal, 1.0);
+	default EquipTimes.Add(EEquipSpeed::Fast, 0.6);
 	default EquipTimes.Add(EEquipSpeed::Instant, 0.2);
 
 	// - equip helpers
@@ -159,7 +159,6 @@ class AGunBase : AActor
 		return TimeSinceLastShot < ShootCooldown;
 	}
 
-
 	/**
 	 * Whether the first shot after a pause is perfectly accurate (no recoil).
 	 */
@@ -204,6 +203,9 @@ class AGunBase : AActor
 	float WalkPenalty = 3;
 	UPROPERTY(Category = "Gun | Accuracy | Penalties", EditDefaultsOnly, Meta = (Units = "Degrees"))
 	float CrouchPenalty = 1.5f;
+
+	UPROPERTY(Category = "Gun | Accuracy", VisibleInstanceOnly)
+	FBulletSpreadData SpreadData;
 
 	// - accuracy helpers
 
@@ -314,7 +316,6 @@ class AGunBase : AActor
 
 	// - aiming
 
-
 	UPROPERTY(Category = "Gun | Scope", VisibleInstanceOnly, BlueprintGetter = "GetIsScoped")
 	bool IsScoped;
 
@@ -361,6 +362,9 @@ class AGunBase : AActor
 	UMaterialInterface BulletPenetrationDecal;
 
 	// - end
+
+	UPROPERTY(Category = "Gun | Shooting", NotVisible)
+	FBulletHit BulletHit;
 
 	const int MINUTE = 60;
 
@@ -449,11 +453,7 @@ class AGunBase : AActor
 		return TargetPoint;
 	}
 
-	UPROPERTY(Category = "Gun | Shooting", VisibleInstanceOnly)
-	FBulletSpreadData SpreadData;
 	TArray<FHitResult> Hits;
-	UPROPERTY(Category = "Gun | Shooting", VisibleInstanceOnly)
-	FBulletHit BulletHit;
 	bool BlockingHit;
 
 	TArray<FHitResult> Trace(float MaxDistance = 10000.0f)
@@ -463,15 +463,23 @@ class AGunBase : AActor
 		FVector BulletDirection = ApplySpread(AimDirection, GetSpread(), SpreadData);
 
 		FVector End = TraceStart + BulletDirection * MaxDistance;
-		BlockingHit = System::LineTraceMulti(TraceStart, End, ETraceTypeQuery::TraceTypeQuery3, false, TArray<AActor>(), DebugTrace, Hits, true, FLinearColor::Yellow, FLinearColor::Green, 2.0f);
-
-		// System::DrawDebugConeInDegrees(TraceStart, AimDirection, 10000.0f, SpreadData.ConeWidth, SpreadData.ConeHeight, 36, FLinearColor::DPink, 10, 1);
+		BlockingHit = System::LineTraceMulti(TraceStart,
+											 End,
+											 ETraceTypeQuery::TraceTypeQuery3,
+											 false,
+											 TArray<AActor>(),
+											 DebugTrace,
+											 Hits,
+											 true,
+											 FLinearColor::Yellow,
+											 FLinearColor::Green,
+											 2.0f);
 
 		if (!BlockingHit)
 		{
 			Print("Trace did not hit anything!", 2, FLinearColor(1.0, 0.5, 0.0));
 			ShootSFX();
-			
+
 			BulletHit = FBulletHit();
 			return TArray<FHitResult>();
 		}
@@ -515,8 +523,8 @@ class AGunBase : AActor
 	{
 		if (CurrentAmmo > 0)
 			Gameplay::PlaySoundAtLocation(ShootSound, GetActorLocation(), FRotator::ZeroRotator, 1.0f, 1.0f, 0.0f, DefaultAttenuation);
-		//else 
-			//Gameplay::PlaySoundAtLocation(DryFireSound, GetActorLocation(), FRotator::ZeroRotator, 0.6f, 0.8f, 0.0f, DefaultAttenuation);
+		// else
+		// Gameplay::PlaySoundAtLocation(DryFireSound, GetActorLocation(), FRotator::ZeroRotator, 0.6f, 0.8f, 0.0f, DefaultAttenuation);
 	}
 
 	void HitSFX()

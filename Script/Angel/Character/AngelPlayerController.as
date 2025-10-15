@@ -83,13 +83,7 @@ class AAngelPlayerController : APlayerController
 			CycleGunTimer -= DeltaSeconds;
 		}
 	}
-
-	UFUNCTION(NotBlueprintCallable)
-	void ToggleInventory(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
-	{
-		Print(f"Toggled inventory!");
-	}
-
+	
 	UFUNCTION(NotBlueprintCallable)
 	void CycleGun(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
 	{

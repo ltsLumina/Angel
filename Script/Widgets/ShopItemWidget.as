@@ -136,7 +136,7 @@ class UShopItemWidget : UUserWidget
 		IsOwned = true;
 
 		auto Character = GetAngelCharacter(0);
-		Character.HolsterComponent.GrantGun(GunClass);
+		Character.HolsterComponent.GrantGun(GunClass, true, FEquipData(EEquipSpeed::Fast, true));
 
 		Purchased(GunClass, ItemCost);
 	}

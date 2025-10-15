@@ -74,19 +74,24 @@ struct FBodyPartHit
 	}
 };
 
-struct FEquipMode
-{
-	UPROPERTY()
-	EEquipSpeed Mode;
-
-	UPROPERTY()
-	float EquipTime;
-}
-
 struct FBulletSpreadData
 {
 	float ConeWidth;
 	float ConeHeight;
 	float ErrorAngle;
 	bool IsAccurate;
+}
+
+struct FEquipData
+{
+	UPROPERTY(Meta = (EditCondition = "Equip", EditConditionHides))
+	EEquipSpeed Speed;
+	UPROPERTY()
+	bool Reload;
+
+	FEquipData(EEquipSpeed InSpeed, bool InReload = false)
+	{
+		Speed = InSpeed;
+		Reload = InReload;
+	}
 }
