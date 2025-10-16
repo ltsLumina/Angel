@@ -1,7 +1,7 @@
 class AAngelPlayerState : APlayerState
 {
     UPROPERTY(Category = "State | Team", VisibleAnywhere)
-    ETeam Team;
+    ETeam Team = ETeam::Defenders;
 
     UPROPERTY(Category = "State | Stats", VisibleAnywhere)
     int Kills;
@@ -27,8 +27,6 @@ class AAngelPlayerState : APlayerState
         Kills = 0;
         Deaths = 0;
         MultikillCount = 0;
-
-        Credits = StartingCredits;
     }
 
     UFUNCTION()
@@ -48,11 +46,21 @@ class AAngelPlayerState : APlayerState
         Print(f"Granted {Amount} credits for reason {Reason}. \nNew total: {Credits}");
     }
 
+    /**
+     * Attempts to spend the specified amount of credits.
+     * @return True if the player could afford it and the amount was deducted, false otherwise.
+     * @param Amount The amount of credits to spend.
+     * @param OverrideAffordability If true, the amount will be deducted regardless of current credits.
+     */
+    UFUNCTION(Category = "State | Economy")
     bool SpendCredits(int Amount)
     {
         if (CanAfford(Amount))
         {
             Credits -= Amount;
+            Credits = Math::Clamp(Credits, 0, MaxCredits);
+
+            Print(f"Spent {Amount} credits. \nNew total: {Credits}");
             return true;
         }
         return false;
@@ -65,7 +73,8 @@ class AAngelPlayerState : APlayerState
     }
 };
 
+UFUNCTION(BlueprintPure)
 AAngelPlayerState GetAngelPlayerState(int PlayerIndex)
 {
-    return Cast<AAngelPlayerState>(GetAngelCharacter(PlayerIndex).PlayerState);
+    return Cast<AAngelPlayerState>(Gameplay::GetPlayerState(PlayerIndex));
 }

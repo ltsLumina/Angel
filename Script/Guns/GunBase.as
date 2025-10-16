@@ -16,14 +16,14 @@ class AGunBase : AActor
 	UPROPERTY(Category = "Gun | Info", EditDefaultsOnly)
 	UTexture2D Icon;
 
-	UPROPERTY(Category = "Gun | Info", EditDefaultsOnly, BlueprintReadOnly, Meta = (ClampMin = "0", UIMin = "0", ClampMax = "5000", UIMax = "5000"))
+	UPROPERTY(Category = "Gun | Info", EditDefaultsOnly, BlueprintReadOnly, Meta = (UIMin = "0", UIMax = "5000"))
 	int Price = 2900;
 
 	UPROPERTY(Category = "Gun | Info", EditDefaultsOnly)
 	EGunType GunType = EGunType::Rifle;
 
 	// - movement
-	UPROPERTY(Category = "Gun | Movement", EditDefaultsOnly, Meta = (ClampMin = "0.1", UIMin = "0.1", ClampMax = "6.75", UIMax = "6.75", Units = "m/s"))
+	UPROPERTY(Category = "Gun | Movement", EditDefaultsOnly, Meta = (ClampMin = "0.1", UIMin = "0.1", UIMax = "6.75", Units = "m/s"))
 	float RunSpeed = 5.4;
 
 	UPROPERTY(Category = "Gun | Movement", VisibleAnywhere, BlueprintGetter = "GetWalkSpeed", Meta = (Units = "m/s"))
@@ -34,10 +34,10 @@ class AGunBase : AActor
 	float CrouchSpeed;
 	default CrouchSpeed = RunSpeed * CrouchSpeedRatio;
 
-	UPROPERTY(Category = "Gun | Movement", EditDefaultsOnly, Meta = (ClampMin = "0.1", UIMin = "0.1", ClampMax = "1", UIMax = "1"))
+	UPROPERTY(Category = "Gun | Movement", EditDefaultsOnly, Meta = (ClampMin = "0.1", UIMin = "0.1", UIMax = "1"))
 	float WalkSpeedRatio = 0.80;
 
-	UPROPERTY(Category = "Gun | Movement", EditDefaultsOnly, Meta = (ClampMin = "0.1", UIMin = "0.1", ClampMax = "1", UIMax = "1"))
+	UPROPERTY(Category = "Gun | Movement", EditDefaultsOnly, Meta = (ClampMin = "0.1", UIMin = "0.1", UIMax = "1"))
 	float CrouchSpeedRatio = 0.40;
 
 	// - movement helpers
@@ -104,7 +104,7 @@ class AGunBase : AActor
 	 * The fire rate of the gun, in rounds per second.
 	 * This is used to calculate the shoot cooldown.
 	 */
-	UPROPERTY(Category = "Gun | Shooting", EditDefaultsOnly, BlueprintReadOnly, Meta = (ClampMin = "0.1", ClampMax = "30.0", UIMin = "0.1", UIMax = "30.0"))
+	UPROPERTY(Category = "Gun | Shooting", EditDefaultsOnly, BlueprintReadOnly, Meta = (UIMin = "0.1", UIMax = "30.0"))
 	float FireRate = 9.75;
 
 	/**
@@ -113,7 +113,7 @@ class AGunBase : AActor
 	 */
 	UPROPERTY(Category = "Gun | Shooting", VisibleAnywhere, BlueprintReadOnly)
 	float RPM;
-	default RPM = FireRate * MINUTE;
+	default RPM = FireRate * 60;
 
 	/**
 	 * The cooldown time between shots, in seconds.
@@ -176,7 +176,7 @@ class AGunBase : AActor
 	/**
 	 * The number of bullets that are guaranteed to be perfectly accurate (no spread).
 	 */
-	UPROPERTY(Category = "Gun | Accuracy | Bullets", EditDefaultsOnly, Meta = (ClampMin = "0", UIMin = "0", ClampMax = "30", UIMax = "30"))
+	UPROPERTY(Category = "Gun | Accuracy | Bullets", EditDefaultsOnly, Meta = (UIMin = "0", ClampMax = "30", UIMax = "30"))
 	int ProtectedBullets = 3;
 
 	/**
@@ -330,6 +330,49 @@ class AGunBase : AActor
 	UPROPERTY(Category = "Gun | Audio | Weapon Sounds", EditDefaultsOnly)
 	USoundCue ShootSound;
 
+	UPROPERTY(Category = "Gun | Audio | Weapon Sounds", EditDefaultsOnly)
+	USoundWave DryFireSound;
+
+	UPROPERTY(Category = "Gun | Audio | Weapon Sounds", EditDefaultsOnly, ToolTip = "Map of equip sounds. Key is the sound, value is the equip speed (Normal, Fast, Instant).")
+	TMap<USoundWave, EEquipSpeed> EquipSounds;
+
+	UPROPERTY(Category = "Gun | Audio | Weapon Sounds", EditDefaultsOnly, ToolTip = "Map of reload sounds. Key is the sound, value is whether it is for an empty magazine (true) or not (false).")
+	USoundBase ReloadSound;
+
+	/**
+	 * Returns the appropriate equip sound based on the equip speed.
+	 */
+	UFUNCTION(BlueprintPure)
+	USoundWave GetEquipSound(EEquipSpeed Speed)
+	{
+		// Try to find exact match first
+		for (auto& Elem : EquipSounds)
+		{
+			if (Elem.Value == Speed)
+				return Elem.Key;
+		}
+
+		// Fallback order: Fast, then Normal
+		if (Speed == EEquipSpeed::Instant)
+		{
+			for (auto& Elem : EquipSounds)
+			{
+				if (Elem.Value == EEquipSpeed::Fast)
+					return Elem.Key;
+			}
+		}
+		// Always fallback to Normal if nothing else
+		for (auto& Elem : EquipSounds)
+		{
+			if (Elem.Value == EEquipSpeed::Normal)
+				return Elem.Key;
+		}
+
+		return nullptr;
+	}
+
+	// - hit sounds
+
 	UPROPERTY(Category = "Gun | Audio | Headshots", EditDefaultsOnly)
 	USoundWave HeadshotSound;
 
@@ -366,15 +409,13 @@ class AGunBase : AActor
 	UPROPERTY(Category = "Gun | Shooting", NotVisible)
 	FBulletHit BulletHit;
 
-	const int MINUTE = 60;
-
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
 	{
 		CurrentAmmo = MaxAmmo;
 
 		ShootCooldown = 1.0 / FireRate;
-		RPM = FireRate * MINUTE;
+		RPM = FireRate * 60;
 
 		Ready();
 	}
@@ -498,7 +539,10 @@ class AGunBase : AActor
 			GetBodyPartHit(LastHit.Component));
 
 		if (BulletHit.PlayerHit)
-			BulletHit.HitPlayer.OnDeath.AddUFunction(this, n"OnTargetDeath");
+		{
+			// Instead of subscribing to each enemy's death, we'll check if they died
+			// and broadcast to the global death event in the damage application
+		}
 
 		ShootSFX();
 		HitSFX();
@@ -507,14 +551,23 @@ class AGunBase : AActor
 		CreateImpactDecal(Penetrated);
 
 		if (BulletHit.PlayerHit)
+		{
+			float DamageAmount = DamageFalloff.GetDamageAtDistance(BulletHit.Distance, BulletHit.HitBodyPart.BodyPart) * (Penetrated ? 0.8f : 1.0f);
+
 			Gameplay::ApplyPointDamage(
 				BulletHit.HitActor,
-				DamageFalloff.GetDamageAtDistance(BulletHit.Distance, BulletHit.HitBodyPart.BodyPart) * (Penetrated ? 0.8f : 1.0f),
+				DamageAmount,
 				BulletDirection,
 				LastHit,
 				GetAngelCharacter(0).Controller,
 				this,
 				TSubclassOf<UDamageType>(UDamageType));
+
+			if (BulletHit.HitAgent.Health <= 0)
+			{
+				AgentKilled(BulletHit.HitAgent);
+			}
+		}
 
 		return Hits;
 	}
@@ -531,7 +584,7 @@ class AGunBase : AActor
 	{
 		if (BulletHit.PlayerHit && BulletHit.Headshot)
 		{
-			if (BulletHit.HitPlayer.HasArmor())
+			if (BulletHit.HitAgent.HasArmor())
 			{
 				Gameplay::PlaySound2D(HeadshotWithArmorSound);
 			}
@@ -577,9 +630,14 @@ class AGunBase : AActor
 		}
 	}
 
-	UFUNCTION(Category = "Gun | Kill", BlueprintCallable)
-	void OnTargetDeath()
+	UFUNCTION(Category = "Gun | Kill", DisplayName = "Agent Killed")
+	void AgentKilled(AAngelTrainingDummy DeadAgent)
 	{
+		// Broadcast to global death event
+		AAngelGameState GameState = GetAngelGameState();
+		GameState.OnAgentDeath.Broadcast(GetAngelCharacter(0), this, DeadAgent, BulletHit.Headshot);
+
+		// Handle multikill logic
 		auto PlayerState = GetAngelPlayerState(0);
 		PlayerState.MultikillCount++;
 
@@ -668,6 +726,8 @@ class AGunBase : AActor
 	void Reload()
 	{
 		ReloadStrategy.Reload();
+
+		Gameplay::PlaySound2D(ReloadSound);
 	}
 
 	void Ready()
@@ -676,7 +736,7 @@ class AGunBase : AActor
 		{
 			ReloadStrategy.GunState = EGunState::Ready;
 			BP_Ready();
-			Print(f"{GunName} readied! Magazine: {CurrentAmmo}/{MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
+			// Print(f"{GunName} readied! Magazine: {CurrentAmmo}/{MaxAmmo}", 2, FLinearColor(0.58, 0.95, 0.49));
 		}
 		else if (CurrentAmmo <= 0)
 		{

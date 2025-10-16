@@ -1,6 +1,8 @@
-event void BuyPhaseStartEvent();
-event void RoundStartEvent();
-event void RoundEndEvent();
+event void FBuyPhaseStartEvent();
+event void FRoundStartEvent();
+event void FRoundEndEvent();
+
+event void AgentDeathEvent(AAngelAgent Killer, AGunBase WeaponUsed, AAngelAgent Victim, bool WasHeadshot);
 
 enum EGamePhase
 {
@@ -30,8 +32,8 @@ class AAngelGameState : AGameStateBase
 	UPROPERTY(Category = "Game State", VisibleInstanceOnly, BlueprintReadOnly)
 	const int RoundsToWin = 13;
 
-    UPROPERTY(Category = "Game State", EditInstanceOnly, BlueprintReadOnly)
-    bool FreezeTimer = false;
+	UPROPERTY(Category = "Game State", EditInstanceOnly, BlueprintReadOnly)
+	bool FreezeTimer = false;
 
 	UPROPERTY(Category = "Teams", VisibleInstanceOnly, BlueprintReadOnly)
 	int AllyScore;
@@ -68,11 +70,15 @@ class AAngelGameState : AGameStateBase
 	// - events
 
 	UPROPERTY(Category = "Events")
-	BuyPhaseStartEvent OnBuyPhaseStart;
+	FBuyPhaseStartEvent OnBuyPhaseStart;
 	UPROPERTY(Category = "Events")
-	RoundStartEvent OnRoundStart;
+	FRoundStartEvent OnRoundStart;
 	UPROPERTY(Category = "Events")
-	RoundEndEvent OnRoundEnd;
+	FRoundEndEvent OnRoundEnd;
+
+	// Global death event that any enemy can broadcast to
+	UPROPERTY(Category = "Events", VisibleAnywhere, BlueprintReadOnly)
+	AgentDeathEvent OnAgentDeath;
 
 	UFUNCTION(BlueprintEvent, DisplayName = "On Phase Changed")
 	void BP_OnPhaseChanged(EGamePhase NewPhase)
@@ -102,36 +108,36 @@ class AAngelGameState : AGameStateBase
 		StartBuyPhase();
 	}
 
-    UFUNCTION()
+	UFUNCTION()
 	float GetTimeRemainingInPhase()
 	{
-        float Timer; 
-        GetCurrentTimer(Timer);
-        return Timer;
+		float Timer;
+		GetCurrentTimer(Timer);
+		return Timer;
 	}
 
-    void GetCurrentTimer(float&out Timer)
-    {
-        switch (CurrentPhase)
-        {
-            case EGamePhase::BuyPhase:
-                Timer = BuyPhaseTimeRemaining;
-                break;
+	void GetCurrentTimer(float&out Timer)
+	{
+		switch (CurrentPhase)
+		{
+			case EGamePhase::BuyPhase:
+				Timer = BuyPhaseTimeRemaining;
+				break;
 
-            case EGamePhase::GamePhase:
-                Timer = RoundTimeRemaining;
-                break;
+			case EGamePhase::GamePhase:
+				Timer = RoundTimeRemaining;
+				break;
 
-            case EGamePhase::RoundEnd:
-                Timer = RoundEndTimeRemaining;
-                break;
+			case EGamePhase::RoundEnd:
+				Timer = RoundEndTimeRemaining;
+				break;
 
-            default:
-                PrintError("Unknown game phase!");
-                Timer = 0.0f;
-                return;
-        }
-    }
+			default:
+				PrintError("Unknown game phase!");
+				Timer = 0.0f;
+				return;
+		}
+	}
 
 	UFUNCTION(Category = "Game Phase", CallInEditor)
 	EGamePhase NextPhase()
@@ -153,11 +159,29 @@ class AAngelGameState : AGameStateBase
 		}
 	}
 
+	bool HasGameBegun()
+	{
+		return Round > 0;
+	}
+
 	UFUNCTION(Category = "Game Phase", CallInEditor)
 	EGamePhase StartBuyPhase()
 	{
 		CurrentPhase = EGamePhase::BuyPhase;
 		BuyPhaseTimeRemaining = BuyPhaseDuration;
+
+		AAngelPlayerState PlayerState = GetAngelPlayerState(0);
+
+		if (HasGameBegun())
+		{
+			ETeam Team = PlayerState.Team;
+			ECreditsGrantedReason Reason = GetReason(Team, LastWinCondition);
+			PlayerState.GrantCredits(GetCreditsForReason(Reason), Reason);
+		}
+		else
+		{
+			PlayerState.GrantCredits(GetCreditsForReason(ECreditsGrantedReason::StartingCredits), ECreditsGrantedReason::StartingCredits);
+		}
 
 		OnBuyPhaseStart.Broadcast();
 		return CurrentPhase;
@@ -168,18 +192,10 @@ class AAngelGameState : AGameStateBase
 	{
 		CurrentPhase = EGamePhase::GamePhase;
 		RoundTimeRemaining = RoundDuration;
-		
-		AAngelPlayerCharacter Character = GetAngelCharacter(0);
-		AAngelPlayerState PlayerState = GetAngelPlayerState(0);
-
 
 		GetAngelController(0).ToggleShop(ForceClose = true);
 
 		Round++;
-
-		ETeam Team = PlayerState.Team;
-		ECreditsGrantedReason Reason = GetReason(Team, LastWinCondition);
-		PlayerState.GrantCredits(GetCreditsForReason(Reason), Reason);
 
 		OnRoundStart.Broadcast();
 		return CurrentPhase;
@@ -223,8 +239,12 @@ class AAngelGameState : AGameStateBase
 					return ECreditsGrantedReason::RoundLoss;
 			}
 		}
+		else if (Team == ETeam::None)
+		{
+			return ECreditsGrantedReason::None;
+		}
 
-		return ECreditsGrantedReason::StartingCredits;
+		return ECreditsGrantedReason::None;
 	}
 
 	int GetCreditsForReason(ECreditsGrantedReason Reason)
@@ -245,6 +265,8 @@ class AAngelGameState : AGameStateBase
 				return 2400;
 			case ECreditsGrantedReason::RoundLoss_3x_Onwards:
 				return 2900;
+
+			case ECreditsGrantedReason::None:
 			default:
 				return 0;
 		}
@@ -264,23 +286,23 @@ class AAngelGameState : AGameStateBase
 		return CurrentPhase;
 	}
 
-    UFUNCTION()
-    void ShortenPhase(float TimeToRemove)
-    {
-        float Timer; 
-        GetCurrentTimer(Timer);
+	UFUNCTION()
+	void ShortenPhase(float TimeToRemove)
+	{
+		float Timer;
+		GetCurrentTimer(Timer);
 
-        Timer = Math::Max(Timer - TimeToRemove, 0.0f);
-        Print(f"Shortened phase by {TimeToRemove} seconds. New time remaining: {Timer} seconds.", 3, FLinearColor::Yellow);
-    }
+		Timer = Math::Max(Timer - TimeToRemove, 0.0f);
+		Print(f"Shortened phase by {TimeToRemove} seconds. New time remaining: {Timer} seconds.", 3, FLinearColor::Yellow);
+	}
 
 	UFUNCTION()
 	void ExtendPhase(float ExtraTime)
 	{
-        float Timer; 
-        GetCurrentTimer(Timer);
+		float Timer;
+		GetCurrentTimer(Timer);
 
-        Timer += ExtraTime;
+		Timer += ExtraTime;
 	}
 
 	UFUNCTION(BlueprintOverride)
@@ -292,7 +314,8 @@ class AAngelGameState : AGameStateBase
 			BP_OnPhaseChanged(CurrentPhase);
 		}
 
-        if (FreezeTimer) return;
+		if (FreezeTimer)
+			return;
 
 		switch (CurrentPhase)
 		{
@@ -330,6 +353,7 @@ class AAngelGameState : AGameStateBase
 	}
 };
 
+UFUNCTION(BlueprintPure)
 AAngelGameState GetAngelGameState()
 {
 	return Cast<AAngelGameState>(Gameplay::GetGameState());

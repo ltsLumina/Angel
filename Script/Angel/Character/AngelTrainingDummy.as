@@ -1,6 +1,6 @@
 event void OnDeath();
 
-class AAngelTrainingDummy : ACharacter
+class AAngelTrainingDummy : AAngelAgent
 {
 	UPROPERTY(DefaultComponent, RootComponent)
 	USceneComponent Root;
@@ -27,9 +27,6 @@ class AAngelTrainingDummy : ACharacter
 	 */
 	UPROPERTY(Category = "Dummy | Armor", EditDefaultsOnly, Meta = (UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
 	float AbsorptionRatio = 0.66f;
-
-	UPROPERTY(Category = "Dummy", VisibleAnywhere)
-	OnDeath OnDeath;
 
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
@@ -100,7 +97,6 @@ class AAngelTrainingDummy : ACharacter
 		if (Health <= 0)
 		{
 			Death();
-			OnDeath.Broadcast();
 		}
 	}
 

@@ -63,6 +63,7 @@ enum ETeam
 
 enum ECreditsGrantedReason
 {
+    None,
     StartingCredits, // 800¤
     Kill, // 200¤
     PlantSpike, // 300¤, Attackers only

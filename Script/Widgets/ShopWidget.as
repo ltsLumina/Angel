@@ -1,6 +1,11 @@
+event void FPurchasedEvent(TSubclassOf<AGunBase> InGunClass, int InCost);
+
 UCLASS(Abstract)
 class UShopWidget : UUserWidget
 {
+    UPROPERTY(Category = "UI | Events", VisibleAnywhere)
+	FPurchasedEvent PurchasedEvent;
+
     UFUNCTION(BlueprintOverride)
     void Construct()
     {

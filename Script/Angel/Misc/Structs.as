@@ -13,7 +13,7 @@ struct FBulletHit
 	UPROPERTY()
 	AActor HitActor;
 	UPROPERTY()
-	AAngelTrainingDummy HitPlayer;
+	AAngelTrainingDummy HitAgent;
 	UPROPERTY()
 	FName HitBoneName;
 	UPROPERTY()
@@ -27,7 +27,7 @@ struct FBulletHit
 		Distance = 0.0f;
 		Location = FVector::ZeroVector;
 		HitActor = nullptr;
-		HitPlayer = nullptr;
+		HitAgent = nullptr;
 		HitBoneName = NAME_None;
 		HitBodyPart = FBodyPartHit();
 	}
@@ -40,7 +40,7 @@ struct FBulletHit
 		Distance = InDistance;
 		Location = InLocation;
 		HitActor = InHitActor;
-		HitPlayer = InHitPlayer;
+		HitAgent = InHitPlayer;
 		HitBoneName = InHitBoneName;
 		HitBodyPart = InHitBodyPart;
 	}
@@ -84,14 +84,28 @@ struct FBulletSpreadData
 
 struct FEquipData
 {
-	UPROPERTY(Meta = (EditCondition = "Equip", EditConditionHides))
+	UPROPERTY()
 	EEquipSpeed Speed;
 	UPROPERTY()
 	bool Reload;
 
-	FEquipData(EEquipSpeed InSpeed, bool InReload = false)
+	/**
+	 * If greater than zero, sets the gun's current ammo to this value (clamped to max ammo).
+	 */
+	UPROPERTY()
+	int Ammo;
+
+	/**
+	 * If greater than zero, sets the gun's reserve ammo to this value (clamped to max reserve ammo).
+	 */
+	UPROPERTY()
+	int ReserveAmmo;
+
+	FEquipData(EEquipSpeed InSpeed, bool InReload = false, int InAmmo = -1, int InReserveAmmo = -1)
 	{
 		Speed = InSpeed;
 		Reload = InReload;
+		Ammo = InAmmo;
+		ReserveAmmo = InReserveAmmo;
 	}
 }

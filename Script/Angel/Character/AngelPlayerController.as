@@ -81,7 +81,7 @@ class AAngelPlayerController : APlayerController
 		if (CycleGunTimer > 0.0f)
 		{
 			CycleGunTimer -= DeltaSeconds;
-		}
+		}		
 	}
 	
 	UFUNCTION(NotBlueprintCallable)
@@ -120,7 +120,9 @@ class AAngelPlayerController : APlayerController
 
 		if (GunIndex >= 0 && GunIndex < Holster.HolsteredGuns.Num())
 		{
+			if (CycleGunTimer > 0.0f) return;
 			Holster.SwitchGun(GunIndex);
+			CycleGunTimer = 0.3;
 		}
 	}
 

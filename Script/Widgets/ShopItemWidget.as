@@ -53,6 +53,10 @@ class UShopItemWidget : UUserWidget
 		BP_PreConstruct(IsDesignTime);
 	}
 
+	UFUNCTION(BlueprintEvent, DisplayName = "Pre Construct")
+	void BP_PreConstruct(bool IsDesignTime)
+	{}
+
 	UFUNCTION(BlueprintOverride)
 	void Construct()
 	{
@@ -76,12 +80,20 @@ class UShopItemWidget : UUserWidget
 			}
 		}
 
+		auto ShopWidget = Cast<UShopWidget>(GetParent().GetOuter().GetOuter());
+		ShopWidget.PurchasedEvent.AddUFunction(this, n"UpdateOwnershipFlag");
+
 		BP_Construct();
 	}
 
-	UFUNCTION(BlueprintEvent, DisplayName = "Pre Construct")
-	void BP_PreConstruct(bool IsDesignTime)
-	{}
+	UFUNCTION(NotBlueprintCallable)
+	void UpdateOwnershipFlag(TSubclassOf<AGunBase> InGunClass, int InCost)
+	{
+		IsOwned = UHolsterComponent::Get(GetAngelCharacter(0)).HasGun(GunClass);
+		
+		Border.SetVisibility(IsOwned ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+		Background.SetColorAndOpacity(IsOwned ? FLinearColor(0, 0.5, 0.3, 0.2) : FLinearColor(0.05, 0.05, 0.05, 0.2));
+	}
 
 	UFUNCTION(BlueprintEvent, DisplayName = "Construct")
 	void BP_Construct()
@@ -131,12 +143,27 @@ class UShopItemWidget : UUserWidget
 
 	void Purchase()
 	{
+		AAngelPlayerState PlayerState = GetAngelPlayerState(0);
+
+		if (!PlayerState.CanAfford(ItemCost) && !IsOwned)
+		{
+			PrintWarning("Cannot afford item!", 2);
+			return;
+		}
+		else if (!IsOwned)
+		{
+			PlayerState.SpendCredits(ItemCost);
+		}
+
 		Print(f"Purchased {ItemName}");
 		CostText.Text = FText::FromString("OWNED");
 		IsOwned = true;
 
 		auto Character = GetAngelCharacter(0);
 		Character.HolsterComponent.GrantGun(GunClass, true, FEquipData(EEquipSpeed::Fast, true));
+
+		auto ShopWidget = Cast<UShopWidget>(GetParent().GetOuter().GetOuter());
+		ShopWidget.PurchasedEvent.Broadcast(GunClass, ItemCost);
 
 		Purchased(GunClass, ItemCost);
 	}

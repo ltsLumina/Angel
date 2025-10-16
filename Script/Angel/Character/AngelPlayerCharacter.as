@@ -1,7 +1,4 @@
-event void FOnEffectGained(FGameplayTag EffectTag, AActor EffectInstigator);
-event void FOnEffectLost(FGameplayTag EffectTag, AActor EffectInstigator);
-
-class AAngelPlayerCharacter : AAngelscriptGASCharacter
+class AAngelPlayerCharacter : AAngelAgent
 {
 	UPROPERTY(Category = "Player", NotVisible, BlueprintReadOnly)
 	AAngelPlayerController AngelController;
@@ -21,14 +18,6 @@ class AAngelPlayerCharacter : AAngelscriptGASCharacter
 	UPROPERTY(Category = "Player", VisibleAnywhere)
 	EAngelMovementState PreviousMovementState;
 	default PreviousMovementState = EAngelMovementState::Run;
-
-	// - events
-
-	UPROPERTY(Category = "Player", VisibleAnywhere)
-	FOnEffectGained OnEffectGained;
-
-	UPROPERTY(Category = "Player", VisibleAnywhere)
-	FOnEffectLost OnEffectLost;
 
 	// - end
 

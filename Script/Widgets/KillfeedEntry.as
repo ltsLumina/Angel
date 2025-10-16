@@ -2,10 +2,10 @@ UCLASS(Abstract)
 class UKillfeedEntry : UUserWidget
 {
     UPROPERTY(ExposeOnSpawn)
-    UTexture2D AttackerIcon;
+    UTexture2D KillerIcon;
     
     UPROPERTY(ExposeOnSpawn)
-    FString AttackerName;
+    FString KillerName;
 
     UPROPERTY(ExposeOnSpawn)
     UTexture2D WeaponOrAbilityIcon;
