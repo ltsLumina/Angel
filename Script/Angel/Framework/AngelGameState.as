@@ -1,14 +1,14 @@
 event void FBuyPhaseStartEvent();
 event void FRoundStartEvent();
-event void FRoundEndEvent();
+event void FPostRoundEvent();
 
 event void AgentDeathEvent(AAngelAgent Killer, AGunBase WeaponUsed, AAngelAgent Victim, bool WasHeadshot);
 
 enum EGamePhase
 {
 	BuyPhase,
-	GamePhase,
-	RoundEnd,
+	Round,
+	PostRound,
 }
 
 UCLASS(Abstract)
@@ -21,7 +21,7 @@ class AAngelGameState : AGameStateBase
 	EGamePhase CurrentPhase = EGamePhase::BuyPhase;
 
 	UPROPERTY(Category = "Game Phase", VisibleInstanceOnly, BlueprintReadOnly)
-	EGamePhase PreviousPhase = EGamePhase::RoundEnd;
+	EGamePhase PreviousPhase = EGamePhase::PostRound;
 
 	UPROPERTY(Category = "Game State", VisibleInstanceOnly, BlueprintReadOnly)
 	EWinCondition LastWinCondition = EWinCondition::TimeExpired;
@@ -61,11 +61,11 @@ class AAngelGameState : AGameStateBase
 	float SpikePlantedExtension = 45.0f;
 
 	UPROPERTY(Category = "Round End", EditDefaultsOnly, BlueprintReadOnly)
-	float RoundEndDuration = 7.0f;
+	float PostRoundDuration = 7.0f;
 
 	UPROPERTY(Category = "Round End", VisibleInstanceOnly, BlueprintReadOnly)
-	float RoundEndTimeRemaining;
-	default RoundEndTimeRemaining = RoundEndDuration;
+	float PostRoundTimeRemaining;
+	default PostRoundTimeRemaining = PostRoundDuration;
 
 	// - events
 
@@ -74,7 +74,7 @@ class AAngelGameState : AGameStateBase
 	UPROPERTY(Category = "Events")
 	FRoundStartEvent OnRoundStart;
 	UPROPERTY(Category = "Events")
-	FRoundEndEvent OnRoundEnd;
+	FPostRoundEvent OnPostRound;
 
 	// Global death event that any enemy can broadcast to
 	UPROPERTY(Category = "Events", VisibleAnywhere, BlueprintReadOnly)
@@ -95,7 +95,7 @@ class AAngelGameState : AGameStateBase
 	{}
 
 	UFUNCTION(BlueprintEvent, DisplayName = "Round Ended")
-	void BP_RoundEnded()
+	void BP_PostRounded()
 	{}
 
 	UFUNCTION(BlueprintOverride)
@@ -103,7 +103,7 @@ class AAngelGameState : AGameStateBase
 	{
 		OnBuyPhaseStart.AddUFunction(this, n"BP_BuyPhaseStarted");
 		OnRoundStart.AddUFunction(this, n"BP_RoundStarted");
-		OnRoundEnd.AddUFunction(this, n"BP_RoundEnded");
+		OnPostRound.AddUFunction(this, n"BP_PostRounded");
 
 		StartBuyPhase();
 	}
@@ -124,12 +124,12 @@ class AAngelGameState : AGameStateBase
 				Timer = BuyPhaseTimeRemaining;
 				break;
 
-			case EGamePhase::GamePhase:
+			case EGamePhase::Round:
 				Timer = RoundTimeRemaining;
 				break;
 
-			case EGamePhase::RoundEnd:
-				Timer = RoundEndTimeRemaining;
+			case EGamePhase::PostRound:
+				Timer = PostRoundTimeRemaining;
 				break;
 
 			default:
@@ -147,10 +147,10 @@ class AAngelGameState : AGameStateBase
 			case EGamePhase::BuyPhase:
 				return StartRound();
 
-			case EGamePhase::GamePhase:
+			case EGamePhase::Round:
 				return EndRound();
 
-			case EGamePhase::RoundEnd:
+			case EGamePhase::PostRound:
 				return StartBuyPhase();
 
 			default:
@@ -190,7 +190,7 @@ class AAngelGameState : AGameStateBase
 	UFUNCTION(Category = "Game Phase", CallInEditor)
 	EGamePhase StartRound()
 	{
-		CurrentPhase = EGamePhase::GamePhase;
+		CurrentPhase = EGamePhase::Round;
 		RoundTimeRemaining = RoundDuration;
 
 		GetAngelController(0).ToggleShop(ForceClose = true);
@@ -275,14 +275,14 @@ class AAngelGameState : AGameStateBase
 	UFUNCTION(Category = "Game Phase", CallInEditor)
 	EGamePhase EndRound()
 	{
-		CurrentPhase = EGamePhase::RoundEnd;
-		RoundEndTimeRemaining = RoundEndDuration;
+		CurrentPhase = EGamePhase::PostRound;
+		PostRoundTimeRemaining = PostRoundDuration;
 
 		AllyScore++; // Temporary scoring logic for testing
 		EnemyScore = Math::Max(AllyScore - 1, 0);
 		Print(f"Score Update - Allies: {AllyScore} | Enemies: {EnemyScore}", 5, FLinearColor::Green);
 
-		OnRoundEnd.Broadcast();
+		OnPostRound.Broadcast();
 		return CurrentPhase;
 	}
 
@@ -311,6 +311,7 @@ class AAngelGameState : AGameStateBase
 		if (PreviousPhase != CurrentPhase)
 		{
 			PreviousPhase = CurrentPhase;
+			Print(f"Phase changed to {CurrentPhase}", 4, FLinearColor::Yellow);
 			BP_OnPhaseChanged(CurrentPhase);
 		}
 
@@ -328,7 +329,7 @@ class AAngelGameState : AGameStateBase
 				}
 				break;
 
-			case EGamePhase::GamePhase:
+			case EGamePhase::Round:
 				RoundTimeRemaining -= DeltaSeconds;
 				if (RoundTimeRemaining <= 0.0f)
 				{
@@ -337,11 +338,11 @@ class AAngelGameState : AGameStateBase
 				}
 				break;
 
-			case EGamePhase::RoundEnd:
-				RoundEndTimeRemaining -= DeltaSeconds;
-				if (RoundEndTimeRemaining <= 0.0f)
+			case EGamePhase::PostRound:
+				PostRoundTimeRemaining -= DeltaSeconds;
+				if (PostRoundTimeRemaining <= 0.0f)
 				{
-					RoundEndTimeRemaining = 0.0f;
+					PostRoundTimeRemaining = 0.0f;
 					StartBuyPhase();
 				}
 				break;

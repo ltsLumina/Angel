@@ -49,14 +49,17 @@ class UShopUserWidget : UUserWidget
 	UFUNCTION(BlueprintOverride)
 	void PreConstruct(bool IsDesignTime)
 	{
-        Sidearm = GetAngelCharacter(0).HolsterComponent.Sidearm.GetClass();
-        Primary = GetAngelCharacter(0).HolsterComponent.Primary.GetClass();
+		if (IsValid(GetAngelCharacter(0).HolsterComponent))
+		{
+			Sidearm = GetAngelCharacter(0).HolsterComponent.Sidearm.GetClass();
+			Primary = GetAngelCharacter(0).HolsterComponent.Primary.GetClass();
+		}
 
 		ArmorImage.SetBrushFromTexture(GetArmorIcon(Armor));
 		if (!IsValid(GetArmorIcon(Armor)))
-            ArmorImage.Opacity = 0;
-        else
-            ArmorImage.Opacity = 1;
+			ArmorImage.Opacity = 0;
+		else
+			ArmorImage.Opacity = 1;
 
 		SidearmImage.SetBrushFromTexture(GetWeaponIcon(Sidearm));
 		if (!IsValid(Sidearm))
@@ -81,19 +84,19 @@ class UShopUserWidget : UUserWidget
 	void BP_Construct()
 	{}
 
-    UFUNCTION(BlueprintPure)
-    UTexture2D GetArmorIcon(EArmorType ArmorType)
-    {
-        switch (ArmorType)
-        {
-            case EArmorType::Light:
-                return LightArmorIcon;
-            case EArmorType::Heavy:
-                return HeavyArmorIcon;
-            default:
-                return nullptr;
-        }
-    }
+	UFUNCTION(BlueprintPure)
+	UTexture2D GetArmorIcon(EArmorType ArmorType)
+	{
+		switch (ArmorType)
+		{
+			case EArmorType::Light:
+				return LightArmorIcon;
+			case EArmorType::Heavy:
+				return HeavyArmorIcon;
+			default:
+				return nullptr;
+		}
+	}
 }
 
 UFUNCTION(BlueprintPure)

@@ -1,4 +1,4 @@
-event void FPurchasedEvent(TSubclassOf<AGunBase> InGunClass, int InCost);
+event void FPurchasedEvent(TSubclassOf<AGunBase> InGunClass, EShopCategory Category, int InCost);
 
 UCLASS(Abstract)
 class UShopWidget : UUserWidget

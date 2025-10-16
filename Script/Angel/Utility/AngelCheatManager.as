@@ -17,6 +17,8 @@ class UAngelCheatManager : UCheatManager
         PrintWarning("AngelCheatManager initialized.");
 	}
 
+    // Phase
+
 	UFUNCTION(Exec)
 	void SkipPhase()
 	{
@@ -46,10 +48,25 @@ class UAngelCheatManager : UCheatManager
     }
 
     UFUNCTION(Exec)
+    void SetPhase(EGamePhase NewPhase)
+    {
+        // iterate through phases until we reach the desired one
+        while (GameState.CurrentPhase != NewPhase)
+        {
+            GameState.NextPhase();
+        }
+        PrintWarning(f"Set phase to {NewPhase}.");
+    }
+
+    // Gun
+
+    UFUNCTION(Exec)
     void GrantGun(TSubclassOf<AGunBase> GunClass, bool AutoEquip = true)
     {
-        GetAngelCharacter(0).HolsterComponent.GrantGun(GunClass, AutoEquip);
+        GetAngelCharacter(0).HolsterComponent.GrantGun(GunClass, AutoEquip, FEquipData(EEquipSpeed::Fast, true));
     }
+
+    // Credits
 
     UFUNCTION(Exec)
     void AddCredits(int Amount, bool OverrideCap = false)
@@ -81,7 +98,7 @@ class UAngelCheatManager : UCheatManager
                 return;
             }
 
-            if (PlayerState.SpendCredits(Amount))
+            if (PlayerState.SpendCredits(Amount, EShopCategory::Primary))
             {
                 PrintWarning(f"Deducted {Amount}¤. New balance: {PlayerState.Credits}¤.");
             }

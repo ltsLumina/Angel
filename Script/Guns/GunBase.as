@@ -569,6 +569,14 @@ class AGunBase : AActor
 			}
 		}
 
+		/* 
+		if (BulletHit.HitActor.IsA(AGunDropped))
+		{
+			AGunDropped DroppedGun = Cast<AGunDropped>(BulletHit.HitActor);
+			DroppedGun.Box.AddImpulse(BulletDirection + FVector(BulletDirection.X,BulletDirection.Y,500), NAME_None, true);
+		}
+		*/
+
 		return Hits;
 	}
 
