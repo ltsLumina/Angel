@@ -1,4 +1,4 @@
-class UWeaponRegistrySubsystem : UGameInstanceSubsystem
+class UWeaponRegistrySubsystem : UScriptGameInstanceSubsystem
 {
 	// Editor-filled mapping: WeaponID -> DataAsset (soft)
 	UPROPERTY(Category = "Weapons")
@@ -10,12 +10,19 @@ class UWeaponRegistrySubsystem : UGameInstanceSubsystem
 	// Get asset synchronously (or nullptr)
 	UWeaponDataAsset GetWeaponDataSync(FName Id)
 	{
+        for (auto& Pair : Weapons)
+        {
+            Print(f"weapons: {Pair.Key}");
+        }
+
 		if (LoadedWeapons.Contains(Id))
         {
             return LoadedWeapons[Id];
         }
         else if (Weapons.Contains(Id))
         {
+            Print("loading");
+
             FOnSoftObjectLoaded OnLoaded;
             OnLoaded.BindUFunction(this, n"OnWeaponDataLoaded");
             Weapons[Id].LoadAsync(OnLoaded);

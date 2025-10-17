@@ -3,9 +3,6 @@ namespace Drop
     UFUNCTION()
     void DropGun(TSubclassOf<AGunDropped> GunDropClass)
     {
-        //auto data = UWeaponRegistrySubsystem::Get().GetWeaponDataSync(n"VANDAL");
-        //Print(data.DisplayName.ToString());
-
         AAngelPlayerCharacter Character = GetAngelCharacter(0);
         UHolsterComponent Holster = UHolsterComponent::Get(Character);
         AGunBase CurrentGun = Holster.EquippedGun;
@@ -14,6 +11,7 @@ namespace Drop
         DroppedGun.GunClassToGrant = CurrentGun.GetClass();
         DroppedGun.CurrentAmmo = CurrentGun.CurrentAmmo;
         DroppedGun.ReserveAmmo = CurrentGun.ReserveAmmo;
+        DroppedGun.Mesh.SkeletalMeshAsset = CurrentGun.GunMesh.SkeletalMeshAsset;
 
         Holster.RemoveGun(CurrentGun);
 
@@ -68,6 +66,7 @@ class AGunDropped : AActor
         NewDroppedGun.GunClassToGrant = OldGun.GetClass();
         NewDroppedGun.CurrentAmmo = OldGun.CurrentAmmo;
         NewDroppedGun.ReserveAmmo = OldGun.ReserveAmmo;
+        NewDroppedGun.Mesh.SkeletalMeshAsset = OldGun.GunMesh.SkeletalMeshAsset;
 
         Holster.GrantGun(GunClassToGrant, true, FEquipData(EEquipSpeed::Normal, false, CurrentAmmo, ReserveAmmo));
 
