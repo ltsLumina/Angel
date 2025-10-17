@@ -252,7 +252,7 @@ class UShopItemWidget : UUserWidget
 		}
 		else if (GrantArmor)
 		{
-			GetAngelCharacter(0).GrantArmor(ArmorToGrant);
+			//GetAngelCharacter(0).GrantArmor(ArmorToGrant);
 		}
 		else if (GrantAbility)
 		{
@@ -298,7 +298,7 @@ class UShopItemWidget : UUserWidget
 		}
 		else if (GrantArmor)
 		{
-			GetAngelCharacter(0).GrantArmor(EArmorType::None, 0);
+			//GetAngelCharacter(0).GrantArmor(EArmorType::None, 0);
 		}
 		else if (GrantAbility)
 		{

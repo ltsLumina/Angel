@@ -563,19 +563,11 @@ class AGunBase : AActor
 				this,
 				TSubclassOf<UDamageType>(UDamageType));
 
-			if (BulletHit.HitAgent.CurrentHealth <= 0)
+			if (BulletHit.HitAgent.GetCurrentHealth() <= 0)
 			{
 				AgentKilled(BulletHit.HitAgent);
 			}
 		}
-
-		/* 
-		if (BulletHit.HitActor.IsA(AGunDropped))
-		{
-			AGunDropped DroppedGun = Cast<AGunDropped>(BulletHit.HitActor);
-			DroppedGun.Box.AddImpulse(BulletDirection + FVector(BulletDirection.X,BulletDirection.Y,500), NAME_None, true);
-		}
-		*/
 
 		return Hits;
 	}

@@ -2,13 +2,6 @@ class AAngelPlayerCharacter : AAngelAgent
 {
 	UPROPERTY(Category = "Player", NotVisible, BlueprintReadOnly)
 	AAngelPlayerController AngelController;
-
-	UPROPERTY(Category = "Player", EditDefaultsOnly)
-	FGameplayTagContainer GameplayTags;
-
-	UPROPERTY(Category = "Player", EditDefaultsOnly)
-	UAngelGASAttributes Attributes;
-
 	// - flags
 
 	UPROPERTY(Category = "Player", VisibleAnywhere)
@@ -29,8 +22,6 @@ class AAngelPlayerCharacter : AAngelAgent
 	void BeginPlay()
 	{
 		Super::BeginPlay();
-
-		Attributes = Cast<UAngelGASAttributes>(AbilitySystem.RegisterAttributeSet(UAngelGASAttributes));
 
 		ReloadComponent = UReloadComponent::Get(this);
 		HolsterComponent = UHolsterComponent::Get(this);

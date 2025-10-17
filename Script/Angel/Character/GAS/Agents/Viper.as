@@ -1,0 +1,4 @@
+class UViper : UActorComponent
+{
+    
+};

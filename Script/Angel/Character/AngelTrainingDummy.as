@@ -16,7 +16,7 @@ class AAngelTrainingDummy : AAngelAgent
 	UFUNCTION(Category = "Dummy | Health")
 	void Refresh()
 	{
-		CurrentHealth = 100;
-		CurrentArmor = 50;
+		//Heal();
+		//GrantArmor(EArmorType::Heavy);
 	}
 };
