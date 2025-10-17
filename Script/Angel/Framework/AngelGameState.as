@@ -2,7 +2,7 @@ event void FBuyPhaseStartEvent();
 event void FRoundStartEvent();
 event void FPostRoundEvent();
 
-event void AgentDeathEvent(AAngelAgent Killer, AGunBase WeaponUsed, AAngelAgent Victim, bool WasHeadshot);
+event void AgentDeathEvent(FDeathInfo DeathInfo);
 
 enum EGamePhase
 {

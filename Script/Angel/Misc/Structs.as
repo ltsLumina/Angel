@@ -13,7 +13,7 @@ struct FBulletHit
 	UPROPERTY()
 	AActor HitActor;
 	UPROPERTY()
-	AAngelTrainingDummy HitAgent;
+	AAngelAgent HitAgent;
 	UPROPERTY()
 	FName HitBoneName;
 	UPROPERTY()
@@ -32,7 +32,7 @@ struct FBulletHit
 		HitBodyPart = FBodyPartHit();
 	}
 
-	FBulletHit(bool InBlockingHit, bool InPlayerHit, bool InHeadshot, float InDistance, FVector InLocation, AActor InHitActor, AAngelTrainingDummy InHitPlayer, FName InHitBoneName, FBodyPartHit InHitBodyPart)
+	FBulletHit(bool InBlockingHit, bool InPlayerHit, bool InHeadshot, float InDistance, FVector InLocation, AActor InHitActor, AAngelAgent InHitPlayer, FName InHitBoneName, FBodyPartHit InHitBodyPart)
 	{
 		BlockingHit = InBlockingHit;
 		PlayerHit = InPlayerHit;

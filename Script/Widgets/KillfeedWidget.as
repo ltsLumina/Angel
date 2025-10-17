@@ -27,7 +27,6 @@ class UKillfeedWidget : UUserWidget
 	{}
 
 	UFUNCTION(BlueprintEvent, DisplayName = "On Agent Death")
-	void OnAgentDeath(AAngelAgent Killer, AGunBase WeaponUsed, AAngelAgent Victim,
-					  bool WasHeadshot)
+	void OnAgentDeath(FDeathInfo DeathInfo)
 	{}
 };

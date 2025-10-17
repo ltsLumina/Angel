@@ -50,6 +50,18 @@ class UHolsterComponent : UActorComponent
 	void BP_BeginPlay()
 	{}
 
+	UFUNCTION(BlueprintOverride)
+	void Tick(float DeltaSeconds)
+	{
+		//check(Sidearm != nullptr, "Holster component requires a sidearm!");
+
+		if (!IsValid(Sidearm))
+		{
+			PrintError("Holster component requires a sidearm!");
+			GrantGun(InitialGuns[1], true, FEquipData(EEquipSpeed::Fast, true));
+		}
+	}
+
 	UFUNCTION(Category = "Holster")
 	AGunBase CreateGun(TSubclassOf<AGunBase> GunClass)
 	{
@@ -232,6 +244,46 @@ class UHolsterComponent : UActorComponent
 			EquipGunByClass(GunClass, EquipData);
 			return EquippedGun;
 		}
+	}
+
+	UFUNCTION()
+	void RemoveGun(AGunBase Gun)
+	{
+		if (HolsteredGuns.Contains(Gun))
+		{
+			HolsteredGuns.Remove(Gun);
+
+			if (Gun == Primary)
+				Primary = nullptr;
+			else if (Gun == Sidearm)
+				Sidearm = nullptr;
+
+			Gun.DestroyActor();
+
+			// Equip the next available gun, if any
+			if (HolsteredGuns.Num() > 0)
+			{
+				EquipGun(HolsteredGuns[0], FEquipData(EEquipSpeed::Fast, true));
+			}
+			return;
+		}
+
+		PrintWarning(f"Attempted to remove gun {Gun.GunName}, but it was not found in the holster.", 5);
+	}
+
+	UFUNCTION()
+	void RemoveGunByClass(TSubclassOf<AGunBase> GunClass)
+	{
+		for (AGunBase Gun : HolsteredGuns)
+		{
+			if (IsValid(Gun) && Gun.GetClass() == GunClass)
+			{
+				RemoveGun(Gun);
+				return;
+			}
+		}
+
+		PrintWarning(f"Attempted to remove gun of class {GunClass.DefaultObject.GetName()}, but it was not found in the holster.", 5);
 	}
 
 	UFUNCTION(Category = "Holster", DisplayName = "OptionalIndex")

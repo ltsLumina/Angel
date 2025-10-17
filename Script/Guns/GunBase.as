@@ -529,12 +529,12 @@ class AGunBase : AActor
 
 		BulletHit = FBulletHit(
 			LastHit.bBlockingHit,
-			LastHit.Actor.IsA(AAngelTrainingDummy),
+			LastHit.Actor.IsA(AAngelAgent),
 			GetBodyPartHit(LastHit.Component).Head,
 			ToMeters(LastHit.Distance),
 			LastHit.Location,
 			LastHit.Actor,
-			Cast<AAngelTrainingDummy>(LastHit.Actor),
+			Cast<AAngelAgent>(LastHit.Actor),
 			LastHit.BoneName,
 			GetBodyPartHit(LastHit.Component));
 
@@ -563,7 +563,7 @@ class AGunBase : AActor
 				this,
 				TSubclassOf<UDamageType>(UDamageType));
 
-			if (BulletHit.HitAgent.Health <= 0)
+			if (BulletHit.HitAgent.CurrentHealth <= 0)
 			{
 				AgentKilled(BulletHit.HitAgent);
 			}
@@ -592,7 +592,7 @@ class AGunBase : AActor
 	{
 		if (BulletHit.PlayerHit && BulletHit.Headshot)
 		{
-			if (BulletHit.HitAgent.HasArmor())
+			if (BulletHit.HitAgent.HasRemainingArmor())
 			{
 				Gameplay::PlaySound2D(HeadshotWithArmorSound);
 			}
@@ -616,7 +616,7 @@ class AGunBase : AActor
 	{
 		for (FHitResult Hit : Hits)
 		{
-			if (Hit.Actor.IsA(AAngelPlayerCharacter) || Hit.Actor.IsA(AAngelTrainingDummy))
+			if (Hit.Actor.IsA(AAngelPlayerCharacter) || Hit.Actor.IsA(AAngelAgent))
 				continue;
 
 			int i = Hits.FindIndex(Hit);
@@ -639,11 +639,12 @@ class AGunBase : AActor
 	}
 
 	UFUNCTION(Category = "Gun | Kill", DisplayName = "Agent Killed")
-	void AgentKilled(AAngelTrainingDummy DeadAgent)
+	void AgentKilled(AAngelAgent DeadAgent)
 	{
 		// Broadcast to global death event
 		AAngelGameState GameState = GetAngelGameState();
-		GameState.OnAgentDeath.Broadcast(GetAngelCharacter(0), this, DeadAgent, BulletHit.Headshot);
+		FDeathInfo DeathInfo = FDeathInfo(GetAngelCharacter(), DeadAgent, this, BulletHit.Headshot);
+		GameState.OnAgentDeath.Broadcast(DeathInfo);
 
 		// Handle multikill logic
 		auto PlayerState = GetAngelPlayerState(0);
@@ -663,7 +664,7 @@ class AGunBase : AActor
 			System::SetTimer(this, n"ResetMultikill", 4, false);
 		}
 
-		BP_OnTargetDeath();
+		BP_OnTargetDeath(DeathInfo);
 	}
 
 	UFUNCTION(NotBlueprintCallable)
@@ -673,7 +674,7 @@ class AGunBase : AActor
 	}
 
 	UFUNCTION(BlueprintEvent, DisplayName = "On Kill")
-	void BP_OnTargetDeath()
+	void BP_OnTargetDeath(FDeathInfo DeathInfo)
 	{}
 
 	float ElapsedTime;

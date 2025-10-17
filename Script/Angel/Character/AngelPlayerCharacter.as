@@ -28,20 +28,16 @@ class AAngelPlayerCharacter : AAngelAgent
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
 	{
+		Super::BeginPlay();
+
 		Attributes = Cast<UAngelGASAttributes>(AbilitySystem.RegisterAttributeSet(UAngelGASAttributes));
 
 		ReloadComponent = UReloadComponent::Get(this);
 		HolsterComponent = UHolsterComponent::Get(this);
 		InventoryComponent = UInventoryComponent::Get(this);
 
-		AngelController = GetAngelController(this); // Equivalent to Cast<AAngelPlayerController>(this);
-
-		BP_BeginPlay();
+		AngelController = GetAngelController(this); // Equivalent to Cast<AAngelPlayerController>(this)
 	}
-
-	UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
-	void BP_BeginPlay()
-	{}
 
 	UFUNCTION(BlueprintOverride)
 	void Tick(float DeltaSeconds)
@@ -65,7 +61,7 @@ AAngelPlayerCharacter GetAngelCharacter(AActor Actor)
 	return Cast<AAngelPlayerCharacter>(Actor);
 }
 
-AAngelPlayerCharacter GetAngelCharacter(int PlayerIndex)
+AAngelPlayerCharacter GetAngelCharacter(int PlayerIndex = 0)
 {
 	return Cast<AAngelPlayerCharacter>(Gameplay::GetPlayerCharacter(PlayerIndex));
 }

@@ -8,7 +8,9 @@ enum EBodyPart
 enum EArmorType
 {
 	None,
+	// 25 armor
 	Light,
+	// 50 armor
 	Heavy
 };
 

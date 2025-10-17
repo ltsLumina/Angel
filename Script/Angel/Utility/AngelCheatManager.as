@@ -98,7 +98,7 @@ class UAngelCheatManager : UCheatManager
                 return;
             }
 
-            if (PlayerState.SpendCredits(Amount, EShopCategory::Primary))
+            if (PlayerState.SpendCredits(Amount, true))
             {
                 PrintWarning(f"Deducted {Amount}¤. New balance: {PlayerState.Credits}¤.");
             }

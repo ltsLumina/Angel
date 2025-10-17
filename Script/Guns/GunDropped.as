@@ -1,3 +1,30 @@
+namespace Drop
+{
+    UFUNCTION()
+    void DropGun(TSubclassOf<AGunDropped> GunDropClass)
+    {
+        //auto data = UWeaponRegistrySubsystem::Get().GetWeaponDataSync(n"VANDAL");
+        //Print(data.DisplayName.ToString());
+
+        AAngelPlayerCharacter Character = GetAngelCharacter(0);
+        UHolsterComponent Holster = UHolsterComponent::Get(Character);
+        AGunBase CurrentGun = Holster.EquippedGun;
+
+        AGunDropped DroppedGun = SpawnActor(GunDropClass, Character.ActorLocation + FVector(0, 0, 75), FRotator::ZeroRotator, FName(f"Dropped {CurrentGun.GunName}"));
+        DroppedGun.GunClassToGrant = CurrentGun.GetClass();
+        DroppedGun.CurrentAmmo = CurrentGun.CurrentAmmo;
+        DroppedGun.ReserveAmmo = CurrentGun.ReserveAmmo;
+
+        Holster.RemoveGun(CurrentGun);
+
+        DroppedGun.Box.AddImpulse(UCameraComponent::Get(Character).ForwardVector * 250, NAME_None, true);
+
+        CurrentGun.DestroyActor();
+
+        
+    }
+}
+
 class AGunDropped : AActor
 {
     UPROPERTY()
@@ -8,6 +35,9 @@ class AGunDropped : AActor
 
     UPROPERTY(DefaultComponent, RootComponent)
     UBoxComponent Box;
+
+    UPROPERTY(DefaultComponent, Attach = Box)
+    USkeletalMeshComponent Mesh;
 
     AGunBase OldGun;
 
@@ -32,7 +62,7 @@ class AGunDropped : AActor
     {        
         AAngelPlayerCharacter Character = GetAngelCharacter(0);
         UHolsterComponent Holster = UHolsterComponent::Get(GetAngelCharacter(0));
-        OldGun = Holster.Primary;
+        OldGun = Holster.EquippedGun;
 
         AGunDropped NewDroppedGun = SpawnActor(Blueprint, Character.ActorLocation + FVector(0, 0, 75), FRotator::ZeroRotator, FName(f"Dropped {GunClassToGrant.DefaultObject.GunName}"));
         NewDroppedGun.GunClassToGrant = OldGun.GetClass();
