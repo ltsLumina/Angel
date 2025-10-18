@@ -1,7 +1,9 @@
 namespace UAngelGASAttributes
 {
 	const FName HealthName = n"Health";
+	const FName MaxHealthName = n"MaxHealth";
 	const FName ArmorName = n"Armor";
+	const FName MaxArmorName = n"MaxArmor";
 
 	const FName Ability_C_ChargesName = n"Ability_C_Charges";
 	const FName Ability_Q_ChargesName = n"Ability_Q_Charges";
@@ -19,7 +21,13 @@ class UAngelGASAttributes : UAngelscriptAttributeSet
 	FAngelscriptGameplayAttributeData Health;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Agent Attributes")
+	FAngelscriptGameplayAttributeData MaxHealth;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Agent Attributes")
 	FAngelscriptGameplayAttributeData Armor;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Agent Attributes")
+	FAngelscriptGameplayAttributeData MaxArmor;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Agent Attributes | Ability")
 	FAngelscriptGameplayAttributeData Ability_C_Charges;
@@ -39,7 +47,9 @@ class UAngelGASAttributes : UAngelscriptAttributeSet
 	UAngelGASAttributes()
 	{
 		Health.Initialize(100.0f);
-		Armor.Initialize(Armor::NO_ARMOR);
+		MaxHealth.Initialize(100.0f);
+		Armor.Initialize(50.0f);
+		MaxArmor.Initialize(50.0f);
 
 		Ability_C_Charges.Initialize(2);
 		Ability_Q_Charges.Initialize(1);
@@ -54,12 +64,24 @@ class UAngelGASAttributes : UAngelscriptAttributeSet
 	{
 		if (Attribute.AttributeName == UAngelGASAttributes::HealthName)
 		{
-			NewValue = Math::Clamp(NewValue, 0, 100);
-			//Print(f"Health changed for {Agent.AgentName}: {Health.GetCurrentValue()} -> {NewValue} | Base: {Health.BaseValue}", 5.0f, FLinearColor::Purple);
+			NewValue = Math::Clamp(NewValue, 0.0f, MaxHealth.BaseValue);
 		}
 		else if (Attribute.AttributeName == UAngelGASAttributes::ArmorName)
 		{
-			NewValue = Math::Clamp(NewValue, 0.0f, Armor.BaseValue);
+			NewValue = Math::Clamp(NewValue, 0.0f, MaxArmor.BaseValue);
+		}
+	}
+
+	UFUNCTION(BlueprintOverride)
+	void PostAttributeChange(FGameplayAttribute Attribute, float OldValue, float NewValue)
+	{
+		if (Attribute.AttributeName == UAngelGASAttributes::HealthName)
+		{
+			Health.SetBaseValue(Math::Clamp(NewValue, 0.0f, MaxHealth.BaseValue));
+		}
+		else if (Attribute.AttributeName == UAngelGASAttributes::ArmorName)
+		{
+			Armor.SetBaseValue(Math::Clamp(NewValue, 0.0f, MaxArmor.BaseValue));
 		}
 	}
 
@@ -74,7 +96,7 @@ class UAngelGASAttributes : UAngelscriptAttributeSet
 
 			Agent.BP_TookDamage(-1, -1);
 
-			if (Agent.GetCurrentHealth() <= 0)
+			if (Agent.GetHealthAttribute() <= 0)
 			{
 				Agent.Death();
 			}

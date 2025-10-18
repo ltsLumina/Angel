@@ -3,7 +3,7 @@ struct FBulletHit
 	UPROPERTY()
 	bool BlockingHit;
 	UPROPERTY()
-	bool PlayerHit;
+	bool WasAgentHit;
 	UPROPERTY()
 	bool Headshot;
 	UPROPERTY()
@@ -22,7 +22,7 @@ struct FBulletHit
 	FBulletHit()
 	{
 		BlockingHit = false;
-		PlayerHit = false;
+		WasAgentHit = false;
 		Headshot = false;
 		Distance = 0.0f;
 		Location = FVector::ZeroVector;
@@ -35,7 +35,7 @@ struct FBulletHit
 	FBulletHit(bool InBlockingHit, bool InPlayerHit, bool InHeadshot, float InDistance, FVector InLocation, AActor InHitActor, AAngelAgent InHitPlayer, FName InHitBoneName, FBodyPartHit InHitBodyPart)
 	{
 		BlockingHit = InBlockingHit;
-		PlayerHit = InPlayerHit;
+		WasAgentHit = InPlayerHit;
 		Headshot = InHeadshot;
 		Distance = InDistance;
 		Location = InLocation;

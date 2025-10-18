@@ -412,6 +412,8 @@ class AGunBase : AActor
 		ShootCooldown = 1.0 / FireRate;
 		RPM = FireRate * 60;
 
+		GetAngelGameState().OnAgentDeath.AddUFunction(this, n"AgentKilled");
+
 		Ready();
 	}
 
@@ -533,7 +535,7 @@ class AGunBase : AActor
 			LastHit.BoneName,
 			GetBodyPartHit(LastHit.Component));
 
-		if (BulletHit.PlayerHit)
+		if (BulletHit.WasAgentHit)
 		{
 			// Instead of subscribing to each enemy's death, we'll check if they died
 			// and broadcast to the global death event in the damage application
@@ -545,7 +547,7 @@ class AGunBase : AActor
 		bool Penetrated = false;
 		CreateImpactDecal(Penetrated);
 
-		if (BulletHit.PlayerHit)
+		if (BulletHit.WasAgentHit)
 		{
 			float DamageAmount = DamageFalloff.GetDamageAtDistance(BulletHit.Distance, BulletHit.HitBodyPart.BodyPart) * (Penetrated ? 0.8f : 1.0f);
 
@@ -557,11 +559,6 @@ class AGunBase : AActor
 				GetAngelCharacter(0).Controller,
 				this,
 				TSubclassOf<UDamageType>(UDamageType));
-
-			if (BulletHit.HitAgent.GameplayTags.HasTag(GameplayTags::Character_State_Dead))
-			{
-				AgentKilled(BulletHit.HitAgent);
-			}
 		}
 
 		return Hits;
@@ -577,7 +574,7 @@ class AGunBase : AActor
 
 	void HitSFX()
 	{
-		if (BulletHit.PlayerHit && BulletHit.Headshot)
+		if (BulletHit.WasAgentHit && BulletHit.Headshot)
 		{
 			if (BulletHit.HitAgent.HasRemainingArmor())
 			{
@@ -588,11 +585,11 @@ class AGunBase : AActor
 				Gameplay::PlaySound2D(HeadshotSound);
 			}
 		}
-		else if (BulletHit.PlayerHit && !BulletHit.Headshot)
+		else if (BulletHit.WasAgentHit && !BulletHit.Headshot)
 		{
 			Gameplay::PlaySound2D(BodyshotSound);
 		}
-		else if (!BulletHit.PlayerHit)
+		else if (!BulletHit.WasAgentHit)
 		{
 			float PitchMultiplier = Math::Clamp(1.0f - (BulletHit.Distance / 10000.0f), 0.75f, 1.0f); // Closer impacts sound higher pitched
 			Gameplay::PlaySoundAtLocation(GroundHitSound, BulletHit.Location, FRotator::ZeroRotator, 1.0f, PitchMultiplier, 0.0f, DefaultAttenuation);
@@ -626,12 +623,10 @@ class AGunBase : AActor
 	}
 
 	UFUNCTION(Category = "Gun | Kill", DisplayName = "Agent Killed")
-	void AgentKilled(AAngelAgent DeadAgent)
+	void AgentKilled(FDeathInfo DeathInfo)
 	{
-		// Broadcast to global death event
-		AAngelGameState GameState = GetAngelGameState();
-		FDeathInfo DeathInfo = FDeathInfo(GetAngelCharacter(), DeadAgent, this, BulletHit.Headshot);
-		GameState.OnAgentDeath.Broadcast(DeathInfo);
+		if (GetAngelCharacter().HolsterComponent.EquippedGun != this) 
+			return; // weird bug
 
 		// Handle multikill logic
 		auto PlayerState = GetAngelPlayerState(0);

@@ -2,7 +2,7 @@ event void FBuyPhaseStartEvent();
 event void FRoundStartEvent();
 event void FPostRoundEvent();
 
-event void AgentDeathEvent(FDeathInfo DeathInfo);
+event void FAgentDeathEvent(FDeathInfo DeathInfo);
 
 enum EGamePhase
 {
@@ -78,7 +78,7 @@ class AAngelGameState : AGameStateBase
 
 	// Global death event that any enemy can broadcast to
 	UPROPERTY(Category = "Events", VisibleAnywhere, BlueprintReadOnly)
-	AgentDeathEvent OnAgentDeath;
+	FAgentDeathEvent OnAgentDeath;
 
 	UFUNCTION(BlueprintEvent, DisplayName = "On Phase Changed")
 	void BP_OnPhaseChanged(EGamePhase NewPhase)

@@ -8,7 +8,10 @@ class UKillfeedEntry : UUserWidget
     FString KillerName;
 
     UPROPERTY(ExposeOnSpawn)
-    UTexture2D WeaponOrAbilityIcon;
+    UTexture2D WeaponIcon;
+
+    UPROPERTY(ExposeOnSpawn)
+    UTexture2D AbilityIcon;
 
     UPROPERTY(ExposeOnSpawn)
     bool WasHeadshot = false;

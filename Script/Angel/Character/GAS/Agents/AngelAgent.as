@@ -16,9 +16,9 @@ struct FDeathInfo
 	bool WasHeadshot;
 
 	UPROPERTY()
-	UAngelAbility AbilityUsed;
+	TSubclassOf<UAngelAbility> AbilityUsed;
 
-	FDeathInfo(AAngelAgent InKiller, AAngelAgent InVictim, AGunBase InWeaponUsed = nullptr, bool InWasHeadshot = false, UAngelAbility InAbilityUsed = nullptr)
+	FDeathInfo(AAngelAgent InKiller, AAngelAgent InVictim, AGunBase InWeaponUsed = nullptr, bool InWasHeadshot = false, TSubclassOf<UAngelAbility> InAbilityUsed = nullptr)
 	{
 		Killer = InKiller;
 		Victim = InVictim;
@@ -78,26 +78,29 @@ class AAngelAgent : AAngelscriptGASCharacter
 	UTexture2D Avatar;
 	default check(IsValid(Avatar), "Avatar texture not assigned!");
 
-	UPROPERTY(Category = "Agent | Health", VisibleAnywhere, BlueprintReadOnly, BlueprintGetter = GetCurrentHealth)
+	UPROPERTY(Category = "Agent | Health", VisibleAnywhere, BlueprintReadOnly, BlueprintGetter = GetHealthAttribute, ToolTip = "Only used for display purposes.")
 	float CurrentHealth;
 
 	UPROPERTY(Category = "Agent | Armor", EditAnywhere)
 	EArmorType Armor;
 	default Armor = EArmorType::None;
 
-	UPROPERTY(Category = "Agent | Armor", VisibleAnywhere, BlueprintReadOnly, BlueprintGetter = GetCurrentArmor)
+	UPROPERTY(Category = "Agent | Armor", VisibleAnywhere, BlueprintReadOnly, BlueprintGetter = GetArmorAttribute, ToolTip = "Only used for display purposes.")
 	float CurrentArmor;
+
+	UPROPERTY(Category = "Agent | Health", VisibleAnywhere)
+	FDeathInfo DeathInfo;
 
 	// helper functions
 
 	UFUNCTION(Category = "Agent | Health", BlueprintPure)
-	float GetCurrentHealth() const property
+	float GetHealthAttribute() const property
 	{
 		return Attributes.Health.GetCurrentValue();
 	}
 
 	UFUNCTION(Category = "Agent | Armor", BlueprintPure)
-	float GetCurrentArmor() const property
+	float GetArmorAttribute() const property
 	{
 		return Attributes.Armor.GetCurrentValue();
 	}
@@ -116,39 +119,6 @@ class AAngelAgent : AAngelscriptGASCharacter
 	UPROPERTY(Category = "Agent | Events", VisibleAnywhere)
 	FOnDeathEvent OnDeath;
 
-	// heath & armor functions
-
-	/*
-		UFUNCTION(Category = "Agent | Armor")
-		void GrantArmor(EArmorType NewArmor, float NewArmorValue = -1)
-		{
-			Armor = NewArmor;
-			switch (Armor)
-			{
-				case EArmorType::None:
-					NewArmorValue = Armor::NO_ARMOR;
-					break;
-				case EArmorType::Light:
-					if (NewArmorValue < 0)
-						NewArmorValue = Armor::LIGHT_ARMOR;
-					break;
-				case EArmorType::Heavy:
-					if (NewArmorValue < 0)
-						NewArmorValue = Armor::HEAVY_ARMOR;
-					break;
-			}
-		}
-	*/
-
-	UFUNCTION(BlueprintPure, Category = "Agent | Armor")
-	bool HasRemainingArmor()
-	{
-		if (Armor == EArmorType::None)
-			return false;
-
-		return GetCurrentArmor() > 0;
-	}
-
 	UFUNCTION(BlueprintOverride)
 	protected void BeginPlay()
 	{
@@ -156,10 +126,12 @@ class AAngelAgent : AAngelscriptGASCharacter
 			AbilitySystem.GiveAbility(FGameplayAbilitySpec(Ability, 1, -1));
 
 		Attributes = Cast<UAngelGASAttributes>(AbilitySystem.RegisterAttributeSet(UAngelGASAttributes));
-		
-		ResetAgent(this);
 
-		Print(f"{AgentName} has spawned with {GetCurrentHealth()} health and {GetCurrentArmor()} armor.", 1.5f, FLinearColor::Green);
+		// These are just for display purposes
+		CurrentHealth = GetHealthAttribute();
+		CurrentArmor = GetArmorAttribute();
+
+		Print(f"{AgentName} has spawned with {GetHealthAttribute()} health and {GetArmorAttribute()} armor.", 1.5f, FLinearColor::Green);
 
 		BP_BeginPlay();
 	}
@@ -173,18 +145,13 @@ class AAngelAgent : AAngelscriptGASCharacter
 					 UPrimitiveComponent HitComponent, FName BoneName, FVector ShotFromDirection,
 					 AController InstigatedBy, AActor DamageCauser, FHitResult HitInfo)
 	{
-		float HealthDamge;
-		float ArmorDamage;
-		// Calculate damage split for event
-		CalculateDamageTaken(Damage, HealthDamge, ArmorDamage);
+		DeathInfo.Killer = Cast<AAngelAgent>(InstigatedBy.ControlledPawn);
+		DeathInfo.Victim = this;
+		DeathInfo.WeaponUsed = Cast<AGunBase>(DamageCauser);
+		DeathInfo.WasHeadshot = GetBodyPartHit(HitComponent).Head;
 
-		// Actually apply the damage
-		ApplyDamage(this, Damage);
+		ApplyDamage(Damage);
 
-		// Call the event
-		BP_TookDamage(-HealthDamge, -ArmorDamage);
-
-		// Call the Point Damage event for whatever reason
 		BP_PointDamage(Damage, DamageType, HitLocation, HitNormal, HitComponent, BoneName, ShotFromDirection, InstigatedBy, DamageCauser, HitInfo);
 	}
 
@@ -207,8 +174,8 @@ class AAngelAgent : AAngelscriptGASCharacter
 	UFUNCTION(Category = "Agent | Damage")
 	void CalculateDamageTaken(float Damage, float&out DamageToHealth, float&out DamageToArmor)
 	{
-		float CurrHealth = GetCurrentHealth();
-		float CurrArmor = GetCurrentArmor();
+		float CurrHealth = GetHealthAttribute();
+		float CurrArmor = GetArmorAttribute();
 
 		// initialize returned damage values
 		DamageToHealth = 0;
@@ -244,6 +211,9 @@ class AAngelAgent : AAngelscriptGASCharacter
 				// damage portion attributed to armor (incoming-damage units)
 				DamageToArmor = AbsorbedDamage;
 
+				// clamp to max value
+				DamageToArmor = Math::Min(DamageToArmor, Armor::GetMaxArmor(Armor));
+
 				CurrHealth -= DamageToHealth;
 				CurrArmor = 0;
 			}
@@ -262,12 +232,12 @@ class AAngelAgent : AAngelscriptGASCharacter
 	UParticleSystem DeathEffect;
 
 	UFUNCTION(Category = "Agent | Health")
-	void Death(FDeathInfo DeathInfo = FDeathInfo())
+	void Death()
 	{
 		if (GameplayTags.HasTag(GameplayTags::Agent_State_Dead))
 			return;
-
-		GameplayTags.AddTag(GameplayTags::Agent_State_Dead);
+		else
+			GameplayTags.AddTag(GameplayTags::Agent_State_Dead);
 
 		FGameplayEffectQuery Query;
 		for (FActiveGameplayEffectHandle Handle : AbilitySystem.GetActiveEffects(Query))
@@ -282,22 +252,24 @@ class AAngelAgent : AAngelscriptGASCharacter
 		System::SetTimer(this, n"Respawn", 1.5f, false);
 
 		OnDeath.Broadcast(DeathInfo);
+		GetAngelGameState().OnAgentDeath.Broadcast(DeathInfo);
+
 		BP_Death(DeathInfo);
 	}
 
 	UFUNCTION(BlueprintEvent, Category = "Dummy | Health", DisplayName = "Death")
-	void BP_Death(FDeathInfo DeathInfo)
+	void BP_Death(FDeathInfo InDeathInfo)
 	{}
 
 	UFUNCTION(Category = "Agent | Health")
 	void Respawn()
 	{
-		ResetAgent(this);
+		ResetAgent();
 
 		SetActorHiddenInGame(false);
 		System::SetTimer(this, n"EnableCollision", 0.5f, false);
 
-		GameplayTags.RemoveTag(GameplayTags::Character_State_Dead);
+		GameplayTags.RemoveTag(GameplayTags::Agent_State_Dead);
 	}
 
 	UFUNCTION()
@@ -305,89 +277,122 @@ class AAngelAgent : AAngelscriptGASCharacter
 	{
 		SetActorEnableCollision(true);
 	}
+
+	UFUNCTION(Category = "Agent | Damage")
+	void ApplyDamage(float Damage)
+	{
+		float HealthDamage;
+		float ArmorDamage;
+		CalculateDamageTaken(Damage, HealthDamage, ArmorDamage);
+
+		FGameplayEffectSpecHandle HealthHandle = AbilitySystem.MakeOutgoingSpec(UGE_Damage_Health, 1, FGameplayEffectContextHandle());
+		if (HealthHandle.IsValid() && GetHealthAttribute() > 0)
+		{
+			HealthHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Health, -HealthDamage);
+			AbilitySystem.ApplyGameplayEffectSpecToSelf(HealthHandle);
+
+			CurrentHealth = Math::Clamp(GetHealthAttribute(), 0.0f, Attributes.MaxHealth.BaseValue);
+
+			Print(f"Applied {Math::RoundToInt(HealthDamage)} HEALTH damage to {AgentName}", 1, FLinearColor::DPink);
+		}
+
+		FGameplayEffectSpecHandle ArmorHandle = AbilitySystem.MakeOutgoingSpec(UGE_Damage_Armor, 1, FGameplayEffectContextHandle());
+		if (ArmorHandle.IsValid() && GetArmorAttribute() > 0)
+		{
+			ArmorHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Armor, -ArmorDamage);
+			AbilitySystem.ApplyGameplayEffectSpecToSelf(ArmorHandle);
+
+			CurrentArmor = Math::Clamp(GetArmorAttribute(), 0.0f, Attributes.MaxArmor.BaseValue);
+
+			Print(f"Applied {Math::RoundToInt(ArmorDamage)} ARMOR damage to {AgentName}", 1, FLinearColor::Teal);
+		}
+
+		BP_TookDamage(-HealthDamage, -ArmorDamage);
+	}
+
+	UFUNCTION(Category = "Agent | Health")
+	void ApplyHealing(float HealAmount)
+	{
+		if (GetHealthAttribute() >= Attributes.MaxHealth.BaseValue)
+			return;
+
+		FGameplayEffectSpecHandle HealHandle = AbilitySystem.MakeOutgoingSpec(UGE_Restore_Health, 1, FGameplayEffectContextHandle());
+		if (HealHandle.IsValid())
+		{
+			HealHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Health, HealAmount);
+			AbilitySystem.ApplyGameplayEffectSpecToSelf(HealHandle);
+
+			CurrentHealth = Math::Clamp(GetHealthAttribute(), 0.0f, Attributes.MaxHealth.BaseValue);
+
+			// Print(f"Applied {HealAmount} health healing to {AgentName}", 5.0f, FLinearColor::Green);
+		}
+	}
+
+	UFUNCTION(Category = "Agent | Armor")
+	void ApplyArmor(EArmorType NewArmor)
+	{
+		if (GetArmorAttribute() >= Armor::GetMaxArmor(NewArmor))
+			return;
+		
+		float ArmorAmount = Armor::GetMaxArmor(NewArmor);
+
+		FGameplayEffectSpecHandle ArmorHandle = AbilitySystem.MakeOutgoingSpec(UGE_Restore_Armor, 1, FGameplayEffectContextHandle());
+		if (ArmorHandle.IsValid())
+		{
+			ArmorHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Armor, ArmorAmount);
+			AbilitySystem.ApplyGameplayEffectSpecToSelf(ArmorHandle);
+
+			CurrentArmor = Math::Clamp(GetArmorAttribute(), 0.0f, Attributes.MaxArmor.BaseValue);
+
+			Print(f"Applied {ArmorAmount} armor to {AgentName}", 1.0f, FLinearColor::LucBlue);
+		}
+	}
+
+	UFUNCTION(BlueprintPure, Category = "Agent | Armor")
+	bool HasRemainingArmor()
+	{
+		if (Armor == EArmorType::None)
+			return false;
+
+		return GetArmorAttribute() > 0;
+	}
+
+	UFUNCTION(Category = "Agent | Health")
+	void ResetAgent()
+	{
+		ApplyHealing(Attributes.MaxHealth.BaseValue);
+		ApplyArmor(Armor);
+	}
 }
+
+// Global Helper Functions
 
 UFUNCTION(Category = "Agent | Damage")
 void ApplyDamage(AAngelAgent Agent, float Damage)
 {
-	if (!IsValid(Agent))
-	{
-		PrintError("ApplyDamage: Invalid Agent");
-		return;
-	}
-
-	float HealthDamage;
-	float ArmorDamage;
-	Agent.CalculateDamageTaken(Damage, HealthDamage, ArmorDamage);
-
-	FGameplayEffectSpecHandle HealthHandle = Agent.AbilitySystem.MakeOutgoingSpec(UGE_Damage_Health, 1, FGameplayEffectContextHandle());
-	if (HealthHandle.IsValid() && Agent.GetCurrentHealth() > 0)
-	{
-		HealthHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Health, -HealthDamage);
-		Agent.AbilitySystem.ApplyGameplayEffectSpecToSelf(HealthHandle);
-
-		Print(f"Applied {Math::RoundToInt(HealthDamage)} HEALTH damage to {Agent.AgentName}", 1, FLinearColor::DPink);
-	}
-
-	FGameplayEffectSpecHandle ArmorHandle = Agent.AbilitySystem.MakeOutgoingSpec(UGE_Damage_Armor, 1, FGameplayEffectContextHandle());
-	if (ArmorHandle.IsValid() && Agent.GetCurrentArmor() > 0)
-	{
-		ArmorHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Armor, -ArmorDamage);
-		Agent.AbilitySystem.ApplyGameplayEffectSpecToSelf(ArmorHandle);
-
-		Print(f"Applied {Math::RoundToInt(ArmorDamage)} ARMOR damage to {Agent.AgentName}", 1, FLinearColor::Teal);
-	}
+	Agent.ApplyDamage(Damage);
 }
 
 UFUNCTION(Category = "Agent | Health")
 void ApplyHealing(AAngelAgent Agent, float HealAmount)
 {
-	if (!IsValid(Agent))
-	{
-		PrintError("ApplyHealing: Invalid Agent");
-		return;
-	}
-
-	if (Agent.GetCurrentHealth() >= Agent.Attributes.Health.BaseValue)
-		return;
-
-	FGameplayEffectSpecHandle HealHandle = Agent.AbilitySystem.MakeOutgoingSpec(UGE_Restore_Health, 1, FGameplayEffectContextHandle());
-	if (HealHandle.IsValid())
-	{
-		HealHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Health, HealAmount);
-		Agent.AbilitySystem.ApplyGameplayEffectSpecToSelf(HealHandle);
-
-		// Print(f"Applied {HealAmount} health healing to {Agent.AgentName}", 5.0f, FLinearColor::Green);
-	}
+	Agent.ApplyHealing(HealAmount);
 }
 
-UFUNCTION(Category = "Agent | Health | Armor")
+UFUNCTION(Category = "Agent | Armor")
 void ApplyArmor(AAngelAgent Agent, EArmorType Armor)
 {
-	if (!IsValid(Agent))
-	{
-		PrintError("ApplyArmor: Invalid Agent");
-		return;
-	}
+	Agent.ApplyArmor(Armor);
+}
 
-	if (Agent.GetCurrentArmor() >= Armor::GetMaxArmor(Armor))
-		return;
-
-	float ArmorAmount = Armor::GetMaxArmor(Armor);
-
-	FGameplayEffectSpecHandle ArmorHandle = Agent.AbilitySystem.MakeOutgoingSpec(UGE_Restore_Armor, 1, FGameplayEffectContextHandle());
-	if (ArmorHandle.IsValid())
-	{
-		ArmorHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Armor, ArmorAmount);
-		Agent.AbilitySystem.ApplyGameplayEffectSpecToSelf(ArmorHandle);
-
-		// Print(f"Applied {ArmorAmount} armor to {Agent.AgentName}", 5.0f, FLinearColor::Blue);
-	}
+UFUNCTION(BlueprintPure, Category = "Agent | Armor")
+bool HasRemainingArmor(AAngelAgent Agent)
+{
+	return Agent.HasRemainingArmor();
 }
 
 UFUNCTION(Category = "Agent | Health")
 void ResetAgent(AAngelAgent Agent)
 {
-	ApplyHealing(Agent, Agent.Attributes.Health.BaseValue);
-	ApplyArmor(Agent, Agent.Armor);
+	Agent.ResetAgent();
 }

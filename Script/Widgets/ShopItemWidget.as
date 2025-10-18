@@ -104,7 +104,7 @@ class UShopItemWidget : UUserWidget
 		}
 		else if (GrantArmor)
 		{
-			SetIsOwned(GetAngelCharacter().HasRemainingArmor());
+			SetIsOwned(HasRemainingArmor(GetAngelCharacter()));
 			return;
 		}
 		else if (GrantAbility)

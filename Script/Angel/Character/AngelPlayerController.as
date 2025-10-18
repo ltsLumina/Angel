@@ -35,6 +35,18 @@ class AAngelPlayerController : APlayerController
 
 	default CheatClass = UAngelCheatManager;
 
+	UFUNCTION()
+	void Push()
+	{
+		PushInputComponent(InputComponent);
+	}
+
+	UFUNCTION()
+	void Pop()
+	{
+		PopInputComponent(InputComponent);
+	}
+
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
 	{
