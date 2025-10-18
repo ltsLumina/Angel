@@ -177,13 +177,13 @@ class AGunBase : AActor
 	 * The number of bullets that are guaranteed to be perfectly accurate (no spread).
 	 */
 	UPROPERTY(Category = "Gun | Accuracy | Bullets", EditDefaultsOnly, Meta = (UIMin = "0", ClampMax = "30", UIMax = "30"))
-	int ProtectedBullets = 3;
+	int ProtectedBullets = 1;
 
 	/**
 	 * The number of bullets after which the spread reaches its maximum value.
 	 */
 	UPROPERTY(Category = "Gun | Accuracy | Bullets", VisibleInstanceOnly, BlueprintReadOnly, Meta = (ClampMin = "1", UIMin = "1", ClampMax = "30", UIMax = "30"))
-	int MaxSpreadBullet = 9;
+	int MaxSpreadBullet = 6;
 
 	UPROPERTY(Category = "Gun | Accuracy | 1st Shot Spread", EditDefaultsOnly, Meta = (Units = "Degrees"))
 	float StandingSpread = 0.25f;
@@ -242,17 +242,12 @@ class AGunBase : AActor
 				break;
 		}
 
-		if (RecoilIndex > ProtectedBullets)
+/* TODO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< LOOK AT THIS I NEED TO FIX THIS FUTURE SELF AFTER SLEEPING ITS 7:44AM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+		if (RecoilIndex > ProtectedBullets && RecoilIndex <= MaxSpreadBullet)
 		{
-			float Alpha = Math::Clamp(float(RecoilIndex - ProtectedBullets) / float(MaxSpreadBullet - ProtectedBullets), 0.0f, 1.0f);
-			float MaxSpread = (State == EAngelMovementState::Crouch || State == EAngelMovementState::CrouchWalk) ? CrouchMaxSpread : StandingMaxSpread;
-			Increment = Math::Lerp(0.0f, MaxSpread - Spread, Alpha);
+			Increment += 0.05f; // degrees per shot
 		}
-		else // within protected bullets
-		{
-			Increment = 0;
-		}
-
+	*/
 		Spread += Increment;
 
 		Print(f"Spread: {Spread} degrees", 1, FLinearColor(0.5, 0.5, 1.0));

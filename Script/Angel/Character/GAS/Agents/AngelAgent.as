@@ -156,11 +156,10 @@ class AAngelAgent : AAngelscriptGASCharacter
 			AbilitySystem.GiveAbility(FGameplayAbilitySpec(Ability, 1, -1));
 
 		Attributes = Cast<UAngelGASAttributes>(AbilitySystem.RegisterAttributeSet(UAngelGASAttributes));
+		
+		ResetAgent(this);
 
-		// Heal();
-		// GrantArmor(Armor);
-
-		Print(f"{AgentName} has spawned with {GetCurrentHealth()} health and {GetCurrentArmor()} armor.", 1.0f, FLinearColor::Green);
+		Print(f"{AgentName} has spawned with {GetCurrentHealth()} health and {GetCurrentArmor()} armor.", 1.5f, FLinearColor::Green);
 
 		BP_BeginPlay();
 	}
@@ -169,12 +168,6 @@ class AAngelAgent : AAngelscriptGASCharacter
 	void BP_BeginPlay()
 	{}
 
-UPROPERTY(Category = "Agent | Damage")
-	TSubclassOf<UAngelGameplayEffect> HealthDamageEffectClass;
-UPROPERTY(Category = "Agent | Damage")
-	TSubclassOf<UAngelGameplayEffect> ArmorDamageEffectClass;
-
-	
 	UFUNCTION(BlueprintOverride, Category = "Agent | Damage")
 	void PointDamage(float Damage, const UDamageType DamageType, FVector HitLocation, FVector HitNormal,
 					 UPrimitiveComponent HitComponent, FName BoneName, FVector ShotFromDirection,
@@ -186,17 +179,13 @@ UPROPERTY(Category = "Agent | Damage")
 		CalculateDamageTaken(Damage, HealthDamge, ArmorDamage);
 
 		// Actually apply the damage
-		ApplyDamage(this, Damage, HealthDamageEffectClass, ArmorDamageEffectClass);
-		
+		ApplyDamage(this, Damage);
+
 		// Call the event
 		BP_TookDamage(-HealthDamge, -ArmorDamage);
 
 		// Call the Point Damage event for whatever reason
 		BP_PointDamage(Damage, DamageType, HitLocation, HitNormal, HitComponent, BoneName, ShotFromDirection, InstigatedBy, DamageCauser, HitInfo);
-
-		// Check for death
-		if (GetCurrentHealth() <= 0)
-			Death();
 	}
 
 	UFUNCTION(BlueprintEvent, DisplayName = "Took Damage", Category = "Damage")
@@ -267,9 +256,6 @@ UPROPERTY(Category = "Agent | Damage")
 
 			CurrHealth -= Damage;
 		}
-
-		if (CurrHealth <= 0)
-			Death();
 	}
 
 	UPROPERTY(Category = "Agent | Debug | Visuals")
@@ -278,10 +264,10 @@ UPROPERTY(Category = "Agent | Damage")
 	UFUNCTION(Category = "Agent | Health")
 	void Death(FDeathInfo DeathInfo = FDeathInfo())
 	{
-		if (GameplayTags.HasTag(GameplayTags::Character_State_Dead))
+		if (GameplayTags.HasTag(GameplayTags::Agent_State_Dead))
 			return;
 
-		GameplayTags.AddTag(GameplayTags::Character_State_Dead);
+		GameplayTags.AddTag(GameplayTags::Agent_State_Dead);
 
 		FGameplayEffectQuery Query;
 		for (FActiveGameplayEffectHandle Handle : AbilitySystem.GetActiveEffects(Query))
@@ -306,8 +292,7 @@ UPROPERTY(Category = "Agent | Damage")
 	UFUNCTION(Category = "Agent | Health")
 	void Respawn()
 	{
-		// Heal();
-		// GrantArmor(Armor);
+		ResetAgent(this);
 
 		SetActorHiddenInGame(false);
 		System::SetTimer(this, n"EnableCollision", 0.5f, false);
@@ -322,26 +307,87 @@ UPROPERTY(Category = "Agent | Damage")
 	}
 }
 
-void ApplyDamage(AAngelAgent Agent, float Damage, TSubclassOf<UAngelGameplayEffect> HealthEffectClass, TSubclassOf<UAngelGameplayEffect> ArmorEffectClass)
+UFUNCTION(Category = "Agent | Damage")
+void ApplyDamage(AAngelAgent Agent, float Damage)
 {
-	if (!IsValid(Agent) || !IsValid(HealthEffectClass))
+	if (!IsValid(Agent))
+	{
+		PrintError("ApplyDamage: Invalid Agent");
 		return;
+	}
 
 	float HealthDamage;
 	float ArmorDamage;
 	Agent.CalculateDamageTaken(Damage, HealthDamage, ArmorDamage);
 
-	FGameplayEffectSpecHandle HealthHandle = Agent.AbilitySystem.MakeOutgoingSpec(HealthEffectClass, 1, FGameplayEffectContextHandle());
-	if (HealthHandle.IsValid())
+	FGameplayEffectSpecHandle HealthHandle = Agent.AbilitySystem.MakeOutgoingSpec(UGE_Damage_Health, 1, FGameplayEffectContextHandle());
+	if (HealthHandle.IsValid() && Agent.GetCurrentHealth() > 0)
 	{
 		HealthHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Health, -HealthDamage);
 		Agent.AbilitySystem.ApplyGameplayEffectSpecToSelf(HealthHandle);
+
+		Print(f"Applied {Math::RoundToInt(HealthDamage)} HEALTH damage to {Agent.AgentName}", 1, FLinearColor::DPink);
 	}
 
-	FGameplayEffectSpecHandle ArmorHandle = Agent.AbilitySystem.MakeOutgoingSpec(ArmorEffectClass, 1, FGameplayEffectContextHandle());
-	if (ArmorHandle.IsValid())
+	FGameplayEffectSpecHandle ArmorHandle = Agent.AbilitySystem.MakeOutgoingSpec(UGE_Damage_Armor, 1, FGameplayEffectContextHandle());
+	if (ArmorHandle.IsValid() && Agent.GetCurrentArmor() > 0)
 	{
 		ArmorHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Armor, -ArmorDamage);
 		Agent.AbilitySystem.ApplyGameplayEffectSpecToSelf(ArmorHandle);
+
+		Print(f"Applied {Math::RoundToInt(ArmorDamage)} ARMOR damage to {Agent.AgentName}", 1, FLinearColor::Teal);
 	}
+}
+
+UFUNCTION(Category = "Agent | Health")
+void ApplyHealing(AAngelAgent Agent, float HealAmount)
+{
+	if (!IsValid(Agent))
+	{
+		PrintError("ApplyHealing: Invalid Agent");
+		return;
+	}
+
+	if (Agent.GetCurrentHealth() >= Agent.Attributes.Health.BaseValue)
+		return;
+
+	FGameplayEffectSpecHandle HealHandle = Agent.AbilitySystem.MakeOutgoingSpec(UGE_Restore_Health, 1, FGameplayEffectContextHandle());
+	if (HealHandle.IsValid())
+	{
+		HealHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Health, HealAmount);
+		Agent.AbilitySystem.ApplyGameplayEffectSpecToSelf(HealHandle);
+
+		// Print(f"Applied {HealAmount} health healing to {Agent.AgentName}", 5.0f, FLinearColor::Green);
+	}
+}
+
+UFUNCTION(Category = "Agent | Health | Armor")
+void ApplyArmor(AAngelAgent Agent, EArmorType Armor)
+{
+	if (!IsValid(Agent))
+	{
+		PrintError("ApplyArmor: Invalid Agent");
+		return;
+	}
+
+	if (Agent.GetCurrentArmor() >= Armor::GetMaxArmor(Armor))
+		return;
+
+	float ArmorAmount = Armor::GetMaxArmor(Armor);
+
+	FGameplayEffectSpecHandle ArmorHandle = Agent.AbilitySystem.MakeOutgoingSpec(UGE_Restore_Armor, 1, FGameplayEffectContextHandle());
+	if (ArmorHandle.IsValid())
+	{
+		ArmorHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Armor, ArmorAmount);
+		Agent.AbilitySystem.ApplyGameplayEffectSpecToSelf(ArmorHandle);
+
+		// Print(f"Applied {ArmorAmount} armor to {Agent.AgentName}", 5.0f, FLinearColor::Blue);
+	}
+}
+
+UFUNCTION(Category = "Agent | Health")
+void ResetAgent(AAngelAgent Agent)
+{
+	ApplyHealing(Agent, Agent.Attributes.Health.BaseValue);
+	ApplyArmor(Agent, Agent.Armor);
 }

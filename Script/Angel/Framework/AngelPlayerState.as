@@ -63,7 +63,7 @@ class AAngelPlayerState : APlayerState
 		Credits += Amount;
 		Credits = Math::Clamp(Credits, 0, MaxCredits);
 
-		Print(f"Granted {Amount} credits for reason {Reason}. \nNew total: {Credits}");
+		Print(f"Granted {Amount} credits for reason {Reason}. \nNew total: {Credits}", 2.5f, FLinearColor::LucBlue);
 	}
 
 	/**

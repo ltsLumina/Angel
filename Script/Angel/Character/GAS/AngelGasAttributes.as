@@ -9,11 +9,6 @@ namespace UAngelGASAttributes
 	const FName Ability_X_ChargesName = n"Ability_X_Charges";
 
 	const FName ResourceName = n"Resource"; // Viper: Toxin Fuel
-
-	FAngelscriptGameplayAttributeData GetHealthAttribute()
-	{
-		return UAngelGASAttributes().Health;
-	}
 }
 
 event void FOnHealthChangedEvent(float32 NewHealth, float32 OldHealth);
@@ -41,13 +36,10 @@ class UAngelGASAttributes : UAngelscriptAttributeSet
 	UPROPERTY(BlueprintReadOnly, Category = "Agent Attributes | Resource")
 	FAngelscriptGameplayAttributeData Resource; // Viper: Toxin Fuel
 
-	UPROPERTY(Category = "Events")
-	FOnHealthChangedEvent OnHealthChanged;
-
 	UAngelGASAttributes()
 	{
 		Health.Initialize(100.0f);
-		Armor.Initialize(Armor::HEAVY_ARMOR);
+		Armor.Initialize(Armor::NO_ARMOR);
 
 		Ability_C_Charges.Initialize(2);
 		Ability_Q_Charges.Initialize(1);
@@ -62,22 +54,34 @@ class UAngelGASAttributes : UAngelscriptAttributeSet
 	{
 		if (Attribute.AttributeName == UAngelGASAttributes::HealthName)
 		{
-			if (Agent.AbilitySystem.HasGameplayTag(GameplayTags::Character_Status_Vulnerable))
-			{
-				NewValue *= 1.5f; // take 50% more damage when vulnerable
-			}
-
-			NewValue = Math::Clamp(NewValue, 0.0f, Health.BaseValue);
-				OnHealthChanged.Broadcast(NewValue, Health.GetCurrentValue());
+			NewValue = Math::Clamp(NewValue, 0, 100);
+			//Print(f"Health changed for {Agent.AgentName}: {Health.GetCurrentValue()} -> {NewValue} | Base: {Health.BaseValue}", 5.0f, FLinearColor::Purple);
 		}
 		else if (Attribute.AttributeName == UAngelGASAttributes::ArmorName)
 		{
-			if (Agent.AbilitySystem.HasGameplayTag(GameplayTags::Character_Status_Vulnerable))
-			{
-				NewValue *= 1.5f; // take 50% more damage when vulnerable
-			}
-
 			NewValue = Math::Clamp(NewValue, 0.0f, Armor.BaseValue);
+		}
+	}
+
+	UFUNCTION(BlueprintOverride)
+	void PostGameplayEffectExecute(FGameplayEffectSpec EffectSpec,
+	                               FGameplayModifierEvaluatedData& EvaluatedData,
+	                               UAngelscriptAbilitySystemComponent AbilitySystemComponent)
+	{
+		if (EvaluatedData.Attribute.AttributeName == UAngelGASAttributes::HealthName)
+		{
+			Health.SetCurrentValue(Health.GetCurrentValue());
+
+			Agent.BP_TookDamage(-1, -1);
+
+			if (Agent.GetCurrentHealth() <= 0)
+			{
+				Agent.Death();
+			}
+		}
+		else if (EvaluatedData.Attribute.AttributeName == UAngelGASAttributes::ArmorName)
+		{
+			Armor.SetCurrentValue(Armor.GetCurrentValue());
 		}
 	}
 
