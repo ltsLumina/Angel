@@ -563,7 +563,7 @@ class AGunBase : AActor
 				this,
 				TSubclassOf<UDamageType>(UDamageType));
 
-			if (BulletHit.HitAgent.GetCurrentHealth() <= 0)
+			if (BulletHit.HitAgent.GameplayTags.HasTag(GameplayTags::Character_State_Dead))
 			{
 				AgentKilled(BulletHit.HitAgent);
 			}
