@@ -5,10 +5,10 @@ namespace UAngelGASAttributes
 	const FName ArmorName = n"Armor";
 	const FName MaxArmorName = n"MaxArmor";
 
-	const FName Ability_C_ChargesName = n"Ability_C_Charges";
-	const FName Ability_Q_ChargesName = n"Ability_Q_Charges";
-	const FName Ability_E_ChargesName = n"Ability_E_Charges";
-	const FName Ability_X_ChargesName = n"Ability_X_Charges";
+	const FName Ability_C_UsesName = n"Ability_C_Uses";
+	const FName Ability_Q_UsesName = n"Ability_Q_Uses";
+	const FName Ability_E_UsesName = n"Ability_E_Uses";
+	const FName Ability_X_UsesName = n"Ability_X_Uses";
 
 	const FName ResourceName = n"Resource"; // Viper: Toxin Fuel
 }
@@ -30,16 +30,16 @@ class UAngelGASAttributes : UAngelscriptAttributeSet
 	FAngelscriptGameplayAttributeData MaxArmor;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Agent Attributes | Ability")
-	FAngelscriptGameplayAttributeData Ability_C_Charges;
+	FAngelscriptGameplayAttributeData Ability_C_Uses;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Agent Attributes | Ability")
-	FAngelscriptGameplayAttributeData Ability_Q_Charges;
+	FAngelscriptGameplayAttributeData Ability_Q_Uses;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Agent Attributes | Ability")
-	FAngelscriptGameplayAttributeData Ability_E_Charges;
+	FAngelscriptGameplayAttributeData Ability_E_Uses;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Agent Attributes | Ability")
-	FAngelscriptGameplayAttributeData Ability_X_Charges;
+	FAngelscriptGameplayAttributeData Ability_X_Uses;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Agent Attributes | Resource")
 	FAngelscriptGameplayAttributeData Resource; // Viper: Toxin Fuel
@@ -51,10 +51,10 @@ class UAngelGASAttributes : UAngelscriptAttributeSet
 		Armor.Initialize(50.0f);
 		MaxArmor.Initialize(50.0f);
 
-		Ability_C_Charges.Initialize(2);
-		Ability_Q_Charges.Initialize(1);
-		Ability_E_Charges.Initialize(1);
-		Ability_X_Charges.Initialize(1);
+		Ability_C_Uses.Initialize(3);
+		Ability_Q_Uses.Initialize(3);
+		Ability_E_Uses.Initialize(3);
+		Ability_X_Uses.Initialize(1);
 
 		Resource.Initialize(100.0f); // Viper: Toxin Fuel
 	}
@@ -110,5 +110,20 @@ class UAngelGASAttributes : UAngelscriptAttributeSet
 	AAngelAgent GetAgent() property
 	{
 		return Cast<AAngelAgent>(GetOwningActor());
+	}
+
+	float GetAbilityUses(EAbility Ability)
+	{
+		switch (Ability)
+		{
+			case EAbility::Basic_C:
+				return Ability_C_Uses.GetBaseValue();
+			case EAbility::Basic_Q:
+				return Ability_Q_Uses.GetBaseValue();
+			case EAbility::Signature_E:
+				return Ability_E_Uses.GetBaseValue();
+			case EAbility::Ultimate_X:
+				return Ability_X_Uses.GetBaseValue();
+		}
 	}
 }

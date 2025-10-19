@@ -1,0 +1,70 @@
+Date : 2025-10-19 05:49:53
+Directory : c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script
+Total : 31 files,  3316 codes, 252 comments, 795 blanks, all 4363 lines
+
+Languages
++-------------+------------+------------+------------+------------+------------+
+| language    | files      | code       | comment    | blank      | total      |
++-------------+------------+------------+------------+------------+------------+
+| Angelscript |         31 |      3,316 |        252 |        795 |      4,363 |
++-------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                                       | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                                          |         31 |      3,316 |        252 |        795 |      4,363 |
+| Angel                                                                                                                      |         17 |      1,659 |        121 |        379 |      2,159 |
+| Angel\Character                                                                                                            |         10 |        860 |         48 |        221 |      1,129 |
+| Angel\Character (Files)                                                                                                    |          3 |        263 |         10 |         65 |        338 |
+| Angel\Character\GAS                                                                                                        |          7 |        597 |         38 |        156 |        791 |
+| Angel\Character\GAS (Files)                                                                                                |          1 |        107 |          0 |         22 |        129 |
+| Angel\Character\GAS\Abilities                                                                                              |          2 |         40 |          4 |         12 |         56 |
+| Angel\Character\GAS\Agents                                                                                                 |          2 |        299 |         28 |         85 |        412 |
+| Angel\Character\GAS\Effects                                                                                                |          2 |        151 |          6 |         37 |        194 |
+| Angel\Framework                                                                                                            |          3 |        459 |         43 |        105 |        607 |
+| Angel\Misc                                                                                                                 |          2 |        176 |         23 |         22 |        221 |
+| Angel\Utility                                                                                                              |          2 |        164 |          7 |         31 |        202 |
+| Components                                                                                                                 |          3 |        322 |         30 |         78 |        430 |
+| EditInlineNew Objects                                                                                                      |          2 |        166 |          9 |         30 |        205 |
+| Guns                                                                                                                       |          2 |        597 |         78 |        185 |        860 |
+| Widgets                                                                                                                    |          7 |        572 |         14 |        123 |        709 |
++----------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------------------------------------------+-------------+------------+------------+------------+------------+
+| filename                                                                                                                   | language    | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------------------------------------+-------------+------------+------------+------------+------------+
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Character\AngelPlayerCharacter.as        | Angelscript |         67 |          1 |         15 |         83 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Character\AngelPlayerController.as       | Angelscript |        180 |          7 |         46 |        233 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Character\AngelTrainingDummy.as          | Angelscript |         16 |          2 |          4 |         22 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Character\GAS\Abilities\AngelAbility.as  | Angelscript |         29 |          4 |         11 |         44 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Character\GAS\Abilities\SnakeBite.as     | Angelscript |         11 |          0 |          1 |         12 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Character\GAS\Agents\AngelAgent.as       | Angelscript |        296 |         28 |         84 |        408 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Character\GAS\Agents\Viper.as            | Angelscript |          3 |          0 |          1 |          4 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Character\GAS\AngelGASAttributes.as      | Angelscript |        107 |          0 |         22 |        129 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Character\GAS\Effects\AngelEffect.as     | Angelscript |          3 |          0 |          1 |          4 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Character\GAS\Effects\StandardEffects.as | Angelscript |        148 |          6 |         36 |        190 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Framework\AngelGameInstance.as           | Angelscript |         13 |          0 |          4 |         17 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Framework\AngelGameState.as              | Angelscript |        296 |          2 |         63 |        361 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Framework\AngelPlayerState.as            | Angelscript |        150 |         41 |         38 |        229 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Misc\Enums.as                            | Angelscript |         81 |         17 |         11 |        109 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Misc\Structs.as                          | Angelscript |         95 |          6 |         11 |        112 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Utility\AngelCheatManager.as             | Angelscript |         92 |          4 |         15 |        111 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Angel\Utility\WeaponRegistrySubsystem.as       | Angelscript |         72 |          3 |         16 |         91 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Components\GunComponent.as                     | Angelscript |         39 |          1 |         11 |         51 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Components\HolsterComponent.as                 | Angelscript |        249 |         24 |         53 |        326 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Components\ReloadComponent.as                  | Angelscript |         34 |          5 |         14 |         53 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\EditInlineNew Objects\DamageFalloff.as         | Angelscript |         64 |          7 |         11 |         82 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\EditInlineNew Objects\ReloadStrategy.as        | Angelscript |        102 |          2 |         19 |        123 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Guns\GunBase.as                                | Angelscript |        533 |         78 |        166 |        777 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Guns\GunDropped.as                             | Angelscript |         64 |          0 |         19 |         83 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Widgets\AbilityWidget.as                       | Angelscript |         75 |          3 |         14 |         92 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Widgets\CountdownWidget.as                     | Angelscript |         20 |          0 |          4 |         24 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Widgets\KillfeedEntry.as                       | Angelscript |         18 |          0 |          6 |         24 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Widgets\KillfeedWidget.as                      | Angelscript |         27 |          0 |          5 |         32 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Widgets\ShopItemWidget.as                      | Angelscript |        290 |         11 |         64 |        365 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Widgets\ShopUserWidget.as                      | Angelscript |         85 |          0 |         23 |        108 |
+| c:\Users\Spicy\Documents\GitHub\Repositories\Unreal Engine\UE5\Angel\Script\Widgets\ShopWidget.as                          | Angelscript |         57 |          0 |          7 |         64 |
+| Total                                                                                                                      |             |      3,316 |        252 |        795 |      4,363 |
++----------------------------------------------------------------------------------------------------------------------------+-------------+------------+------------+------------+------------+

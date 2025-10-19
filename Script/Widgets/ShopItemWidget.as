@@ -104,12 +104,15 @@ class UShopItemWidget : UUserWidget
 		}
 		else if (GrantArmor)
 		{
-			SetIsOwned(HasRemainingArmor(GetAngelCharacter()));
+			SetIsOwned(GetAngelCharacter().Armor == ArmorToGrant);
 			return;
 		}
 		else if (GrantAbility)
 		{
-			SetIsOwned(GetAngelCharacter().AbilitySystem.HasAbility(AbilityClass));
+			auto ParentPanel = Cast<UPanelWidget>(GetParent());
+			int ChildIndex = ParentPanel.GetChildIndex(this);
+			AbilityClass = GetAngelCharacter().Abilities[ChildIndex];
+			SetIsOwned(GetAngelCharacter().AbilitySystem.HasAbility(AbilityClass) && GetAngelCharacter().Attributes.GetAbilityUses(AbilityClass.DefaultObject.AbilityType) > 0);
 		}
 		else
 		{
@@ -169,7 +172,7 @@ class UShopItemWidget : UUserWidget
 				SetIsOwned(false);
 			}
 
-			//GetAngelPlayerState().RefundSpend(ItemCost, ShopCategory);
+			// GetAngelPlayerState().RefundSpend(ItemCost, ShopCategory);
 		}
 	}
 
@@ -227,7 +230,7 @@ class UShopItemWidget : UUserWidget
 
 	void Purchase()
 	{
-		AAngelPlayerState PlayerState = GetAngelPlayerState(0);
+		AAngelPlayerState PlayerState = GetAngelPlayerState();
 		FPurchaseData PurchaseInfo = FPurchaseData(ShopCategory, ItemCost, GunToGrant, ArmorToGrant, AbilityClass);
 
 		if (!PlayerState.CanAfford(ItemCost) && !IsOwned)
@@ -243,20 +246,22 @@ class UShopItemWidget : UUserWidget
 		Print(f"Purchased {ItemName}");
 		CostText.Text = FText::FromString("OWNED");
 
+		auto Character = GetAngelCharacter();
+
 		if (IsValid(GunToGrant))
 		{
-			auto Character = GetAngelCharacter(0);
 			PreviousGunClass = Character.HolsterComponent.EquippedGun.GetClass();
-
 			Character.HolsterComponent.GrantGun(GunToGrant, true, FEquipData(EEquipSpeed::Fast, true));
 		}
 		else if (GrantArmor)
 		{
-			//GetAngelCharacter(0).GrantArmor(ArmorToGrant);
+			PreviousArmorType = Character.Armor;
+			Character.ApplyArmor(ArmorToGrant);
 		}
 		else if (GrantAbility)
 		{
-			AbilityHandle = GetAngelCharacter(0).AbilitySystem.GiveAbility(AbilityClass, 1, -1, nullptr);
+			AbilityHandle = Character.AbilitySystem.GiveAbility(AbilityClass, 1, -1, nullptr);
+			Character.AbilitySystem.ApplyGameplayEffectToSelf(GetAbilityToGrant(), 1, FGameplayEffectContextHandle());
 		}
 
 		ShopWidget.PurchasedEvent.Broadcast(PurchaseInfo);
@@ -265,18 +270,41 @@ class UShopItemWidget : UUserWidget
 		BP_Purchase(PurchaseInfo);
 	}
 
-	FGameplayAbilitySpecHandle AbilityHandle;
+	TSubclassOf<UAngelGameplayEffect> GetAbilityToGrant()
+	{
+		if (AbilityClass.DefaultObject.AbilityType == EAbility::Basic_C)
+		{
+			return UGE_Grant_Ability_C;
+		}
+		else if (AbilityClass.DefaultObject.AbilityType == EAbility::Basic_Q)
+		{
+			return UGE_Grant_Ability_Q;
+		}
+		else if (AbilityClass.DefaultObject.AbilityType == EAbility::Signature_E)
+		{
+			return UGE_Grant_Ability_E;
+		}
+		else if (AbilityClass.DefaultObject.AbilityType == EAbility::Ultimate_X)
+		{
+			return UGE_Grant_Ability_X;
+		}
+
+		return nullptr;
+	}
+
 
 	UFUNCTION(BlueprintEvent, DisplayName = "Purchased Item")
 	void BP_Purchase(FPurchaseData PurchasedItemData)
 	{}
 
+	FGameplayAbilitySpecHandle AbilityHandle;
 	TSubclassOf<AGunBase> PreviousGunClass;
+	EArmorType PreviousArmorType;
 
 	void Sell()
 	{
 		AAngelPlayerState PlayerState = GetAngelPlayerState(0);
-		
+
 		if (!IsOwned)
 		{
 			PrintWarning("Cannot sell item you don't own!", 2);
@@ -284,25 +312,26 @@ class UShopItemWidget : UUserWidget
 		}
 		else
 		{
-			if (!PlayerState.RefundSpend(ShopCategory)) return;
-
+			if (!PlayerState.RefundSpend(ShopCategory))
+				return;
 		}
 
+		SetIsOwned(false);
 		Print(f"Sold {ItemName}");
-		CostText.SetText(Format(ItemCost));
+
+		auto Character = GetAngelCharacter();
 
 		if (IsValid(PreviousGunClass))
 		{
-			auto Character = GetAngelCharacter(0);
 			Character.HolsterComponent.GrantGun(PreviousGunClass);
 		}
 		else if (GrantArmor)
 		{
-			//GetAngelCharacter(0).GrantArmor(EArmorType::None, 0);
+			Character.ApplyArmor(PreviousArmorType);
 		}
 		else if (GrantAbility)
 		{
-			GetAngelCharacter(0).AbilitySystem.ClearAbility(AbilityHandle);
+			Character.AbilitySystem.ClearAbility(AbilityHandle);
 		}
 
 		BP_Sold(FSellData(ShopCategory, ItemCost, GunToGrant, ArmorToGrant, AbilityClass));

@@ -99,3 +99,11 @@ enum EWinCondition
 	TimeExpired,
 	SpikeDefused
 };
+
+enum EAbility
+{
+	Basic_C,
+	Basic_Q,
+	Signature_E,
+	Ultimate_X
+};

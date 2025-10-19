@@ -82,7 +82,13 @@ class AAngelPlayerController : APlayerController
 		// -- menus
 
 		InputComponent.BindKey(EKeys::B, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ToggleShopInternal"));
+		
+		BP_BeginPlay();
 	}
+
+UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
+	void BP_BeginPlay()
+	{}
 
 	float CycleGunCooldown = 0.2f;
 	float CycleGunTimer = 0.0f;

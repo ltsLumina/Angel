@@ -1,9 +1,5 @@
 class AAngelPlayerCharacter : AAngelAgent
 {
-	UPROPERTY(Category = "Player", NotVisible, BlueprintReadOnly)
-	AAngelPlayerController AngelController;
-	// - flags
-
 	UPROPERTY(Category = "Player", VisibleAnywhere)
 	EAngelMovementState MovementState;
 	default MovementState = EAngelMovementState::Still;
@@ -16,7 +12,6 @@ class AAngelPlayerCharacter : AAngelAgent
 
 	UReloadComponent ReloadComponent;
 	UHolsterComponent HolsterComponent;
-	UInventoryComponent InventoryComponent;
 
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
@@ -25,9 +20,6 @@ class AAngelPlayerCharacter : AAngelAgent
 
 		ReloadComponent = UReloadComponent::Get(this);
 		HolsterComponent = UHolsterComponent::Get(this);
-		InventoryComponent = UInventoryComponent::Get(this);
-
-		AngelController = GetAngelController(this); // Equivalent to Cast<AAngelPlayerController>(this)
 	}
 
 	UFUNCTION(BlueprintOverride)
@@ -43,8 +35,41 @@ class AAngelPlayerCharacter : AAngelAgent
 	UFUNCTION()
 	void UseAbility(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, const UInputAction SourceAction)
 	{
-		
+		FVector2D InputVector = ActionValue.GetAxis2D();
+
+		if (InputVector.Y == 1)
+		{
+			Ability_C();
+		}
+		else if (InputVector.Y == -1)
+		{
+			Ability_Q();
+		}
+		else if (InputVector.X == -1)
+		{
+			Ability_E();
+		}
+		else if (InputVector.X == 1)
+		{
+			Ability_X();
+		}
 	}
+
+	UFUNCTION(BlueprintEvent, DisplayName = "Ability C")
+	void Ability_C()
+	{}
+
+	UFUNCTION(BlueprintEvent, DisplayName = "Ability Q")
+	void Ability_Q()
+	{}
+
+	UFUNCTION(BlueprintEvent, DisplayName = "Ability E")
+	void Ability_E()
+	{}
+
+	UFUNCTION(BlueprintEvent, DisplayName = "Ability X")
+	void Ability_X()
+	{}
 };
 
 AAngelPlayerCharacter GetAngelCharacter(AActor Actor)

@@ -61,7 +61,7 @@ namespace Armor
 UCLASS(Abstract)
 class AAngelAgent : AAngelscriptGASCharacter
 {
-	UPROPERTY()
+	UPROPERTY(Category = "Agent | GAS", EditDefaultsOnly)
 	TArray<TSubclassOf<UAngelAbility>> Abilities;
 
 	UPROPERTY(Category = "Agent | GAS", EditConst)
@@ -126,6 +126,17 @@ class AAngelAgent : AAngelscriptGASCharacter
 			AbilitySystem.GiveAbility(FGameplayAbilitySpec(Ability, 1, -1));
 
 		Attributes = Cast<UAngelGASAttributes>(AbilitySystem.RegisterAttributeSet(UAngelGASAttributes));
+
+		if (Abilities.Num() >= 3)
+		{
+			Attributes.Ability_C_Uses.SetBaseValue(0);
+			Attributes.Ability_C_Uses.SetCurrentValue(0);
+			Attributes.Ability_Q_Uses.SetBaseValue(0);
+			Attributes.Ability_Q_Uses.SetCurrentValue(0);
+			Attributes.Ability_E_Uses.SetBaseValue(1);
+			Attributes.Ability_E_Uses.SetCurrentValue(1);
+			// Attributes.Ability_X_Uses.SetBaseValue(Abilities[3].DefaultObject.Uses);
+		}
 
 		// These are just for display purposes
 		CurrentHealth = GetHealthAttribute();
@@ -331,12 +342,10 @@ class AAngelAgent : AAngelscriptGASCharacter
 	UFUNCTION(Category = "Agent | Armor")
 	void ApplyArmor(EArmorType NewArmor)
 	{
-		if (GetArmorAttribute() >= Armor::GetMaxArmor(NewArmor))
-			return;
-		
+		Armor = NewArmor;
 		float ArmorAmount = Armor::GetMaxArmor(NewArmor);
 
-		FGameplayEffectSpecHandle ArmorHandle = AbilitySystem.MakeOutgoingSpec(UGE_Restore_Armor, 1, FGameplayEffectContextHandle());
+		FGameplayEffectSpecHandle ArmorHandle = AbilitySystem.MakeOutgoingSpec(UGE_Override_Armor, 1, FGameplayEffectContextHandle());
 		if (ArmorHandle.IsValid())
 		{
 			ArmorHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Armor, ArmorAmount);

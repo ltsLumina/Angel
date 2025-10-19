@@ -5,6 +5,9 @@ class UAbilityWidget : UUserWidget
 	FText AbilityName;
 	default AbilityName = FText::FromString("Ability");
 
+	UPROPERTY(Category = "Config", BlueprintReadOnly)
+	EAbility AbilityType = EAbility::Basic_C;
+
 	UPROPERTY(Category = "Config", BlueprintReadOnly, ExposeOnSpawn)
 	FName AbilityID;
 	default AbilityID = NAME_None;
@@ -34,22 +37,24 @@ class UAbilityWidget : UUserWidget
 	UFUNCTION(BlueprintOverride)
 	void Construct()
 	{
-		RemainingCharges = Charges;
 		BP_Construct();
 	}
+
+	UFUNCTION(BlueprintOverride)
+	void Tick(FGeometry MyGeometry, float InDeltaTime)
+	{
+		RemainingCharges = Math::Clamp(Math::RoundToInt(GetAngelCharacter().Attributes.GetAbilityUses(AbilityType)), 0, Charges);
+		
+		BP_Tick(MyGeometry, InDeltaTime);
+	}
+
+	UFUNCTION(BlueprintEvent, DisplayName = "Tick")
+	void BP_Tick(FGeometry MyGeometry, float InDeltaTime)
+	{}
 
 	UFUNCTION(BlueprintEvent, DisplayName = "Construct")
 	void BP_Construct()
 	{}
-
-	UFUNCTION()
-	void CommitWidget()
-	{
-		if (RemainingCharges > 0)
-		{
-			RemainingCharges--;
-		}
-	}
 
 	UFUNCTION()
 	void SetWidgetRemainingCharges(UHorizontalBox ParentWidget, TArray<UWidget> Children, FLinearColor AvailableColour, FLinearColor UnavailableColour)
@@ -67,15 +72,21 @@ class UAbilityWidget : UUserWidget
 		}
         else
         {
-            auto Child = ParentWidget.GetChildAt(RemainingCharges);
-            if (Child != nullptr)
-            {
-                auto Image = Cast<UImage>(Child);
-                if (Image != nullptr)
-                {
-                    Image.SetColorAndOpacity(UnavailableColour);
-                }
-            }
+           for (int i = 0; i < Children.Num(); i++)
+		   {
+			   auto Image = Cast<UImage>(Children[i]);
+			   if (Image != nullptr)
+			   {
+				   if (i < RemainingCharges)
+				   {
+					   Image.SetColorAndOpacity(AvailableColour);
+				   }
+				   else
+				   {
+					   Image.SetColorAndOpacity(UnavailableColour);
+				   }
+			   }
+		   }
         }
 	}
 };
