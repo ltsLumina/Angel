@@ -209,8 +209,6 @@ class AGunBase : AActor
 
 	// - accuracy helpers
 
-	float Increment;
-
 	UFUNCTION(BlueprintPure, Category = "Gun | Accuracy")
 	float GetSpread()
 	{
@@ -242,13 +240,7 @@ class AGunBase : AActor
 				break;
 		}
 
-/* TODO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< LOOK AT THIS I NEED TO FIX THIS FUTURE SELF AFTER SLEEPING ITS 7:44AM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-		if (RecoilIndex > ProtectedBullets && RecoilIndex <= MaxSpreadBullet)
-		{
-			Increment += 0.05f; // degrees per shot
-		}
-	*/
-		Spread += Increment;
+		Spread = Math::Clamp(Math::Pow(RecoilIndex / 7.0f, 1.8f), 0.25f, 1.0f);
 
 		Print(f"Spread: {Spread} degrees", 1, FLinearColor(0.5, 0.5, 1.0));
 		return Spread;
