@@ -166,6 +166,20 @@ class UGE_Grant_Ability_X : UAngelGameplayEffect
 	default Modifiers.Add(Modifier);
 };
 
+class UGE_Override_Resource : UAngelGameplayEffect
+{
+	default DurationPolicy = EGameplayEffectDurationType::Instant;
+	default StackingType = EGameplayEffectStackingType::None;
+
+	FGameplayModifierInfo Modifier;
+	default Modifier.Attribute = UAngelscriptAttributeSet::GetGameplayAttribute(UAngelGASAttributes, UAngelGASAttributes::ResourceName);
+	default Modifier.ModifierOp = EGameplayModOp::Override;
+	default Modifier.ModifierMagnitude.MagnitudeCalculationType = EGameplayEffectMagnitudeCalculation::SetByCaller;
+	default Modifier.ModifierMagnitude.SetByCallerMagnitude.DataTag = GameplayTags::Agent_Viper_Resource_Fuel;
+
+	default Modifiers.Add(Modifier);
+};
+
 /**
  * Helper function to get the ability attribute name from the ability type enum.
  * Not really necessary, but it looks nicer in the gameplay effect classes.
