@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+* linguist-detectable=false
+*.as linguist-detectable=true
+*.as linguist-language=AngelScript
