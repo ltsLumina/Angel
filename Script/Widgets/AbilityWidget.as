@@ -57,7 +57,7 @@ class UAbilityWidget : UUserWidget
 	{}
 
 	UFUNCTION()
-	void SetWidgetRemainingCharges(UHorizontalBox ParentWidget, TArray<UWidget> Children, FLinearColor AvailableColour, FLinearColor UnavailableColour)
+	int SetWidgetRemainingCharges(UHorizontalBox ParentWidget, TArray<UWidget> Children, FLinearColor AvailableColour, FLinearColor UnavailableColour)
 	{
 		if (RemainingCharges == Children.Num())
 		{
@@ -88,5 +88,7 @@ class UAbilityWidget : UUserWidget
 			   }
 		   }
         }
+
+		return RemainingCharges;
 	}
 };
