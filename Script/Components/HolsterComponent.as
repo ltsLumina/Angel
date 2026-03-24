@@ -1,3 +1,5 @@
+event void FOnGunSwitched(int NewIndex);
+
 UCLASS(Abstract)
 class UHolsterComponent : UActorComponent
 {
@@ -15,6 +17,9 @@ class UHolsterComponent : UActorComponent
 
 	UPROPERTY(Category = "Holster | Current", VisibleAnywhere, BlueprintReadOnly)
 	AGunBase Sidearm; // always has index 1
+
+	UPROPERTY(Category = "Events")
+	FOnGunSwitched GunSwitched;
 
 	// - flags
 
@@ -286,7 +291,7 @@ class UHolsterComponent : UActorComponent
 		PrintWarning(f"Attempted to remove gun of class {GunClass.DefaultObject.GetName()}, but it was not found in the holster.", 5);
 	}
 
-	UFUNCTION(Category = "Holster", DisplayName = "OptionalIndex")
+	UFUNCTION(Category = "Holster")
 	void CycleGun(float Direction = 1.0f, int OptionalIndex = -1)
 	{
 		if (HolsteredGuns.Num() == 0)
@@ -317,6 +322,7 @@ class UHolsterComponent : UActorComponent
 		if (HolsteredGuns.IsValidIndex(Index))
 		{
 			EquipGun(HolsteredGuns[Index], FEquipData(EEquipSpeed::Normal));
+			GunSwitched.Broadcast(Index);
 		}
 		else
 		{

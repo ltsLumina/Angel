@@ -76,7 +76,6 @@ class AAngelAgent : AAngelscriptGASCharacter
 
 	UPROPERTY(Category = "Agent | Info", VisibleAnywhere)
 	UTexture2D Avatar;
-	default check(IsValid(Avatar), "Avatar texture not assigned!");
 
 	UPROPERTY(Category = "Agent | Health", VisibleAnywhere, BlueprintReadOnly, BlueprintGetter = GetHealthAttribute, ToolTip = "Only used for display purposes.")
 	float CurrentHealth;
@@ -141,6 +140,8 @@ class AAngelAgent : AAngelscriptGASCharacter
 		// These are just for display purposes
 		CurrentHealth = GetHealthAttribute();
 		CurrentArmor = GetArmorAttribute();
+
+		check(Avatar != nullptr, "Avatar texture not assigned!");
 
 		Print(f"{AgentName} has spawned with {GetHealthAttribute()} health and {GetArmorAttribute()} armor.", 1.5f, FLinearColor::Green);
 
