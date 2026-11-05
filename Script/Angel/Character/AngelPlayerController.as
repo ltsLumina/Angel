@@ -55,19 +55,19 @@ class AAngelPlayerController : APlayerController
 		UEnhancedInputLocalPlayerSubsystem EnhancedInputSubsystem = UEnhancedInputLocalPlayerSubsystem::Get(this);
 		EnhancedInputSubsystem.AddMappingContext(IMC_Gameplay, 0, FModifyContextOptions());
 
-		AAngelPlayerCharacter Character = GetAngelCharacter(0);
+		AAngelPlayerCharacter Character = Game::Player;
 		ReloadComponent = UReloadComponent::Get(Character);
 
 		// Movement
 
 		// Shooting
-		InputComponent.BindAction(ShootAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"Fire"));
+		InputComponent.BindAction(ShootAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(Game::Player), n"Fire"));
 
 		// ADS (Aim Down Sights)
-		InputComponent.BindAction(ADS_Action, ETriggerEvent::Started, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"StartADS"));
-		InputComponent.BindAction(ADS_Action, ETriggerEvent::Canceled, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"CancelledADS"));
-		InputComponent.BindAction(ADS_Action, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"TriggeredADS"));
-		InputComponent.BindAction(ADS_Action, ETriggerEvent::Completed, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(GetAngelCharacter(0)), n"EndADS"));
+		InputComponent.BindAction(ADS_Action, ETriggerEvent::Started, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(Game::Player), n"StartADS"));
+		InputComponent.BindAction(ADS_Action, ETriggerEvent::Canceled, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(Game::Player), n"CancelledADS"));
+		InputComponent.BindAction(ADS_Action, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(Game::Player), n"TriggeredADS"));
+		InputComponent.BindAction(ADS_Action, ETriggerEvent::Completed, FEnhancedInputActionHandlerDynamicSignature(UGunComponent::Get(Game::Player), n"EndADS"));
 
 		// Reloading
 		InputComponent.BindKey(EKeys::R, EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(ReloadComponent, n"Reload"));
@@ -105,7 +105,7 @@ UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
 	UFUNCTION(NotBlueprintCallable)
 	void CycleGun(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, UInputAction SourceAction)
 	{
-		UHolsterComponent Holster = GetAngelCharacter(0).HolsterComponent;
+		UHolsterComponent Holster = Game::Player.HolsterComponent;
 
 		if (CycleGunTimer > 0.0f)
 			return;
@@ -124,7 +124,7 @@ UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
 	UFUNCTION(NotBlueprintCallable)
 	void SelectGun(FKey Key)
 	{
-		UHolsterComponent Holster = GetAngelCharacter(0).HolsterComponent;
+		UHolsterComponent Holster = Game::Player.HolsterComponent;
 		if (!IsValid(Holster))
 			return;
 
@@ -155,7 +155,7 @@ UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
 	UFUNCTION(Category = "Shop")
 	void ToggleShop(bool ForceClose = false)
 	{
-		auto GameState = GetAngelGameState();
+		auto GameState = Game::GameState;
 		if (IsValid(GameState) && GameState.CurrentPhase != EGamePhase::BuyPhase)
 		{
 			PrintWarning("Can only open shop during Buy Phase!", 3);
@@ -182,16 +182,6 @@ UFUNCTION(BlueprintEvent, DisplayName = "Begin Play")
 		}
 	}
 };
-
-AAngelPlayerController GetAngelController(APawn Pawn)
-{
-	return Cast<AAngelPlayerController>(Pawn.GetController());
-}
-
-AAngelPlayerController GetAngelController(int PlayerIndex)
-{
-	return Cast<AAngelPlayerController>(Gameplay::GetPlayerController(PlayerIndex));
-}
 
 void SwitchMappingContext(APlayerController PC, UInputMappingContext NewContext, int Priority = 0)
 {

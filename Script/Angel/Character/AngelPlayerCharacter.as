@@ -71,13 +71,3 @@ class AAngelPlayerCharacter : AAngelAgent
 	void Ability_X()
 	{}
 };
-
-AAngelPlayerCharacter GetAngelCharacter(AActor Actor)
-{
-	return Cast<AAngelPlayerCharacter>(Actor);
-}
-
-AAngelPlayerCharacter GetAngelCharacter(int PlayerIndex = 0)
-{
-	return Cast<AAngelPlayerCharacter>(Gameplay::GetPlayerCharacter(PlayerIndex));
-}

@@ -16,7 +16,7 @@ class UShopWidget : UUserWidget
 	{
 		if (InKeyEvent.GetKey() == EKeys::B)
 		{
-			auto Controller = GetAngelController(0);
+			auto Controller = Game::Controller;
 			if (IsValid(Controller))
 			{
 				Controller.ToggleShop();

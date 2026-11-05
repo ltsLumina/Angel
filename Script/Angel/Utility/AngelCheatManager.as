@@ -6,8 +6,8 @@ class UAngelCheatManager : UCheatManager
 	UFUNCTION(BlueprintOverride)
 	void InitCheatManager()
 	{
-        GameState = GetAngelGameState();
-        PlayerState = GetAngelPlayerState(0);
+        GameState = Game::GameState;
+        PlayerState = Game::PlayerState;
         if (!IsValid(GameState) || !IsValid(PlayerState))
         {
             PrintError("Failed to initialize AngelCheatManager: Invalid GameState or PlayerState.");
@@ -63,7 +63,7 @@ class UAngelCheatManager : UCheatManager
     UFUNCTION(Exec)
     void GrantGun(TSubclassOf<AGunBase> GunClass, bool AutoEquip = true)
     {
-        GetAngelCharacter(0).HolsterComponent.GrantGun(GunClass, AutoEquip, FEquipData(EEquipSpeed::Fast, true));
+        Game::Player.HolsterComponent.GrantGun(GunClass, AutoEquip, FEquipData(EEquipSpeed::Fast, true));
     }
 
     // Credits

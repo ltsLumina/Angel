@@ -49,10 +49,10 @@ class UShopUserWidget : UUserWidget
 	UFUNCTION(BlueprintOverride)
 	void PreConstruct(bool IsDesignTime)
 	{
-		if (IsValid(GetAngelCharacter(0).HolsterComponent))
+		if (IsValid(Game::Player.HolsterComponent))
 		{
-			Sidearm = GetAngelCharacter(0).HolsterComponent.Sidearm.GetClass();
-			Primary = GetAngelCharacter(0).HolsterComponent.Primary.GetClass();
+			Sidearm = Game::Player.HolsterComponent.Sidearm.GetClass();
+			Primary = Game::Player.HolsterComponent.Primary.GetClass();
 		}
 
 		ArmorImage.SetBrushFromTexture(GetArmorIcon(Armor));

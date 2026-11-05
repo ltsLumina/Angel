@@ -21,7 +21,7 @@ class UAngelAbility : UGameplayAbility
 	int Uses = 2;
 	default Uses = AbilityType == EAbility::Ultimate_X ? 1 : 2;
 
-    UPROPERTY(Category = "Ability | Uses", Meta = (UIMin = "-1", UIMax = "60", EditCondition = AbilityType == EAbility::Signature_E, EditConditionHides))
+    UPROPERTY(Category = "Ability | Uses", Meta = (UIMin = "-1", UIMax = "60", EditCondition = "AbilityType == EAbility::Signature_E", EditConditionHides))
 	float RestockTime = 40;
 
 	UPROPERTY(Category = "Ability | Equip", Meta = (UIMin = "0", UIMax = "1"))

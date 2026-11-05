@@ -160,7 +160,7 @@ class AAngelAgent : AAngelscriptGASCharacter
 		DeathInfo.Killer = Cast<AAngelAgent>(InstigatedBy.ControlledPawn);
 		DeathInfo.Victim = this;
 		DeathInfo.WeaponUsed = Cast<AGunBase>(DamageCauser);
-		DeathInfo.WasHeadshot = GetBodyPartHit(HitComponent).Head;
+		DeathInfo.WasHeadshot = Hit::GetBodyPartHit(HitComponent).Head;
 
 		ApplyDamage(Damage);
 
@@ -264,7 +264,7 @@ class AAngelAgent : AAngelscriptGASCharacter
 		System::SetTimer(this, n"Respawn", 1.5f, false);
 
 		OnDeath.Broadcast(DeathInfo);
-		GetAngelGameState().OnAgentDeath.Broadcast(DeathInfo);
+		Game::GameState.OnAgentDeath.Broadcast(DeathInfo);
 
 		BP_Death(DeathInfo);
 	}

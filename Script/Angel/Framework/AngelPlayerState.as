@@ -30,7 +30,7 @@ class AAngelPlayerState : APlayerState
 	UFUNCTION(BlueprintPure)
 	int GetMinNextRound()
 	{
-		int Value = Credits + GetAngelGameState().GetCreditsForReason(ECreditsGrantedReason::RoundLoss);
+		int Value = Credits + Game::GameState.GetCreditsForReason(ECreditsGrantedReason::RoundLoss);
 		return Math::Clamp(Value, 0, MaxCredits);
 	}
 
@@ -41,7 +41,7 @@ class AAngelPlayerState : APlayerState
 		Deaths = 0;
 		MultikillCount = 0;
 
-		GetAngelGameState().OnRoundStart.AddUFunction(this, n"ResetSpendTracker");
+		Game::GameState.OnRoundStart.AddUFunction(this, n"ResetSpendTracker");
 	}
 
 	UFUNCTION()
@@ -196,34 +196,4 @@ class AAngelPlayerState : APlayerState
             return Difference <= Credits;
         }
     }
-}
-UFUNCTION(BlueprintPure, Category = "Framework")
-AAngelPlayerState GetAngelPlayerState(int PlayerIndex = 0)
-{
-	return Cast<AAngelPlayerState>(Gameplay::GetPlayerState(PlayerIndex));
-}
-
-UFUNCTION(BlueprintPure, Category = "UI | Economy")
-FText GetCreditsFormatted()
-{
-	AAngelPlayerState PlayerState = GetAngelPlayerState(0);
-	return FormatCredits(PlayerState.Credits);
-}
-
-UFUNCTION(BlueprintPure, Category = "UI | Economy")
-FText FormatCredits(int Credits)
-{
-	FString Pretty;
-
-	FNumberFormattingOptions FormatOptions;
-	FormatOptions.SetUseGrouping(false);
-	FormatOptions.SetMaximumIntegralDigits(4);
-	FormatOptions.SetMaximumFractionalDigits(0);
-	Pretty = FText::AsNumber(Credits, FormatOptions).ToString();
-	if (Credits >= 1000)
-	{
-		Insert(Pretty, ",", 1);
-	}
-
-	return FText::FromString(f"¤{Pretty}");
 }

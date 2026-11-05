@@ -19,7 +19,7 @@ class UReloadStrategyBase : UObject
     EGunState GunState = EGunState::NotReady;
 
     // Setup gun stuff, like getting a reference to the gun.
-    void Reload() { Gun = GetAngelCharacter(0).HolsterComponent.EquippedGun; }
+    void Reload() { Gun = Game::Player.HolsterComponent.EquippedGun; }
 }
 
 UCLASS(EditInlineNew)
@@ -89,7 +89,7 @@ class UShotgunReloadStrategy : UReloadStrategyBase
 {
     bool CanReload() override
     {
-        Gun = GetAngelCharacter(0).HolsterComponent.EquippedGun;
+        Gun = Game::Player.HolsterComponent.EquippedGun;
         return Gun.CurrentAmmo < Gun.MaxAmmo || !Gun.GetIsReady();
     }
 

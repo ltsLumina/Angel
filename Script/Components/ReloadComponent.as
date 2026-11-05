@@ -34,7 +34,7 @@ class UReloadComponent : UActorComponent
     void Reload(FKey Key)
     {
         // NOTE: This is done on each key press in-case the reload keys change dynamically, in the future.
-        auto EquippedGun = GetAngelCharacter(0).HolsterComponent.EquippedGun;
+        auto EquippedGun = Game::Player.HolsterComponent.EquippedGun;
 
         if (TimeSinceInput < InputDelay)
         {

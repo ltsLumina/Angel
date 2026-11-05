@@ -3,7 +3,7 @@ namespace Drop
 	UFUNCTION()
 	void DropGun(TSubclassOf<AGunDropped> GunDropClass)
 	{
-		AAngelPlayerCharacter Character = GetAngelCharacter(0);
+		AAngelPlayerCharacter Character = Game::Player;
 		UHolsterComponent Holster = UHolsterComponent::Get(Character);
 		AGunBase CurrentGun = Holster.EquippedGun;
 
@@ -64,8 +64,8 @@ class AGunDropped : AActor
 	UFUNCTION()
 	void PickupGun()
 	{
-		AAngelPlayerCharacter Character = GetAngelCharacter(0);
-		UHolsterComponent Holster = UHolsterComponent::Get(GetAngelCharacter(0));
+		AAngelPlayerCharacter Character = Game::Player;
+		UHolsterComponent Holster = UHolsterComponent::Get(Game::Player);
 		OldGun = Holster.EquippedGun;
 
 		AGunDropped NewDroppedGun = SpawnActor(Blueprint, Character.ActorLocation + FVector(0, 0, 75), FRotator::ZeroRotator, FName(f"Dropped {GunClassToGrant.DefaultObject.GunName}"));

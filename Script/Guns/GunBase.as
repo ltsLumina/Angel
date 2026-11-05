@@ -212,7 +212,7 @@ class AGunBase : AActor
 	UFUNCTION(BlueprintPure, Category = "Gun | Accuracy")
 	float GetSpread()
 	{
-		EAngelMovementState State = GetAngelCharacter(0).MovementState;
+		EAngelMovementState State = Game::Player.MovementState;
 		float Spread;
 
 		switch (State)
@@ -309,7 +309,7 @@ class AGunBase : AActor
 	UFUNCTION(BlueprintPure, Category = "Gun | Info", NotBlueprintCallable)
 	bool GetIsScoped()
 	{
-		return UGunComponent::Get(GetAngelCharacter(0)).IsADS;
+		return UGunComponent::Get(Game::Player).IsADS;
 	}
 
 	// - audio
@@ -404,7 +404,7 @@ class AGunBase : AActor
 		ShootCooldown = 1.0 / FireRate;
 		RPM = FireRate * 60;
 
-		GetAngelGameState().OnAgentDeath.AddUFunction(this, n"AgentKilled");
+		Game::GameState.OnAgentDeath.AddUFunction(this, n"AgentKilled");
 
 		Ready();
 	}
@@ -469,7 +469,7 @@ class AGunBase : AActor
 
 	FVector GetTargetPoint(float MaxDistance = 10000.0f)
 	{
-		UCameraComponent Camera = UCameraComponent::Get(GetAngelCharacter(GetOwner()));
+		UCameraComponent Camera = UCameraComponent::Get(Game::Player);
 		FVector CameraLocation = Camera.WorldLocation;
 		FVector CameraForward = Camera.GetForwardVector();
 
@@ -519,13 +519,13 @@ class AGunBase : AActor
 		BulletHit = FBulletHit(
 			LastHit.bBlockingHit,
 			LastHit.Actor.IsA(AAngelAgent),
-			GetBodyPartHit(LastHit.Component).Head,
-			ToMeters(LastHit.Distance),
+			Hit::GetBodyPartHit(LastHit.Component).Head,
+			Math::ToMeters(LastHit.Distance),
 			LastHit.Location,
 			LastHit.Actor,
 			Cast<AAngelAgent>(LastHit.Actor),
 			LastHit.BoneName,
-			GetBodyPartHit(LastHit.Component));
+			Hit::GetBodyPartHit(LastHit.Component));
 
 		if (BulletHit.WasAgentHit)
 		{
@@ -548,7 +548,7 @@ class AGunBase : AActor
 				DamageAmount,
 				BulletDirection,
 				LastHit,
-				GetAngelCharacter(0).Controller,
+				Game::Player.Controller,
 				this,
 				TSubclassOf<UDamageType>(UDamageType));
 		}
@@ -603,7 +603,7 @@ class AGunBase : AActor
 			}
 
 			UMaterialInterface DecalMaterial = Penetrated ? BulletPenetrationDecal : BulletHitDecal;
-			FRotator DecalRotation = Penetrated ? GetAngelCharacter(0).ControlRotation : Hit.ImpactNormal.Rotation();
+			FRotator DecalRotation = Penetrated ? Game::Player.ControlRotation : Hit.ImpactNormal.Rotation();
 
 			UDecalComponent Decal = Gameplay::SpawnDecalAtLocation(DecalMaterial, FVector(8.0f, 8.0f, 8.0f), Hit.Location, DecalRotation, 15.0f);
 			if (IsValid(Decal))
@@ -617,11 +617,11 @@ class AGunBase : AActor
 	UFUNCTION(Category = "Gun | Kill", DisplayName = "Agent Killed")
 	void AgentKilled(FDeathInfo DeathInfo)
 	{
-		if (GetAngelCharacter().HolsterComponent.EquippedGun != this) 
+		if (Game::Player.HolsterComponent.EquippedGun != this) 
 			return; // weird bug
 
 		// Handle multikill logic
-		auto PlayerState = GetAngelPlayerState(0);
+		auto PlayerState = Game::PlayerState;
 		PlayerState.MultikillCount++;
 
 		if (PlayerState.MultikillCount <= 5)
@@ -644,7 +644,7 @@ class AGunBase : AActor
 	UFUNCTION(NotBlueprintCallable)
 	void ResetMultikill()
 	{
-		GetAngelPlayerState(0).ResetMultikill();
+		Game::PlayerState.ResetMultikill();
 	}
 
 	UFUNCTION(BlueprintEvent, DisplayName = "On Kill")
@@ -739,31 +739,3 @@ class AGunBase : AActor
 	void BP_Ready()
 	{}
 };
-
-UFUNCTION(BlueprintPure)
-float ToMeters(float DistanceInCm)
-{
-	return DistanceInCm / 100.0f;
-}
-
-UFUNCTION(BlueprintPure)
-FBodyPartHit GetBodyPartHit(UPrimitiveComponent Component)
-{
-	if (!IsValid(Component))
-		return FBodyPartHit();
-
-	if (Component.ComponentTags.Contains(n"Head"))
-	{
-		return FBodyPartHit(true, false, false, EBodyPart::Head);
-	}
-	else if (Component.ComponentTags.Contains(n"Body"))
-	{
-		return FBodyPartHit(false, true, false, EBodyPart::Body);
-	}
-	else if (Component.ComponentTags.Contains(n"Legs"))
-	{
-		return FBodyPartHit(false, false, true, EBodyPart::Legs);
-	}
-
-	return FBodyPartHit();
-}

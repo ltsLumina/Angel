@@ -17,7 +17,7 @@ class UKillfeedWidget : UUserWidget
 	UFUNCTION(BlueprintOverride)
 	void Construct()
 	{
-		GetAngelGameState().OnAgentDeath.AddUFunction(this, n"AgentDeath");
+		Game::GameState.OnAgentDeath.AddUFunction(this, n"AgentDeath");
 
 		BP_Construct();
 	}

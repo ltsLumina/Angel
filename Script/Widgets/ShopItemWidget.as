@@ -99,20 +99,20 @@ class UShopItemWidget : UUserWidget
 
 		if (IsValid(GunToGrant))
 		{
-			SetIsOwned(GetAngelCharacter().HolsterComponent.HasGun(GunToGrant));
+			SetIsOwned(Game::Player.HolsterComponent.HasGun(GunToGrant));
 			return;
 		}
 		else if (GrantArmor)
 		{
-			SetIsOwned(GetAngelCharacter().Armor == ArmorToGrant);
+			SetIsOwned(Game::Player.Armor == ArmorToGrant);
 			return;
 		}
 		else if (GrantAbility)
 		{
 			auto ParentPanel = Cast<UPanelWidget>(GetParent());
 			int ChildIndex = ParentPanel.GetChildIndex(this);
-			AbilityClass = GetAngelCharacter().Abilities[ChildIndex];
-			SetIsOwned(GetAngelCharacter().AbilitySystem.HasAbility(AbilityClass) && GetAngelCharacter().Attributes.GetAbilityUses(AbilityClass.DefaultObject.AbilityType) > 0);
+			AbilityClass = Game::Player.Abilities[ChildIndex];
+			SetIsOwned(Game::Player.AbilitySystem.HasAbility(AbilityClass) && Game::Player.Attributes.GetAbilityUses(AbilityClass.DefaultObject.AbilityType) > 0);
 		}
 		else
 		{
@@ -172,7 +172,7 @@ class UShopItemWidget : UUserWidget
 				SetIsOwned(false);
 			}
 
-			// GetAngelPlayerState().RefundSpend(ItemCost, ShopCategory);
+			// Game::PlayerState.RefundSpend(ItemCost, ShopCategory);
 		}
 	}
 
@@ -187,7 +187,7 @@ class UShopItemWidget : UUserWidget
 			return FText::FromString("FREE");
 		}
 
-		return FormatCredits(InItemCost);
+		return Credits::Format(InItemCost);
 	}
 
 	UFUNCTION(BlueprintOverride)
@@ -230,7 +230,7 @@ class UShopItemWidget : UUserWidget
 
 	void Purchase()
 	{
-		AAngelPlayerState PlayerState = GetAngelPlayerState();
+		AAngelPlayerState PlayerState = Game::PlayerState;
 		FPurchaseData PurchaseInfo = FPurchaseData(ShopCategory, ItemCost, GunToGrant, ArmorToGrant, AbilityClass);
 
 		if (!PlayerState.CanAfford(ItemCost) && !IsOwned)
@@ -246,7 +246,7 @@ class UShopItemWidget : UUserWidget
 		Print(f"Purchased {ItemName}");
 		CostText.Text = FText::FromString("OWNED");
 
-		auto Character = GetAngelCharacter();
+		auto Character = Game::Player;
 
 		if (IsValid(GunToGrant))
 		{
@@ -303,7 +303,7 @@ class UShopItemWidget : UUserWidget
 
 	void Sell()
 	{
-		AAngelPlayerState PlayerState = GetAngelPlayerState(0);
+		AAngelPlayerState PlayerState = Game::PlayerState;
 
 		if (!IsOwned)
 		{
@@ -319,7 +319,7 @@ class UShopItemWidget : UUserWidget
 		SetIsOwned(false);
 		Print(f"Sold {ItemName}");
 
-		auto Character = GetAngelCharacter();
+		auto Character = Game::Player;
 
 		if (IsValid(PreviousGunClass))
 		{
@@ -348,18 +348,4 @@ enum EShopCategory
 	Primary,
 	Armor,
 	Ability
-}
-
-/**
- * Inserts a substring into a string at the specified index.
- * Because angelscript doesn't have a built-in function for this.
- */
-UFUNCTION(Category = "String")
-void Insert(FString&out InString, FString ToInsert, int Index)
-{
-	if (Index < 0 || Index > InString.Len())
-	{
-		return;
-	}
-	InString = InString.Left(Index) + ToInsert + InString.RightChop(Index);
 }

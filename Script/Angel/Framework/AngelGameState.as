@@ -170,7 +170,7 @@ class AAngelGameState : AGameStateBase
 		CurrentPhase = EGamePhase::BuyPhase;
 		BuyPhaseTimeRemaining = BuyPhaseDuration;
 
-		AAngelPlayerState PlayerState = GetAngelPlayerState(0);
+		AAngelPlayerState PlayerState = Game::PlayerState;
 
 		if (HasGameBegun())
 		{
@@ -193,7 +193,7 @@ class AAngelGameState : AGameStateBase
 		CurrentPhase = EGamePhase::Round;
 		RoundTimeRemaining = RoundDuration;
 
-		GetAngelController(0).ToggleShop(ForceClose = true);
+		Game::Controller.ToggleShop(ForceClose = true);
 
 		Round++;
 
@@ -353,9 +353,3 @@ class AAngelGameState : AGameStateBase
 		}
 	}
 };
-
-UFUNCTION(BlueprintPure)
-AAngelGameState GetAngelGameState()
-{
-	return Cast<AAngelGameState>(Gameplay::GetGameState());
-}

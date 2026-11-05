@@ -43,7 +43,7 @@ class UAbilityWidget : UUserWidget
 	UFUNCTION(BlueprintOverride)
 	void Tick(FGeometry MyGeometry, float InDeltaTime)
 	{
-		RemainingCharges = Math::Clamp(Math::RoundToInt(GetAngelCharacter().Attributes.GetAbilityUses(AbilityType)), 0, Charges);
+		RemainingCharges = Math::Clamp(Math::RoundToInt(Game::Player.Attributes.GetAbilityUses(AbilityType)), 0, Charges);
 		
 		BP_Tick(MyGeometry, InDeltaTime);
 	}
