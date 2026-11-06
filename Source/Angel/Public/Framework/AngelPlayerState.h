@@ -13,12 +13,12 @@
  * 
  */
 UCLASS(Blueprintable, BlueprintType)
-class ANGEL_API AAngelPlayerState : public APlayerState, public IAbilitySystemInterface, public IGameplayTagAssetInterface
+class ANGEL_API AAngelPlayerStateBase : public APlayerState, public IAbilitySystemInterface, public IGameplayTagAssetInterface
 {
 	GENERATED_BODY()
 	
 public:
-	AAngelPlayerState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	AAngelPlayerStateBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AbilitySystem")
 	TObjectPtr<UAngelscriptAbilitySystemComponent> AbilitySystem;

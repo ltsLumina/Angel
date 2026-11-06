@@ -232,6 +232,37 @@ class AAngelPlayerController : AAngelPlayerControllerBase
 			SwitchMappingContext(this, IMC_Shop, 0);
 		}
 	}
+
+	/**
+	 * Note: We could make this function a server RPC, but because its called almost exclusively from PostGameplayEffectExecute --
+	 * which is server-only -- and from OnRep_Ammo -- which is client-only -- we don't gain anything from an RPC, other than
+	 * for the initial replication to be handled server-side. So we're essentially trusting the player's very first bullet wholeheartedly!!
+	 */
+	void UpdateAmmoTags(UAngelscriptAbilitySystemComponent ASC, float Ammo, float MaxAmmo) const
+	{
+		SetTagState(ASC, GameplayTags::State_Ammo_Last, Ammo == 1.f && Ammo > 0.f);
+		SetTagState(ASC, GameplayTags::State_Ammo_Empty, Ammo <= 0.f);
+		SetTagState(ASC, GameplayTags::State_Ammo_Full, Ammo >= MaxAmmo);
+	}
+
+	void UpdateMovementTags(UAngelscriptAbilitySystemComponent ASC, EAngelMovementState MoveState) const
+	{
+		SetTagState(ASC, GameplayTags::State_Movement_Still, MoveState == EAngelMovementState::Still);
+		SetTagState(ASC, GameplayTags::State_Movement_Airborne, MoveState == EAngelMovementState::Airborne);
+		SetTagState(ASC, GameplayTags::State_Movement_Walk, MoveState == EAngelMovementState::Walk);
+		SetTagState(ASC, GameplayTags::State_Movement_Run, MoveState == EAngelMovementState::Run);
+		SetTagState(ASC, GameplayTags::State_Movement_Crouch, MoveState == EAngelMovementState::Crouch);
+		SetTagState(ASC, GameplayTags::State_Movement_CrouchWalk, MoveState == EAngelMovementState::CrouchWalk);
+	}
+
+	void SetTagState(UAngelscriptAbilitySystemComponent ASC, FGameplayTag Tag, bool bShouldHave) const
+	{
+		const bool bHas = ASC.HasGameplayTag(Tag);
+		if (bShouldHave && !bHas)
+			ASC.AddLooseGameplayTag(Tag, 1, EGameplayTagReplicationState::TagAndCountToAll);
+		else if (!bShouldHave && bHas)
+			ASC.RemoveLooseGameplayTag(Tag, 1, EGameplayTagReplicationState::TagAndCountToAll);
+	}
 };
 
 void SwitchMappingContext(APlayerController PC, UInputMappingContext NewContext, int Priority = 0)

@@ -1,10 +1,3 @@
-enum EBodyPart
-{
-	Head,
-	Body,
-	Legs
-};
-
 enum EArmorType
 {
 	None,

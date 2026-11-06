@@ -4,29 +4,29 @@
 #include "Components/AngelCharacterMovementComponent.h"
 #include "Framework/AngelCharacter.h"
 
-float UAngelCharacterMovementComponent::GetMaxSpeed() const
+float UAngelCharacterMovementComponentBase::GetMaxSpeed() const
 {
 	return BP_GetMaxSpeed();
 }
 
-bool UAngelCharacterMovementComponent::CanAttemptJump() const
+bool UAngelCharacterMovementComponentBase::CanAttemptJump() const
 {
 	return BP_CanAttemptJump();
 }
 
-float UAngelCharacterMovementComponent::BP_GetMaxSpeed_Implementation() const
+float UAngelCharacterMovementComponentBase::BP_GetMaxSpeed_Implementation() const
 {
 	checkf(true, TEXT("%s: should be implemented in script only!"), *FString(__FUNCTION__));
 	return -1;
 }
 
-bool UAngelCharacterMovementComponent::BP_CanAttemptJump_Implementation() const
+bool UAngelCharacterMovementComponentBase::BP_CanAttemptJump_Implementation() const
 {
 	checkf(true, TEXT("%s: should be implemented in script only!"), *FString(__FUNCTION__));
 	return false;
 }
 
-void UAngelCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
+void UAngelCharacterMovementComponentBase::UpdateFromCompressedFlags(uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
 
@@ -38,13 +38,13 @@ void UAngelCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 	RequestToStartADS = (Flags & FSavedMove_Character::FLAG_Custom_1) != 0;
 }
 
-FNetworkPredictionData_Client * UAngelCharacterMovementComponent::GetPredictionData_Client() const
+FNetworkPredictionData_Client * UAngelCharacterMovementComponentBase::GetPredictionData_Client() const
 {
 	check(PawnOwner != nullptr);
 
 	if (!ClientPredictionData)
 	{
-		UAngelCharacterMovementComponent* MutableThis = const_cast<UAngelCharacterMovementComponent*>(this);
+		UAngelCharacterMovementComponentBase* MutableThis = const_cast<UAngelCharacterMovementComponentBase*>(this);
 
 		MutableThis->ClientPredictionData = new FAngelNetworkPredictionData_Client(*this);
 		MutableThis->ClientPredictionData->MaxSmoothNetUpdateDist = 92.f;
@@ -54,27 +54,27 @@ FNetworkPredictionData_Client * UAngelCharacterMovementComponent::GetPredictionD
 	return ClientPredictionData;
 }
 
-void UAngelCharacterMovementComponent::StartSprinting()
+void UAngelCharacterMovementComponentBase::StartSprinting()
 {
 	RequestToStartSprinting = true;
 }
 
-void UAngelCharacterMovementComponent::StopSprinting()
+void UAngelCharacterMovementComponentBase::StopSprinting()
 {
 	RequestToStartSprinting = false;
 }
 
-void UAngelCharacterMovementComponent::StartAimDownSights()
+void UAngelCharacterMovementComponentBase::StartAimDownSights()
 {
 	RequestToStartADS = true;
 }
 
-void UAngelCharacterMovementComponent::StopAimDownSights()
+void UAngelCharacterMovementComponentBase::StopAimDownSights()
 {
 	RequestToStartADS = false;
 }
 
-void UAngelCharacterMovementComponent::FAngelSavedMove::Clear()
+void UAngelCharacterMovementComponentBase::FAngelSavedMove::Clear()
 {
 	Super::Clear();
 
@@ -82,7 +82,7 @@ void UAngelCharacterMovementComponent::FAngelSavedMove::Clear()
 	SavedRequestToStartADS = false;
 }
 
-uint8 UAngelCharacterMovementComponent::FAngelSavedMove::GetCompressedFlags() const
+uint8 UAngelCharacterMovementComponentBase::FAngelSavedMove::GetCompressedFlags() const
 {
 	uint8 Result = Super::GetCompressedFlags();
 
@@ -99,7 +99,7 @@ uint8 UAngelCharacterMovementComponent::FAngelSavedMove::GetCompressedFlags() co
 	return Result;
 }
 
-bool UAngelCharacterMovementComponent::FAngelSavedMove::CanCombineWith(const FSavedMovePtr & NewMove, ACharacter * Character, float MaxDelta) const
+bool UAngelCharacterMovementComponentBase::FAngelSavedMove::CanCombineWith(const FSavedMovePtr & NewMove, ACharacter * Character, float MaxDelta) const
 {
 	//Set which moves can be combined together. This will depend on the bit flags that are used.
 	if (SavedRequestToStartSprinting != ((FAngelSavedMove*)&NewMove)->SavedRequestToStartSprinting)
@@ -115,11 +115,11 @@ bool UAngelCharacterMovementComponent::FAngelSavedMove::CanCombineWith(const FSa
 	return Super::CanCombineWith(NewMove, Character, MaxDelta);
 }
 
-void UAngelCharacterMovementComponent::FAngelSavedMove::SetMoveFor(ACharacter * Character, float InDeltaTime, FVector const & NewAccel, FNetworkPredictionData_Client_Character & ClientData)
+void UAngelCharacterMovementComponentBase::FAngelSavedMove::SetMoveFor(ACharacter * Character, float InDeltaTime, FVector const & NewAccel, FNetworkPredictionData_Client_Character & ClientData)
 {
 	Super::SetMoveFor(Character, InDeltaTime, NewAccel, ClientData);
 
-	UAngelCharacterMovementComponent* CharacterMovement = Cast<UAngelCharacterMovementComponent>(Character->GetCharacterMovement());
+	UAngelCharacterMovementComponentBase* CharacterMovement = Cast<UAngelCharacterMovementComponentBase>(Character->GetCharacterMovement());
 	if (CharacterMovement)
 	{
 		SavedRequestToStartSprinting = CharacterMovement->RequestToStartSprinting;
@@ -127,22 +127,22 @@ void UAngelCharacterMovementComponent::FAngelSavedMove::SetMoveFor(ACharacter * 
 	}
 }
 
-void UAngelCharacterMovementComponent::FAngelSavedMove::PrepMoveFor(ACharacter * Character)
+void UAngelCharacterMovementComponentBase::FAngelSavedMove::PrepMoveFor(ACharacter * Character)
 {
 	Super::PrepMoveFor(Character);
 
-	UAngelCharacterMovementComponent* CharacterMovement = Cast<UAngelCharacterMovementComponent>(Character->GetCharacterMovement());
+	UAngelCharacterMovementComponentBase* CharacterMovement = Cast<UAngelCharacterMovementComponentBase>(Character->GetCharacterMovement());
 	if (CharacterMovement)
 	{
 	}
 }
 
-UAngelCharacterMovementComponent::FAngelNetworkPredictionData_Client::FAngelNetworkPredictionData_Client(const UCharacterMovementComponent & ClientMovement)
+UAngelCharacterMovementComponentBase::FAngelNetworkPredictionData_Client::FAngelNetworkPredictionData_Client(const UCharacterMovementComponent & ClientMovement)
 	: Super(ClientMovement)
 {
 }
 
-FSavedMovePtr UAngelCharacterMovementComponent::FAngelNetworkPredictionData_Client::AllocateNewMove()
+FSavedMovePtr UAngelCharacterMovementComponentBase::FAngelNetworkPredictionData_Client::AllocateNewMove()
 {
 	return FSavedMovePtr(new FAngelSavedMove());
 }

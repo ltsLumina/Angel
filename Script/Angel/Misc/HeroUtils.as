@@ -35,7 +35,7 @@ namespace HeroUtils
 	}
 
 	UFUNCTION(BlueprintPure)
-	bool IsSprinting(AScriptPondHero Hero)
+	bool IsSprinting(AAngelAgent Hero)
 	{
 		if (!IsValid(Hero))
 			return false;
@@ -44,7 +44,7 @@ namespace HeroUtils
 	}
 
 	UFUNCTION(BlueprintPure)
-	bool IsInteracting(AScriptPondHero Hero)
+	bool IsInteracting(AAngelAgent Hero)
 	{
 		if (!IsValid(Hero))
 			return false;
@@ -53,7 +53,7 @@ namespace HeroUtils
 	}
 
 	UFUNCTION(BlueprintPure)
-	bool IsAltMode(AScriptPondHero Hero)
+	bool IsAltMode(AAngelAgent Hero)
 	{
 		if (!IsValid(Hero))
 			return false;
@@ -62,7 +62,7 @@ namespace HeroUtils
 	}
 
 	UFUNCTION(BlueprintPure)
-	bool IsReloading(AScriptPondHero Hero)
+	bool IsReloading(AAngelAgent Hero)
 	{
 		if (!IsValid(Hero))
 			return false;
@@ -72,11 +72,11 @@ namespace HeroUtils
 }
 
 /**
- * Returns the casted result of APawn -> AScriptPondHero.
+ * Returns the casted result of APawn -> AAngelAgent.
  */
-mixin AScriptPondHero AsHero(APawn Pawn)
+mixin AAngelAgent AsHero(APawn Pawn)
 {
-	auto Result = Cast<AScriptPondHero>(Pawn);
+	auto Result = Cast<AAngelAgent>(Pawn);
 	ThrowIf(Result == nullptr, f"Cast from {Pawn.GetName()} to Hero failed!");
 	return Result;
 }

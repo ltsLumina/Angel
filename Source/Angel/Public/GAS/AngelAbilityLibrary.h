@@ -30,10 +30,7 @@ class ANGEL_API UAngelAbilityLibrary : public UBlueprintFunctionLibrary
 	static EDamageType GetDamageType(const FGameplayEffectContextHandle& Handle);
 
 	UFUNCTION(BlueprintPure, Category = "AngelAbilityLibrary | Effects")
-	static float GetPrecisionMultiplier(const FGameplayEffectContextHandle& Handle);
-
-	UFUNCTION(BlueprintPure, Category = "AngelAbilityLibrary | Effects")
-	static FGameplayTagContainer GetAdditionalEnchantTriggers(const FGameplayEffectContextHandle& Handle);
+	static EBodyPart GetBodyPart(const FGameplayEffectContextHandle& EffectContext);
 
 	// UFUNCTION(BlueprintPure, Category = "AngelAbilityLibrary | Effects")
 	// static FDamageResult GetDamageResult(const FGameplayEffectContextHandle& Handle);
@@ -52,12 +49,9 @@ class ANGEL_API UAngelAbilityLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(Category = "AngelAbilityLibrary | Effects")
 	static void SetDamageType(UPARAM(ref) FGameplayEffectContextHandle& Handle, EDamageType DamageType);
 
-	UFUNCTION(Category = "AngelAbilityLibrary | Effects")
-	static void SetPrecisionMultiplier(UPARAM(ref) FGameplayEffectContextHandle& Handle, float PrecisionMultiplier);
+	UFUNCTION(BlueprintCallable, Category = "AngelAbilityLibrary | Effects")
+	static void SetBodyPart(FGameplayEffectContextHandle& EffectContext, EBodyPart BodyPart);
 
-	UFUNCTION(Category = "AngelAbilityLibrary | Effects")
-	static void SetAdditionalEnchantTriggers(UPARAM(ref) FGameplayEffectContextHandle& Handle, const FGameplayTagContainer& EnchantTriggers);
-	
 	// UFUNCTION(Category = "AngelAbilityLibrary | Effects")
 	// static void SetDamageResult(UPARAM(ref) FGameplayEffectContextHandle& Handle, const FDamageResult& DamageResult);
 };

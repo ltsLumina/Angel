@@ -35,8 +35,6 @@ class AAngelPlayerCharacter : AAngelAgent
 	UFUNCTION(BlueprintOverride)
 	void Possessed(AController NewController)
 	{
-		Super::Possessed(NewController);
-
 		ThrowIf(AbilitySystem == nullptr, "AbilitySystem is nullptr!\nMake sure to call this AFTER the ability system has been initialized.");
 		ThrowIf(EntityDefinition == nullptr, "EntityDefinition is not set!");
 
@@ -58,15 +56,13 @@ class AAngelPlayerCharacter : AAngelAgent
 	UFUNCTION(BlueprintOverride)
 	void OnRep_PlayerState()
 	{
-		Super::OnRep_PlayerState();
-
 		AbilitySystem.OnOwnedTagUpdated.AddUFunction(this, n"OwnedTagsUpdated");
 	}
 
 	UFUNCTION(NotBlueprintCallable)
 	protected void OwnedTagsUpdated(const FGameplayTag&in Tag, bool TagExists)
 	{
-		if ((Tag == GameplayTags::State_Dead || Tag == GameplayTags::State_DBNO) && TagExists)
+		if (Tag == GameplayTags::State_Dead && TagExists)
 		{
 			AbilitySystem.RemoveLooseGameplayTag(GameplayTags::State_Health_Healthy, 1, EGameplayTagReplicationState::TagOnly);
 			AbilitySystem.RemoveLooseGameplayTag(GameplayTags::State_Health_Critical, 1, EGameplayTagReplicationState::TagOnly);

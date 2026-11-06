@@ -59,25 +59,25 @@ namespace Hit
 	}
 
 	UFUNCTION(BlueprintPure)
-	FBodyPartHit GetBodyPartHit(UPrimitiveComponent Component)
+	EBodyPart GetBodyPartHit(UPrimitiveComponent Component)
 	{
 		if (!IsValid(Component))
-			return FBodyPartHit();
+			return EBodyPart::Unknown;
 
 		if (Component.ComponentTags.Contains(n"Head"))
 		{
-			return FBodyPartHit(true, false, false, EBodyPart::Head);
+			return EBodyPart::Head;
 		}
 		else if (Component.ComponentTags.Contains(n"Body"))
 		{
-			return FBodyPartHit(false, true, false, EBodyPart::Body);
+			return EBodyPart::Body;
 		}
 		else if (Component.ComponentTags.Contains(n"Legs"))
 		{
-			return FBodyPartHit(false, false, true, EBodyPart::Legs);
+			return EBodyPart::Legs;
 		}
 
-		return FBodyPartHit();
+		return EBodyPart::Unknown;
 	}
 }
 
@@ -173,14 +173,14 @@ namespace Editor
 	}
 }
 
-namespace AdvancedSessions
+/* namespace AdvancedSessions
 {
 	UFUNCTION(BlueprintPure)
 	bool HasSteamConnection()
 	{
 		return AdvancedSessions::HasOnlineSubsystem(n"STEAM");
 	}
-}
+} */
 
 /**
  * Returns the current NetMode as a string, because script is unable to return ENetMode for some reason.
@@ -231,9 +231,9 @@ namespace UGameplayAbility
 	}
 
 	UFUNCTION(BlueprintPure)
-	mixin AScriptPondController GetAvatarPlayerController(UGameplayAbility Ability)
+	mixin AAngelPlayerController GetAvatarPlayerController(UGameplayAbility Ability)
 	{
-		return Cast<AScriptPondController>(Ability.GetAvatarActorFromActorInfo().AsPawn().Controller);
+		return Cast<AAngelPlayerController>(Ability.GetAvatarActorFromActorInfo().AsPawn().Controller);
 	}
 }
 
@@ -418,20 +418,20 @@ mixin float32 ClampAndLog(UAngelscriptAttributeSet AttributeSet, FGameplayAttrib
 }
 
 UFUNCTION(BlueprintPure)
-mixin bool ArePlayersNear(AActor NearActor, float MinDistance, TArray<AScriptPondHero>&out NearbyHeroes)
+mixin bool ArePlayersNear(AActor NearActor, float MinDistance, TArray<AAngelAgent>&out NearbyAgents)
 {
 	for (TObjectPtr<APlayerState> Player : Gameplay::GetGameState().PlayerArray)
 	{
-		auto Hero = Cast<AScriptPondHero>(Player.Get().Pawn);
+		auto Agent = Cast<AAngelAgent>(Player.Get().Pawn);
 
-		float Dist = NearActor.GetDistanceTo(Hero);
+		float Dist = NearActor.GetDistanceTo(Agent);
 		if (Dist < MinDistance)
 		{
-			NearbyHeroes.Add(Hero);
+			NearbyAgents.Add(Agent);
 		}
 	}
 
-	return !NearbyHeroes.IsEmpty();
+	return !NearbyAgents.IsEmpty();
 }
 
 UFUNCTION(BlueprintPure)
@@ -444,20 +444,20 @@ mixin bool HasLineOfSight(const APawn LineOfSightActor, const APawn OtherActor, 
 }
 
 
-namespace HeroUtils
+namespace AgentUtils
 {
-	UFUNCTION(Category = "Game State", Meta = (ReturnDisplayName = "Found Heroes"))
-	bool GetAllHeroes(TArray<AScriptPondHero>&out Heroes)
+	UFUNCTION(Category = "Game State", Meta = (ReturnDisplayName = "Found Agents"))
+	bool GetAllAgents(TArray<AAngelAgent>&out Agents)
 	{
 		auto GS = Gameplay::GetGameState();
 
 		for (auto PS : GS.PlayerArray)
 		{
-			auto Hero = Cast<AScriptPondHero>(PS.Get().Pawn);
-			Heroes.Add(Hero);
+			auto Agent = Cast<AAngelAgent>(PS.Get().Pawn);
+			Agents.Add(Agent);
 		}
 
-		return !Heroes.IsEmpty();
+		return !Agents.IsEmpty();
 	}
 }
 
@@ -484,27 +484,6 @@ namespace Random
 
 		Roll = Math::RandRange(0.0f, Denominator);
 		return Roll < Numerator;
-	}
-}
-
-namespace StateTree
-{
-	/**
-	 *
-	 */
-	UFUNCTION(Category = "State Tree", DisplayName = "Send State Tree Event (to Enemy)")
-	void SendStateTreeEvent_Static(AScriptEnemyBase&in Enemy, FGameplayTag EventTag)
-	{
-		ThrowIf(!EventTag.IsValid(), "EventTag must not be an empty tag!");
-
-		auto AIC = AIHelper::GetAIController(Enemy);
-		auto Comp = UStateTreeAIComponent::Get(AIC);
-
-		ThrowIf(AIC == nullptr || Comp == nullptr, f"AIController or StateTreeAIComponent is nullptr on {Enemy.ActorNameOrLabel}!");
-
-		FStateTreeEvent Event;
-		Event.Tag = EventTag;
-		Comp.SendStateTreeEvent(Event);
 	}
 }
 

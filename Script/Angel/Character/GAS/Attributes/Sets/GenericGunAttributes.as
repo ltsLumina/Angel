@@ -155,39 +155,6 @@ class UGenericGunAttributes : UAngelscriptAttributeSet
 			NewValue = ClampAndLog(Attribute, NewValue, 0.1f, UGenericGunAttributes::PRECISION_CAP);
 		if (Attribute.AttributeName == UGenericGunAttributes::DamageName)
 			NewValue = ClampAndLog(Attribute, NewValue, 1.0f, UGenericGunAttributes::DAMAGE_CAP); // damage cannot be reduced below 1, i.e., you will always deal 'some' damage.
-
-		// Hero-specific clamping.
-		switch (OwningHero.HeroDefinition.HeroEnum)
-		{
-			case EHero::None:
-				break;
-
-			case EHero::Hawkmoon:
-				break;
-
-			case EHero::Izanagi:
-				/* if (Attribute.AttributeName == UGenericGunAttributes::MaxAmmoName)
-				{
-					float NewAmmo = NewValue;
-
-					// Allow at least 1 bullet; each additional bullet after 1 adds 0.1 to reload speed
-					NewValue = ClampAndLog(Attribute, NewValue, 1, 1, "Izanagi must have at least 1 MaxAmmo! Converting surplus to reload speed at a rate of 0.1 per bullet.");
-
-					float32 CurrentReloadSpeed = 1;
-					TryGetAttributeBaseValue(UGenericGunAttributes::ReloadSpeedName, CurrentReloadSpeed);
-
-					float ExtraBullets = Math::Max(0.0f, NewAmmo - 1.0f);
-					float Expression = (CurrentReloadSpeed + (ExtraBullets * 0.1f));
-					TrySetAttributeBaseValue(UGenericGunAttributes::ReloadSpeedName, Expression);
-				}
-
-				if (Attribute.AttributeName == UGenericGunAttributes::AmmoName)
-					NewValue = ClampAndLog(Attribute, NewValue, 0.f, 1.f); */
-				break;
-
-			case EHero::Bastion:
-				break;
-		}
 	}
 
 	UFUNCTION(BlueprintOverride)
@@ -251,29 +218,6 @@ class UGenericGunAttributes : UAngelscriptAttributeSet
 
 		if (Attribute.AttributeName == UGenericGunAttributes::DamageName)
 			Damage.SetCurrentValue(Math::Clamp(Damage.CurrentValue, 1.0f, UGenericGunAttributes::DAMAGE_CAP));
-
-		// Hero-specific post-change handling.
-		switch (OwningHero.HeroDefinition.HeroEnum)
-		{
-			case EHero::Izanagi:
-				if (Attribute.AttributeName == UGenericGunAttributes::MaxAmmoName)
-				{
-					float NewAmmo = MaxAmmo.CurrentValue;
-					float32 CurrentReloadSpeed = 1;
-					TryGetAttributeBaseValue(UGenericGunAttributes::ReloadSpeedName, CurrentReloadSpeed);
-
-					float ExtraBullets = Math::Max(0.0f, NewAmmo - 1.0f);
-					float Expression = (CurrentReloadSpeed + (ExtraBullets * 0.1f));
-					TrySetAttributeBaseValue(UGenericGunAttributes::ReloadSpeedName, Expression);
-				}
-				break;
-
-			case EHero::None:
-			case EHero::Hawkmoon:
-			case EHero::Bastion:
-			default:
-				break;
-		}
 	}
 
 	UFUNCTION(BlueprintOverride)
@@ -289,15 +233,15 @@ class UGenericGunAttributes : UAngelscriptAttributeSet
 		}
 	}
 
-	AScriptPondHero GetOwningHero() property
+	AAngelAgent GetOwningHero() property
 	{
 		auto PS = Cast<APlayerState>(OwningActor);
-		return Cast<AScriptPondHero>(PS.Pawn);
+		return Cast<AAngelAgent>(PS.Pawn);
 	}
 
-	AScriptPondController GetOwningController() property
+	AAngelPlayerController GetOwningController() property
 	{
 		auto PS = Cast<APlayerState>(OwningActor);
-		return Cast<AScriptPondController>(PS.PlayerController);
+		return Cast<AAngelPlayerController>(PS.PlayerController);
 	}
 }

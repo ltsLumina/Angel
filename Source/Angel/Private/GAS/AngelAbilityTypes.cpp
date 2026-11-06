@@ -14,14 +14,13 @@ bool FAngelGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, b
         REP_Actors,
         REP_HitResult,
         REP_WorldOrigin,
-        REP_IsFatalHit,
         REP_CartridgeID,
         REP_IsCriticalHit,
         REP_SourceLevel,
         REP_InvulnerabilityType,
-        REP_PrecisionMultiplier,
-        REP_AdditionalEnchantTriggers,
         REP_DamageResult,
+        REP_DamageType,
+        REP_BodyPart,
         REP_MAX
     };
      
@@ -56,10 +55,6 @@ bool FAngelGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, b
         {
             RepBits |= 1 << REP_WorldOrigin;
         }
-        if (bIsFatalHit)
-        {
-            RepBits |= 1 << REP_IsFatalHit;
-        }
         if (bIsPrecisionHit)
         {
             RepBits |= 1 << REP_IsCriticalHit;
@@ -68,17 +63,17 @@ bool FAngelGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, b
         {
             RepBits |= 1 << REP_InvulnerabilityType;
         }
-        if (!FMath::IsNearlyZero(PrecisionMultiplier))
-        {
-            RepBits |= 1 << REP_PrecisionMultiplier;
-        }
-        if (AdditionalEnchantTriggers.Num() > 0)
-        {
-            RepBits |= 1 << REP_AdditionalEnchantTriggers;
-        }
         if (!FMath::IsNearlyZero(DamageResult.HealthDamage) || !FMath::IsNearlyZero(DamageResult.ShieldDamage) || !FMath::IsNearlyZero(DamageResult.GetTotalDamage()))
         {
             RepBits |= 1 << REP_DamageResult;
+        }
+        if (DamageType != EDamageType::Other)
+        {
+            RepBits |= 1 << REP_DamageType;
+        }
+        if (BodyPart != EBodyPart())
+        {
+            RepBits |= 1 << REP_BodyPart;
         }
         // if (SourceLevel > 0)
         // {
@@ -132,10 +127,6 @@ bool FAngelGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, b
     {
         bHasWorldOrigin = false;
     }
-    if (RepBits & (1 << REP_IsFatalHit))
-    {
-        Ar << bIsFatalHit;
-    }
     if (RepBits & (1 << REP_IsCriticalHit))
     {
         Ar << bIsPrecisionHit;
@@ -146,7 +137,7 @@ bool FAngelGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, b
         Ar << InvulnerabilityTypeByte;
         if (Ar.IsLoading())
         {
-            if (InvulnerabilityTypeByte > static_cast<uint8>(EInvulnerabilityType::TriggerImmune))
+            if (InvulnerabilityTypeByte > static_cast<uint8>(EInvulnerabilityType::DamageImmune))
             {
                 InvulnerabilityTypeByte = static_cast<uint8>(EInvulnerabilityType::None);
             }
@@ -157,22 +148,6 @@ bool FAngelGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, b
     {
         InvulnerabilityType = EInvulnerabilityType::None;
     }
-    if (RepBits & (1 << REP_PrecisionMultiplier))
-    {
-        Ar << PrecisionMultiplier;
-    }
-    else if (Ar.IsLoading())
-    {
-        PrecisionMultiplier = 0.0f;
-    }
-    if (RepBits & (1 << REP_AdditionalEnchantTriggers))
-    {
-        AdditionalEnchantTriggers.NetSerialize(Ar, Map, bOutSuccess);
-    }
-    else if (Ar.IsLoading())
-    {
-        AdditionalEnchantTriggers.Reset();
-    }
     if (RepBits & (1 << REP_DamageResult))
     {
         Ar << DamageResult.HealthDamage;
@@ -181,6 +156,36 @@ bool FAngelGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, b
     else if (Ar.IsLoading())
     {
         DamageResult = FDamageResult();
+    }
+    if (RepBits & (1 << REP_DamageType))
+    {
+        uint8 DamageTypeByte = static_cast<uint8>(DamageType);
+        Ar << DamageTypeByte;
+        if (Ar.IsLoading())
+        {
+            if (DamageTypeByte > static_cast<uint8>(EDamageType::Other))
+            {
+                DamageTypeByte = static_cast<uint8>(EDamageType::Other);
+            }
+            DamageType = static_cast<EDamageType>(DamageTypeByte);
+        }
+    }
+    else if (Ar.IsLoading())
+    {
+        DamageType = EDamageType::Other;
+    }
+    if (RepBits & (1 << REP_BodyPart))
+    {
+        uint8 BodyPartByte = static_cast<uint8>(BodyPart);
+        Ar << BodyPartByte;
+        if (Ar.IsLoading())
+        {
+            BodyPart = static_cast<EBodyPart>(BodyPartByte);
+        }
+    }
+    else if (Ar.IsLoading())
+    {
+        BodyPart = EBodyPart();
     }
     // if (RepBits & (1 << REP_SourceLevel))
     // {

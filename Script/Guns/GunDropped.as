@@ -76,7 +76,7 @@ class AGunDropped : AActor
 		NewDroppedGun.ReserveAmmo = GunComponent.ReserveAmmo;
 		NewDroppedGun.Mesh.SkeletalMeshAsset = OldGun.GunMesh.SkeletalMeshAsset;
 
-		Holster.GrantGun(GunClassToGrant, true, FEquipData(EEquipSpeed::Normal, false, CurrentAmmo, ReserveAmmo));
+		Holster.GrantGun(GunClassToGrant, true, FEquipParams(EEquipSpeed::Normal, false, CurrentAmmo, ReserveAmmo));
 
 		NewDroppedGun.Box.AddImpulse(UCameraComponent::Get(Character).ForwardVector * 250, NAME_None, true);
 

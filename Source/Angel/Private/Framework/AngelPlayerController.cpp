@@ -3,31 +3,31 @@
 
 #include "Framework/AngelPlayerController.h"
 
-void AAngelPlayerController::OnPossess(APawn* InPawn)
+void AAngelPlayerControllerBase::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 	BP_OnPossess(InPawn);
 }
 
-void AAngelPlayerController::AcknowledgePossession(class APawn* P)
+void AAngelPlayerControllerBase::AcknowledgePossession(class APawn* P)
 {
 	Super::AcknowledgePossession(P);
 	BP_AcknowledgePossession(P);
 }
 
-void AAngelPlayerController::OnRep_PlayerState()
+void AAngelPlayerControllerBase::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 	BP_OnRep_PlayerState();
 	OnPlayerStateReady.Broadcast(PlayerState);
 }
 
-void AAngelPlayerController::BP_AddCheats(bool bForce)
+void AAngelPlayerControllerBase::BP_AddCheats(bool bForce)
 {
 	Super::AddCheats(bForce);
 }
 
-void AAngelPlayerController::BP_FlushLevelStreaming()
+void AAngelPlayerControllerBase::BP_FlushLevelStreaming()
 {
 	ClientFlushLevelStreaming_Implementation();
 }

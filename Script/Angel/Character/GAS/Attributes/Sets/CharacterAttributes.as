@@ -89,11 +89,7 @@ class UCharacterAttributes : UHealthAttributes
 
 		if (EvaluatedData.Attribute.AttributeName == UCharacterAttributes::HealthName)
 		{
-			auto Char = Cast<AScriptPondCharacter>(AbilitySystemComponent.Avatar);
-			
-			FHitResult IncomingHitResult;
-			EffectSpec.Context.GetHitResult(IncomingHitResult);
-			Char.LatestHit = IncomingHitResult;
+			auto Char = Cast<AAngelAgent>(AbilitySystemComponent.Avatar);
 
 			if (AbilitySystemComponent.HasGameplayTag(GameplayTags::State_Dead))
 				return;

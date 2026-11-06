@@ -7,12 +7,12 @@
 #include "AngelCharacter.generated.h"
 
 UCLASS()
-class ANGEL_API AAngelCharacter : public AAngelscriptGASCharacter
+class ANGEL_API AAngelCharacterBase : public AAngelscriptGASCharacter
 {
 	GENERATED_BODY()
 
 public:
-	explicit AAngelCharacter(const class FObjectInitializer& ObjectInitializer);
+	explicit AAngelCharacterBase(const class FObjectInitializer& ObjectInitializer);
 	
 protected:
 	// Called when the game starts or when spawned

@@ -7,10 +7,17 @@ public class Angel : ModuleRules
 	public Angel(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AngelscriptGAS" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PublicDependencyModuleNames.AddRange
+		([ "Core", "CoreUObject", "InputCore", "Engine",
+		   "AngelscriptGAS", "GameplayAbilities", "GameplayTags", "GameplayTasks" ]);
+
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange([ "UnrealEd", "BlueprintGraph", "Slate", "SlateCore" ]);
+		}
+
+		PrivateDependencyModuleNames.AddRange([]);
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

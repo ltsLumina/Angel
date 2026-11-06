@@ -28,9 +28,6 @@ public:
 	UPROPERTY()
 	FGameplayTag DeadTag;
 
-	UPROPERTY()
-	FGameplayTag DBNO_Tag;
-
 	// UPROPERTY()
 	// FGameplayTag InteractingTag;
 	//

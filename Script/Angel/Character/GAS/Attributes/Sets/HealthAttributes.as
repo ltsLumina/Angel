@@ -26,16 +26,7 @@ class UHealthAttributes : UAngelscriptAttributeSet
 	// Scale from 0-1.
 
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_GenericDamageResistance, Category = "Health Attributes")
-	FAngelscriptGameplayAttributeData GenericDamageResistance;
-
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MeleeDamageResistance, Category = "Health Attributes")
-	FAngelscriptGameplayAttributeData MeleeDamageResistance;
-
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_SniperDamageResistance, Category = "Health Attributes")
-	FAngelscriptGameplayAttributeData SniperDamageResistance;
-
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_ConcussiveDamageResistance, Category = "Health Attributes")
-	FAngelscriptGameplayAttributeData ConcussiveDamageResistance;
+	FAngelscriptGameplayAttributeData DamageResistance;
 
 	UHealthAttributes()
 	{
@@ -44,10 +35,7 @@ class UHealthAttributes : UAngelscriptAttributeSet
 		Shield.Initialize(0.f);
 		MaxShield.Initialize(0.f);
 
-		GenericDamageResistance.Initialize(0.f);
-		MeleeDamageResistance.Initialize(0.f);
-		SniperDamageResistance.Initialize(0.f);
-		ConcussiveDamageResistance.Initialize(0.f);
+		DamageResistance.Initialize(0.f);
 	}
 
 	// #region On_Rep
@@ -206,9 +194,9 @@ class UHealthAttributes : UAngelscriptAttributeSet
 			ThrowIf(!IsValid(EffectSpec.Context.Instigator), f"An effect without an instigator is not allowed!");
 
 			// if the player instigated damage
-			IsPlayerInstigated = EffectSpec.Context.Instigator.IsA(AScriptPondHero);
+			IsPlayerInstigated = EffectSpec.Context.Instigator.IsA(AAngelAgent);
 			// if the player took damage
-			IsPlayerReceived = !InstigatorASC.Avatar.IsA(AScriptPondHero);
+			IsPlayerReceived = !InstigatorASC.Avatar.IsA(AAngelAgent);
 
 			bool WasHealed = false;
 			bool TookDamage = false;
@@ -220,31 +208,8 @@ class UHealthAttributes : UAngelscriptAttributeSet
 			// The applied magnitude will always be negative in the application of damage.
 			if (AppliedMagnitude < 0)
 			{
-				EDamageType DmgType = EffectSpec.Context.DamageType;
-				float ResistanceMagnitude = 1.f;
-				switch (DmgType)
-				{
-					case EDamageType::Generic:
-						ResistanceMagnitude = GenericDamageResistance.CurrentValue;
-						break;
-
-					case EDamageType::Melee:
-						ResistanceMagnitude = MeleeDamageResistance.CurrentValue;
-						break;
-
-					case EDamageType::Sniper:
-						ResistanceMagnitude = SniperDamageResistance.CurrentValue;
-						break;
-
-					case EDamageType::Concussive:
-						ResistanceMagnitude = ConcussiveDamageResistance.CurrentValue;
-						break;
-
-					case EDamageType::Unknown:
-						ResistanceMagnitude = 1.f;
-						break;
-				}
-
+				float ResistanceMagnitude = DamageResistance.CurrentValue;
+				
 				// The amount of damage that was reduced by the resistance.
 				float Reduction = AppliedMagnitude * Math::Max(ResistanceMagnitude, 0);
 				FinalDamage = BaseDamage - Math::Abs(Reduction);
@@ -270,9 +235,9 @@ class UHealthAttributes : UAngelscriptAttributeSet
 
 					default:
 						// If a hero deals self damage, and eventually reaches 0 health, then this will run.
-						if (AbilitySystemComponent.Avatar.IsA(AScriptPondHero))
+						if (AbilitySystemComponent.Avatar.IsA(AAngelAgent))
 						{
-							OwningHero.Death();
+							OwningAgent.Death();
 							return;
 						}
 
@@ -299,15 +264,7 @@ class UHealthAttributes : UAngelscriptAttributeSet
 				float DamageDealt = FinalDamage; // is absolute
 				float DamageCapped = Math::Clamp(DamageDealt, 0, UGenericGunAttributes::DAMAGE_CAP);
 
-				// Apply reactions
-
-				TSubclassOf<UAngelscriptGameplayEffect> RegenBlockedEffect = UAssetSubsystem::Get().DefaultRegenerationBlockedEffect;
-				InstigatorASC.ApplyGameplayEffectToTarget(RegenBlockedEffect, AbilitySystemComponent, 1, EffectSpec.Context);
-
-				// Apply Weapon Enchants
-
 				bool WasPrecision = EffectSpec.Context.IsPrecisionHit;
-				bool WasKill = EffectSpec.Context.IsFatalHit;
 
 				FHitResult Hit;
 				if (AbilitySystem::EffectContextHasHitResult(EffectSpec.Context))
@@ -338,65 +295,19 @@ class UHealthAttributes : UAngelscriptAttributeSet
 				// The avatar of the ASC who received this GameplayEffect.
 				AActor ReceiverAvatar = AbilitySystemComponent.Avatar == nullptr ? AbilitySystemComponent.Owner : AbilitySystemComponent.Avatar;
 
-				// Gets the enchantment triggers based on a list of conditions.
-				auto TriggerTags = GetEnchantmentTriggers(TookDamage, WasPrecision, WasKill, EffectSpec);
-				for (auto& TriggerTag : TriggerTags)
-				{
-					// The instigator of the enchant trigger recieves the event (typically always the player)
-					InstigatorASC.SendGameplayEvent(TriggerTag, Payload);
-
-					// Log the information.
-					if (TriggerTag.IsValid())
-						Log(n"Enchantments", f"{InstigatorAvatar.GetName()} received tag: {TriggerTag=}");
-
-					if (InstigatorASC != AbilitySystemComponent) // we're essentially checking if we're not the player here.
-					{
-						// We also send the event to the abilitysystem who got hit, so they can react to it as well.
-						// E.g., if the enemy wants to react to getting precision hit, they can call "Wait Gameplay Event to Actor".
-						AbilitySystemComponent.SendGameplayEvent(TriggerTag, Payload);
-
-						// Log the information.
-						if (TriggerTag.IsValid())
-							Log(n"Enchantments", f"{ReceiverAvatar.GetName()} received tag: {TriggerTag=}");
-					}
-				}
-
 				// Player-instigated VFX/cosmetics
-				if (InstigatorAvatar.IsA(AScriptPondHero))
+				if (InstigatorAvatar.IsA(AAngelAgent))
 				{
-					// Damage Number
-
-					if ((Health.CurrentValue < OldHealth) || IsDamageImmune)
-					{
-						FGameplayCueParameters CueParams = GameplayCue::MakeGameplayCueParametersFromHitResult(Hit);
-						// We might reach this point without using a trace, which means Hit will be blank.
-						if (!Hit.bBlockingHit)
-						{
-							// if there's no hit result, use the location of the avatar who was hit.
-							CueParams.Location = ReceiverAvatar.ActorLocation;
-						}
-
-						CueParams.Instigator = EffectSpec.Context.Instigator;
-						CueParams.EffectCauser = EffectSpec.Context.EffectCauser;
-
-						// we read the precision/kill information from the context.
-						CueParams.EffectContext = EffectSpec.Context;
-
-						CueParams.RawMagnitude = DamageCapped;
-						Cast<AScriptPondController>(InstigatorASC.PlayerController).Client_ShowDamageNumber(InstigatorASC, CueParams);
-					}
-
 					// Hitmarker
 
-					if (InstigatorAvatar.IsA(AScriptPondHero) && InstigatorASC != AbilitySystemComponent) // if the player instigated, and if we're not the player
+					if (InstigatorAvatar.IsA(AAngelAgent) && InstigatorASC != AbilitySystemComponent) // if the player instigated, and if we're not the player
 					{
-						auto PC = Cast<AScriptPondController>(InstigatorASC.PlayerController);
+						auto PC = Cast<AAngelPlayerController>(InstigatorASC.PlayerController);
 						if (PC != nullptr)
 						{
-							PC.Client_ShowHitmarker(WasKill);
-
-							// play headshot cue here
-							PC.Client_PlayHitSFX(WasPrecision, WasKill);
+							// TODO:
+							//PC.Client_ShowHitmarker(WasKill);
+							//PC.Client_PlayHitSFX(WasPrecision, WasKill);
 						}
 					}
 				}
@@ -430,57 +341,22 @@ class UHealthAttributes : UAngelscriptAttributeSet
 				Payload.TargetData = AbilitySystem::AbilityTargetDataFromHitResult(Hit);
 
 				// NOTE: This has not been tested!
-				InstigatorASC.SendGameplayEvent(GameplayTags::Ability_Enchant_Trigger_OnShieldBreak, Payload);
+				//InstigatorASC.SendGameplayEvent(GameplayTags::Ability_Enchant_Trigger_OnShieldBreak, Payload);
 
 				PrintWarning("OnShieldBreak trigger has not been tested! - If you are seeing this, YOU are testing it!", 30);
 			}
 		}
 	}
 
-	/**
-	 * @return A tag for each enchantment trigger, based on the inputs.
-	 * @note To allow for effects to force a certain trigger -- regardless of how they were applied -- we also check if the GE's asset tags have the tag.
-	 */
-	TArray<FGameplayTag> GetEnchantmentTriggers(bool WasHit, bool WasPrecision, bool WasKill, FGameplayEffectSpec Spec)
-	{
-		TArray<FGameplayTag> ResultTags;
-
-		if ((WasHit) || Spec.Context.AdditionalEnchantTriggers.HasTagExact(GameplayTags::Ability_Enchant_Trigger_OnHit))
-		{
-			ResultTags.Add(GameplayTags::Ability_Enchant_Trigger_OnHit);
-		}
-		if ((WasHit && WasPrecision) || Spec.Context.AdditionalEnchantTriggers.HasTagExact(GameplayTags::Ability_Enchant_Trigger_OnPrecisionHit))
-		{
-			ResultTags.Add(GameplayTags::Ability_Enchant_Trigger_OnPrecisionHit);
-		}
-		if ((WasHit && WasKill) || Spec.Context.AdditionalEnchantTriggers.HasTagExact(GameplayTags::Ability_Enchant_Trigger_OnKill))
-		{
-			ResultTags.Add(GameplayTags::Ability_Enchant_Trigger_OnKill);
-		}
-		if ((WasHit && WasPrecision && WasKill) || Spec.Context.AdditionalEnchantTriggers.HasTagExact(GameplayTags::Ability_Enchant_Trigger_OnPrecisionKill))
-		{
-			ResultTags.Add(GameplayTags::Ability_Enchant_Trigger_OnPrecisionKill);
-		}
-
-		return ResultTags;
-	}
-
-	protected AScriptPondHero GetOwningHero() property
+	protected AAngelAgent GetOwningAgent() property
 	{
 		auto PS = Cast<APlayerState>(OwningActor);
-		return Cast<AScriptPondHero>(PS.Pawn);
+		return Cast<AAngelAgent>(PS.Pawn);
 	}
 
-	protected AScriptPondCharacter GetOwningChar(UAngelscriptAbilitySystemComponent ASC)
+	protected AAngelPlayerController GetOwningController() property
 	{
-		return Cast<AScriptPondCharacter>(ASC.Avatar);
-	}
-
-	protected AScriptPondController GetOwningController() property
-	{
-		ThrowIf(OwningActor.IsA(AScriptEnemyBase), "This function does not work for enemies as they do not have player controllers.");
-
 		auto PS = Cast<APlayerState>(OwningActor);
-		return Cast<AScriptPondController>(PS.PlayerController);
+		return Cast<AAngelPlayerController>(PS.PlayerController);
 	}
 }

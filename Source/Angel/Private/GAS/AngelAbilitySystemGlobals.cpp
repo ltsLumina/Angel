@@ -18,7 +18,4 @@ void UAngelAbilitySystemGlobals::InitGlobalTags()
 	Super::InitGlobalTags();
 
 	DeadTag = FGameplayTag::RequestGameplayTag("State.Dead");
-	DBNO_Tag = FGameplayTag::RequestGameplayTag("State.DBNO");
-	// InteractingTag = FGameplayTag::RequestGameplayTag("State.Interacting");
-	// InteractingRemovalTag = FGameplayTag::RequestGameplayTag("State.InteractingRemoval");
 }

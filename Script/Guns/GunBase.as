@@ -84,7 +84,7 @@ class AGunBase : AActor
 		if (Hit.Actor.IsA(AAngelAgent))
 		{
 			AAngelAgent Agent = Cast<AAngelAgent>(Hit.Actor);
-			if (EffectContext.Get().IsPrecisionHit)
+			if (EffectContext.IsPrecisionHit)
 				Gameplay::PlaySound2D(Agent.HasRemainingArmor() ? HeadshotWithArmorSound : HeadshotSound);
 			else
 				Gameplay::PlaySound2D(BodyshotSound);

@@ -10,7 +10,7 @@
  * 
  */
 UCLASS(Blueprintable, BlueprintType)
-class ANGEL_API AAngelPlayerController : public APlayerController
+class ANGEL_API AAngelPlayerControllerBase : public APlayerController
 {
 	GENERATED_BODY()
 

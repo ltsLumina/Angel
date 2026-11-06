@@ -1,4 +1,3 @@
-UCLASS(Abstract)
 class UADSComponent : UActorComponent
 {
 	UPROPERTY(Category = "ADS", VisibleAnywhere, BlueprintReadOnly)
@@ -26,5 +25,31 @@ class UADSComponent : UActorComponent
 	void EndADS(FInputActionValue ActionValue, float32 ElapsedTime, float32 TriggeredTime, const UInputAction SourceAction)
 	{
 		IsADS = false;
+	}
+
+	UAngelscriptAbilitySystemComponent ASC;
+
+	UFUNCTION(BlueprintOverride)
+	void BeginPlay()
+	{
+		ASC = UAngelscriptAbilitySystemComponent::Get(Game::Player);
+	}
+
+	UFUNCTION()
+	void StartAimDownSights(FInputActionValue ActionValue = FInputActionValue(), float32 InElapsedTime = -1, float32 InTriggeredTime = -1,
+							const UInputAction SourceAction = nullptr)
+	{
+		// TODO:
+		/* ASC.TryActivateAbilityByClass(WeaponDefinition.AltFireGameplayAbility);
+		ASC.PressInputID(int(EGASInputID::AltFire)); */
+	}
+
+	UFUNCTION()
+	void EndAimDownSights(FInputActionValue ActionValue = FInputActionValue(), float32 InElapsedTime = -1, float32 InTriggeredTime = -1,
+						  const UInputAction SourceAction = nullptr)
+	{
+		// TODO:
+		/* ASC.CancelAbility(WeaponDefinition.AltFireGameplayAbility);
+		ASC.ReleaseInputID(int(EGASInputID::AltFire)); */
 	}
 };

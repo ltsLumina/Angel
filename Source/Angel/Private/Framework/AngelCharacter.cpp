@@ -5,8 +5,8 @@
 #include "Components/AngelCharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 
-AAngelCharacter::AAngelCharacter(const class FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer.SetDefaultSubobjectClass<UAngelCharacterMovementComponent>(CharacterMovementComponentName))
+AAngelCharacterBase::AAngelCharacterBase(const class FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer.SetDefaultSubobjectClass<UAngelCharacterMovementComponentBase>(CharacterMovementComponentName))
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -17,38 +17,38 @@ AAngelCharacter::AAngelCharacter(const class FObjectInitializer& ObjectInitializ
 }
 
 // Called when the game starts or when spawned
-void AAngelCharacter::BeginPlay()
+void AAngelCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
 // Called every frame
-void AAngelCharacter::Tick(float DeltaTime)
+void AAngelCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
 
 // Called to bind functionality to input
-void AAngelCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AAngelCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
 // Netcode Init
 
-void AAngelCharacter::PossessedBy(AController* NewController)
+void AAngelCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 	BP_PossessedBy(NewController);
 }
 
-void AAngelCharacter::OnRep_PlayerState()
+void AAngelCharacterBase::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 	BP_OnRep_PlayerState();
 }
 
-void AAngelCharacter::OnRep_Controller()
+void AAngelCharacterBase::OnRep_Controller()
 {
 	Super::OnRep_Controller();
 	BP_OnRep_Controller();

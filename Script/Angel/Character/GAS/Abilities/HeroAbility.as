@@ -4,31 +4,21 @@ class UGA_HeroAbility_AS : UAngelscriptGameplayAbility
 	default InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	default NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 
-	default ActivationBlockedTags.AddTag(GameplayTags::State_DBNO);
 	default ActivationBlockedTags.AddTag(GameplayTags::State_Dead);
 	default ActivationBlockedTags.AddTag(GameplayTags::Debuffs_Stun);
 	default ActivationBlockedTags.AddTag(GameplayTags::State_Weapon_Reloading);
 	default ActivationBlockedTags.AddTag(GameplayTags::State_Sprinting);
 
 	UFUNCTION(BlueprintPure)
-	AScriptPondHero GetOwningHero() const property
+	AAngelAgent GetOwningHero() const property
 	{
-		return Cast<AScriptPondHero>(AvatarActorFromActorInfo);
+		return Cast<AAngelAgent>(AvatarActorFromActorInfo);
 	}
 
 	UFUNCTION(BlueprintPure)
-	AScriptPondController GetOwningController() const property
+	AAngelPlayerController GetOwningController() const property
 	{
-		return Cast<AScriptPondController>(AvatarActorFromActorInfo.AsPawn().Controller);
-	}
-
-	/**
-	 * Only call this on a 'HeroAbility' owned by an enemy (both heroes and enemies use the same base class for abilities like this).
-	 */
-	UFUNCTION(BlueprintPure)
-	AScriptEnemyBase GetOwningEnemy() const property
-	{
-		return Cast<AScriptEnemyBase>(AvatarActorFromActorInfo);
+		return Cast<AAngelPlayerController>(AvatarActorFromActorInfo.AsPawn().Controller);
 	}
 }
 
@@ -85,7 +75,8 @@ class UGA_HeroShootAbility_AS : UGA_HeroAbility_AS
 		float Amplitude = CameraShake.X;
 		float Frequency = CameraShake.Y;
 		float Duration = CameraShake.Z;
-		OwningController.Client_PlayCameraShake(Amplitude, Frequency, Duration);
+		// TODO: CameraShake
+		//OwningController.Client_PlayCameraShake(Amplitude, Frequency, Duration);
 	}
 
 	/**
@@ -103,7 +94,6 @@ class UGA_HeroShootAbility_AS : UGA_HeroAbility_AS
 		TArray<AActor> OutActors;
 
 		TArray<EObjectTypeQuery> ObjTypes;
-		ObjTypes.Add(EObjectTypeQuery::Enemy);
 		ObjTypes.Add(EObjectTypeQuery::Pawn);
 
 		TArray<AActor> ActorsToIgnore = IgnoreActors;
@@ -118,7 +108,7 @@ class UGA_HeroShootAbility_AS : UGA_HeroAbility_AS
 			for (int i = OutActors.Num() - 1; i >= 0; --i) // reverse for-loop to safely remove entries
 			{
 				AActor Actor = OutActors[i];
-				if (Actor.IsA(AScriptPondHero))
+				if (Actor.IsA(AAngelAgent))
 				{
 					OutActors.Remove(Actor);
 				}
@@ -139,7 +129,6 @@ class UGA_HeroShootAbility_AS : UGA_HeroAbility_AS
 		TArray<AActor> OutActors;
 
 		TArray<EObjectTypeQuery> ObjTypes;
-		ObjTypes.Add(EObjectTypeQuery::Enemy);
 		ObjTypes.Add(EObjectTypeQuery::Pawn);
 
 		TArray<AActor> ActorsToIgnore = IgnoreActors;
@@ -157,7 +146,7 @@ class UGA_HeroShootAbility_AS : UGA_HeroAbility_AS
 			for (int i = OutActors.Num() - 1; i >= 0; --i) // reverse for-loop to safely remove entries
 			{
 				AActor Actor = OutActors[i];
-				if (Actor.IsA(AScriptPondHero))
+				if (Actor.IsA(AAngelAgent))
 				{
 					OutActors.Remove(Actor);
 				}
@@ -204,7 +193,7 @@ class UGA_HeroShootAbility_AS : UGA_HeroAbility_AS
 	 * @param OverrideSpec Optional effect spec to pass instead of the built-in 'Damage Spec'.
 	 */
 	UFUNCTION(Category = "Damage", BlueprintAuthorityOnly, BlueprintAuthorityOnly, Meta = (AdvancedDisplay = "OptionalOverrideSpec"))
-	void DealDamage(FHitResult Hit, EDamageType DamageType = EDamageType::Generic, FGameplayEffectSpecHandle OptionalOverrideSpec = FGameplayEffectSpecHandle())
+	void DealDamage(FHitResult Hit, EDamageType DamageType = EDamageType::Other, FGameplayEffectSpecHandle OptionalOverrideSpec = FGameplayEffectSpecHandle())
 	{
 		ThrowIf(bDealsDamage && !DamageEffectClass.IsValid(), "HeroAbility deals damage, but no valid damage effect has been set!");
 		ThrowIf(!bDealsDamage, "Ability does not deal damage, but is marked bDealsDamage = true");
@@ -327,15 +316,17 @@ class UGA_HeroAltFireAbility_AS : UGA_HeroAbility_AS
 	UFUNCTION(BlueprintOverride)
 	void ActivateAbility()
 	{
-		auto GC = UGunComponent::Get(OwningHero);
-		GC.StartAimDownSights();
+		// TODO:
+		/* auto GC = UGunComponent::Get(OwningHero);
+		GC.StartAimDownSights(); */
 	}
 
 	UFUNCTION(BlueprintOverride)
 	void OnEndAbility(bool bWasCancelled)
 	{
-		auto GC = UGunComponent::Get(OwningHero);
-		GC.EndAimDownSights();
+		// TODO:
+		/* auto GC = UGunComponent::Get(OwningHero);
+		GC.EndAimDownSights(); */
 	}
 }
 
@@ -376,13 +367,6 @@ class UGA_HeroReloadAbility_AS : UGA_HeroAbility_AS
 		{
 			auto Context = ASC.MakeEffectContext();
 			ASC.ApplyGameplayEffectToSelf(ReloadEffectClass, 1, Context);
-
-			ASC.SendGameplayEvent(GameplayTags::Ability_Enchant_Trigger_OnReload, FGameplayEventData());
-		}
-		else
-		{
-			// Client also receives the event.
-			ASC.SendGameplayEvent(GameplayTags::Ability_Enchant_Trigger_OnReload, FGameplayEventData());
 		}
 	}
 
@@ -416,7 +400,8 @@ class UGA_HeroMeleeAbility_AS : UGA_HeroShootAbility_AS
 			MontageTask.OnCompleted.AddUFunction(this, n"OnComplete");
 			MontageTask.ReadyForActivation();
 
-			WaitGameplayEventTask = AngelscriptAbilityTask::WaitGameplayEvent(this, GameplayTags::AnimNotify_Events_Melee);
+			// TODO:
+			//WaitGameplayEventTask = AngelscriptAbilityTask::WaitGameplayEvent(this, GameplayTags::AnimNotify_Events_Melee);
 			WaitGameplayEventTask.EventReceived.AddUFunction(this, n"EventReceived");
 			WaitGameplayEventTask.ReadyForActivation();
 		}
@@ -443,7 +428,8 @@ class UGA_HeroMeleeAbility_AS : UGA_HeroShootAbility_AS
 	UFUNCTION()
 	private void EventReceived(FGameplayEventData Payload)
 	{
-		ExecuteGameplayCue(GameplayTags::GameplayCue_Hero_Generic_Melee_SFX, ASC.MakeEffectContext());
+		// TODO:
+		//ExecuteGameplayCue(GameplayTags::GameplayCue_Hero_Generic_Melee_SFX, ASC.MakeEffectContext());
 
 		TArray<AActor> IgnoreActors;
 		TArray<AActor> NearbyActors = GetNearbyTargets(AvatarLocation, 300.f, true, false, IgnoreActors, DrawDebug = false);
@@ -464,32 +450,5 @@ class UGA_HeroMeleeAbility_AS : UGA_HeroShootAbility_AS
 
 		WaitGameplayEventTask.EndTask();
 		EndAbility();
-	}
-}
-
-UCLASS(HideDropdown)
-class UGA_HeroSprintAbility_AS : UGA_HeroAbility_AS
-{
-	default AbilityTags.AddTag(GameplayTags::State_Sprinting);
-
-	default CancelAbilitiesWithTag.AddTag(GameplayTags::State_Weapon_AltFiring);
-	default CancelAbilitiesWithTag.AddTag(GameplayTags::State_Weapon_Reloading);
-	default ActivationOwnedTags.AddTag(GameplayTags::State_Sprinting);
-
-	UFUNCTION(BlueprintOverride)
-	void ActivateAbility()
-	{
-		auto CMC = OwningHero.PondCharMoveComp;
-		CMC.BP_StartSprinting();
-
-		if (!ASC.HasGameplayTag(GameplayTags::Tests))
-			ASC.CancelAbility(OwningHero.HeroDefinition.WeaponDefinition.ReloadGameplayAbility);
-	}
-
-	UFUNCTION(BlueprintOverride)
-	void OnEndAbility(bool bWasCancelled)
-	{
-		auto CMC = OwningHero.PondCharMoveComp;
-		CMC.BP_StopSprinting();
 	}
 }

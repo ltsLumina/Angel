@@ -45,25 +45,25 @@ enum class EInvulnerabilityType : uint8
 	 * </summary>
 	 */
 	DamageImmune = 2,
-	
-	/** 
-	 * Immune to triggering enchantment effects, but still receives damage normally.
-	 * <para></para>
-	 * <para> This is the most nieche form of invulnerability and should be used lightly. </para>
-	 */
-	TriggerImmune = 3,
 };
 
 UENUM(BlueprintType)
 enum class EDamageType : uint8
 {
-	Generic,
-	Melee,
-	Sniper,
-	/** Also known as AoE (Area of Effect) */
-	Concussive,
-	/** Damaged by/from an unknown source. */
-	Unknown,
+	Weapon = 0,
+	Ability = 1,
+	Melee = 2,
+	Environment = 3,
+	Other = 4,
+};
+
+UENUM(BlueprintType)
+enum class EBodyPart : uint8
+{
+	Unknown = 0,
+	Head = 1,
+	Body = 2,
+	Legs = 3,
 };
 
 USTRUCT(BlueprintType)
@@ -72,36 +72,23 @@ struct FAngelGameplayEffectContext : public FGameplayEffectContext
 	GENERATED_BODY()
 	
 public:
-	bool GetIsFatalHit() const { return bIsFatalHit; }
 	bool GetIsPrecisionHit() const { return bIsPrecisionHit; }
-	float GetPrecisionMultiplier() const { return PrecisionMultiplier; }
-	const FGameplayTagContainer& GetAdditionalEnchantTriggers() const { return AdditionalEnchantTriggers; }
 	const FDamageResult& GetDamageResult() const { return DamageResult; }
 	EInvulnerabilityType GetInvulnerabilityType() const { return InvulnerabilityType; }
 	EDamageType GetDamageType() const { return DamageType; }
+	EBodyPart GetBodyPart() const { return BodyPart; }
 	
 public:
-	void SetIsFatalHit(const bool bInIsFatalHit) { bIsFatalHit = bInIsFatalHit; }
 	void SetIsPrecisionHit(const bool bInIsCriticalHit) { bIsPrecisionHit = bInIsCriticalHit; }
-	void SetPrecisionMultiplier(const float InPrecisionMultiplier) { PrecisionMultiplier = InPrecisionMultiplier; }
-	void SetAdditionalEnchantTriggers(const FGameplayTagContainer& InAdditionalEnchantTriggers) { AdditionalEnchantTriggers = InAdditionalEnchantTriggers; }
 	void SetDamageResult(const FDamageResult& InDamageResult) { DamageResult = InDamageResult; }
 	void SetInvulnerabilityType(const EInvulnerabilityType InInvulnerabilityType) { InvulnerabilityType = InInvulnerabilityType; }
 	void SetDamageType(const EDamageType InDamageType) { DamageType = InDamageType; }
+	void SetBodyPart(const EBodyPart InBodyPartHit) { BodyPart = InBodyPartHit; }
 
 protected:
 	UPROPERTY()
-	bool bIsFatalHit = false;
-	
-	UPROPERTY()
 	bool bIsPrecisionHit = false;
 	
-	UPROPERTY()
-	float PrecisionMultiplier = 1.0f;
-	
-	UPROPERTY()
-	FGameplayTagContainer AdditionalEnchantTriggers;
-
 	UPROPERTY()
 	FDamageResult DamageResult;
 	
@@ -109,7 +96,10 @@ protected:
 	EInvulnerabilityType InvulnerabilityType = EInvulnerabilityType::None;
 	
 	UPROPERTY()
-	EDamageType DamageType = EDamageType::Unknown;
+	EDamageType DamageType = EDamageType::Other;
+	
+	UPROPERTY()
+	EBodyPart BodyPart{};
  
 public:
 	// Serialization and duplication

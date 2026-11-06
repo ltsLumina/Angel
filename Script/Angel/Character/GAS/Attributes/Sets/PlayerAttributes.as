@@ -1,23 +1,15 @@
 namespace UPlayerAttributes
 {
-	const FName ReviveTokenName = n"ReviveTokens";
-	const FName ShotsFiredName = n"ShotsFired";
+	
 }
 
 class UPlayerAttributes : UCharacterAttributes
 {
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_ReviveTokens, Category = "Hero Attributes")
-	FAngelscriptGameplayAttributeData ReviveTokens;
+	
 
 	UPlayerAttributes()
 	{
-		ReviveTokens.Initialize(99.0f);
-	}
-
-	UFUNCTION(NotBlueprintCallable)
-	void OnRep_ReviveTokens(FAngelscriptGameplayAttributeData& OldAttributeData)
-	{
-		OnRep_Attribute(OldAttributeData);
+		
 	}
 
 	// #endregion

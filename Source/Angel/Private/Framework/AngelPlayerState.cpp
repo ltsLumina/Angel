@@ -4,7 +4,7 @@
 #include "Framework/AngelPlayerState.h"
 #include "AngelscriptAbilitySystemComponent.h"
 
-AAngelPlayerState::AAngelPlayerState(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+AAngelPlayerStateBase::AAngelPlayerStateBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	AbilitySystem = CreateDefaultSubobject<UAngelscriptAbilitySystemComponent>(TEXT("AbilitySystem"));
 	AbilitySystem->SetIsReplicated(true);
@@ -19,23 +19,23 @@ AAngelPlayerState::AAngelPlayerState(const FObjectInitializer& ObjectInitializer
 	SetNetUpdateFrequency(75.f);
 }
 
-void AAngelPlayerState::BeginPlay()
+void AAngelPlayerStateBase::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
-void AAngelPlayerState::PostNetInit()
+void AAngelPlayerStateBase::PostNetInit()
 {
 	Super::PostNetInit();
 	BP_PostNetInit();
 }
 
-UAbilitySystemComponent* AAngelPlayerState::GetAbilitySystemComponent() const
+UAbilitySystemComponent* AAngelPlayerStateBase::GetAbilitySystemComponent() const
 {
 	return AbilitySystem;
 }
 
-void AAngelPlayerState::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
+void AAngelPlayerStateBase::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
 {
 	if(AbilitySystem)
 	{

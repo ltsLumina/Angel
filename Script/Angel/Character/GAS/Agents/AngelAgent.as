@@ -34,6 +34,9 @@ namespace Armor
 UCLASS(Abstract)
 class AAngelAgent : AAngelCharacterBase
 {
+	UPROPERTY(Category = "Components", OverrideComponent = "CharMoveComp", BlueprintReadOnly, NotVisible)
+	UAngelCharacterMovementComponent AngelCharMoveComp;
+	
 	UPROPERTY(Category = "Agent | GAS", EditDefaultsOnly)
 	TArray<TSubclassOf<UAngelAbility>> Abilities;
 

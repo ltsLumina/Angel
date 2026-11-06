@@ -34,13 +34,6 @@ class UFGameplayEffectContextScriptMixinLibrary : public UObject
 public:
     
     UFUNCTION(ScriptCallable)
-    static bool GetIsFatalHit(const FGameplayEffectContextHandle& EffectContext)
-    {
-        const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(EffectContext.Get());
-        return AngelEffectContext ? AngelEffectContext->GetIsFatalHit() : false;
-    }
-    
-    UFUNCTION(ScriptCallable)
     static bool GetIsPrecisionHit(const FGameplayEffectContextHandle& EffectContext)
     {
         const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(EffectContext.Get());
@@ -58,21 +51,7 @@ public:
     static EDamageType GetDamageType(const FGameplayEffectContextHandle& EffectContext)
     {
         const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(EffectContext.Get());
-        return AngelEffectContext ? AngelEffectContext->GetDamageType() : EDamageType::Unknown;
-    }
-    
-    UFUNCTION(ScriptCallable)
-    static float GetPrecisionMultiplier(const FGameplayEffectContextHandle& EffectContext)
-    {
-        const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(EffectContext.Get());
-        return AngelEffectContext ? AngelEffectContext->GetPrecisionMultiplier() : 0.0f;
-    }
-
-    UFUNCTION(ScriptCallable)
-    static FGameplayTagContainer GetAdditionalEnchantTriggers(const FGameplayEffectContextHandle& EffectContext)
-    {
-        const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(EffectContext.Get());
-        return AngelEffectContext ? AngelEffectContext->GetAdditionalEnchantTriggers() : FGameplayTagContainer();
+        return AngelEffectContext ? AngelEffectContext->GetDamageType() : EDamageType::Other;
     }
 
     UFUNCTION(ScriptCallable)
@@ -81,8 +60,14 @@ public:
         const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(EffectContext.Get());
         return AngelEffectContext ? AngelEffectContext->GetDamageResult() : FDamageResult();
     }
-    
-
+	
+	UFUNCTION(ScriptCallable)
+    static EBodyPart GetBodyPart(const FGameplayEffectContextHandle& EffectContext)
+    {
+        const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(EffectContext.Get());
+        return AngelEffectContext ? AngelEffectContext->GetBodyPart() : EBodyPart::Unknown;
+    }
+	
     UFUNCTION(ScriptCallable)
     static void SetIsPrecisionHit(UPARAM(ref) FGameplayEffectContextHandle& EffectContext, bool bInIsPrecisionHit)
     {
@@ -90,16 +75,6 @@ public:
         if (AngelEffectContext)
         {
             AngelEffectContext->SetIsPrecisionHit(bInIsPrecisionHit);
-        }
-    }
-
-    UFUNCTION(ScriptCallable)
-    static void SetIsFatalHit(UPARAM(ref) FGameplayEffectContextHandle& EffectContext, bool bInIsFatalHit)
-    {
-        FAngelGameplayEffectContext* AngelEffectContext = static_cast<FAngelGameplayEffectContext*>(EffectContext.Get());
-        if (AngelEffectContext)
-        {
-            AngelEffectContext->SetIsFatalHit(bInIsFatalHit);
         }
     }
 
@@ -124,32 +99,22 @@ public:
     }
 
     UFUNCTION(ScriptCallable)
-    static void SetPrecisionMultiplier(UPARAM(ref) FGameplayEffectContextHandle& EffectContext, float InPrecisionMultiplier)
-    {
-        FAngelGameplayEffectContext* AngelEffectContext = static_cast<FAngelGameplayEffectContext*>(EffectContext.Get());
-        if (AngelEffectContext)
-        {
-            AngelEffectContext->SetPrecisionMultiplier(InPrecisionMultiplier);
-        }
-    }
-
-    UFUNCTION(ScriptCallable)
-    static void SetAdditionalEnchantTriggers(UPARAM(ref) FGameplayEffectContextHandle& EffectContext, const FGameplayTagContainer& InEnchantTriggers)
-    {
-        FAngelGameplayEffectContext* AngelEffectContext = static_cast<FAngelGameplayEffectContext*>(EffectContext.Get());
-        if (AngelEffectContext)
-        {
-            AngelEffectContext->SetAdditionalEnchantTriggers(InEnchantTriggers);
-        }
-    }
-
-    UFUNCTION(ScriptCallable)
     static void SetDamageResult(UPARAM(ref) FGameplayEffectContextHandle& EffectContext, const FDamageResult& InDamageResult)
     {
         FAngelGameplayEffectContext* AngelEffectContext = static_cast<FAngelGameplayEffectContext*>(EffectContext.Get());
         if (AngelEffectContext)
         {
             AngelEffectContext->SetDamageResult(InDamageResult);
+        }
+    }
+	
+	UFUNCTION(ScriptCallable)
+    static void SetBodyPart(UPARAM(ref) FGameplayEffectContextHandle& EffectContext, const EBodyPart& InBodyPartHit)
+    {
+        FAngelGameplayEffectContext* AngelEffectContext = static_cast<FAngelGameplayEffectContext*>(EffectContext.Get());
+        if (AngelEffectContext)
+        {
+            AngelEffectContext->SetBodyPart(InBodyPartHit);
         }
     }
 };

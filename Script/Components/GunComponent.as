@@ -139,8 +139,7 @@ class UGunComponent : UActorComponent
 
 		if (Hit::WasAgentHit(LastHit))
 		{
-			FBodyPartHit BodyPartHit = LastEffectContext.GetBodyPartHit();
-			float DamageAmount = WeaponDefinition.DamageFalloff.GetDamageAtDistance(Math::ToMeters(LastHit.Distance), BodyPartHit.BodyPart);
+			float DamageAmount = WeaponDefinition.DamageFalloff.GetDamageAtDistance(Math::ToMeters(LastHit.Distance), LastEffectContext.BodyPart);
 			DamageAmount *= BulletPenetrated ? 0.8f : 1.0f;
 			Cast<AAngelAgent>(LastHit.Actor).DealDamage(DamageAmount, LastEffectContext);
 		}
@@ -169,10 +168,9 @@ class UGunComponent : UActorComponent
 		LastHit = Hits.Num() > 0 ? Hits.Last() : FHitResult();
 
 		LastEffectContext = FGameplayEffectContextHandle();
-		LastEffectContext.Instigator = Game::Player;
-		LastEffectContext.EffectCauser = LastHit.Actor;
-		LastEffectContext.IsPrecisionHit = LastHit.Component != nullptr && Hit::GetBodyPartHit(LastHit.Component).Head;
-		LastEffectContext.BodyPartHit = LastHit.Component != nullptr ? Hit::GetBodyPartHit(LastHit.Component) : FBodyPartHit();
+		LastEffectContext.AddInstigator(Game::Player, LastHit.Actor);
+		LastEffectContext.IsPrecisionHit = LastHit.Component != nullptr && Hit::GetBodyPartHit(LastHit.Component) == EBodyPart::Head;
+		LastEffectContext.BodyPart = LastHit.Component != nullptr ? Hit::GetBodyPartHit(LastHit.Component) : EBodyPart::Unknown;
 	}
 
 	FVector ApplySpread(FVector AimDirection, float SpreadDeg)

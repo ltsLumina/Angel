@@ -10,7 +10,7 @@
  * 
  */
 UCLASS()
-class ANGEL_API UAngelCharacterMovementComponent : public UCharacterMovementComponent
+class ANGEL_API UAngelCharacterMovementComponentBase : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 	

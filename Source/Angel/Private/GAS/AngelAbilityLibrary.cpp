@@ -3,16 +3,6 @@
 #include "GAS/AngelAbilityLibrary.h"
 #include "GAS/AngelAbilityTypes.h"
 
-// bool UAngelAbilityLibrary::GetIsFatalHit(const FGameplayEffectContextHandle& Handle)
-// {
-// 	const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(Handle.Get());
-// 	if (AngelEffectContext)
-// 	{
-// 		return AngelEffectContext->IsFatalHit();
-// 	}
-// 	return false;
-// }
-
 bool UAngelAbilityLibrary::GetIsPrecisionHit(const FGameplayEffectContextHandle& Handle)
 {
 	const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(Handle.Get());
@@ -40,27 +30,17 @@ EDamageType UAngelAbilityLibrary::GetDamageType(const FGameplayEffectContextHand
 	 {
 		 return AngelEffectContext->GetDamageType();
 	 }
-	 return EDamageType::Unknown;
+	 return EDamageType::Other;
 }
 
-float UAngelAbilityLibrary::GetPrecisionMultiplier(const FGameplayEffectContextHandle& Handle)
+EBodyPart UAngelAbilityLibrary::GetBodyPart(const FGameplayEffectContextHandle& EffectContext)
 {
-	const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(Handle.Get());
+	const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(EffectContext.Get());
 	if (AngelEffectContext)
 	{
-		return AngelEffectContext->GetPrecisionMultiplier();
+		return AngelEffectContext->GetBodyPart();
 	}
-	return 0.0f;
-}
-
-FGameplayTagContainer UAngelAbilityLibrary::GetAdditionalEnchantTriggers(const FGameplayEffectContextHandle& Handle)
-{
-	const FAngelGameplayEffectContext* AngelEffectContext = static_cast<const FAngelGameplayEffectContext*>(Handle.Get());
-	if (AngelEffectContext)
-	{
-		return AngelEffectContext->GetAdditionalEnchantTriggers();
-	}
-	return FGameplayTagContainer();
+	return EBodyPart::Unknown;
 }
 
 // FDamageResult UAngelAbilityLibrary::GetDamageResult(const FGameplayEffectContextHandle& Handle)
@@ -82,15 +62,6 @@ void UAngelAbilityLibrary::SetIsPrecisionHit(FGameplayEffectContextHandle& Handl
 	}
 }
 
-// void UAngelAbilityLibrary::SetIsFatalHit(FGameplayEffectContextHandle& Handle, bool IsFatalHit)
-// {
-// 	FAngelGameplayEffectContext* AngelEffectContext = static_cast<FAngelGameplayEffectContext*>(Handle.Get());
-// 	if (AngelEffectContext)
-// 	{
-// 		AngelEffectContext->SetIsFatalHit(IsFatalHit);
-// 	}
-// }
-
 void UAngelAbilityLibrary::SetInvulnerabilityType(FGameplayEffectContextHandle& Handle, EInvulnerabilityType InvulnerabilityType)
 {
 	FAngelGameplayEffectContext* AngelEffectContext = static_cast<FAngelGameplayEffectContext*>(Handle.Get());
@@ -109,21 +80,12 @@ void UAngelAbilityLibrary::SetDamageType(FGameplayEffectContextHandle& Handle, E
 	}
 }
 
-void UAngelAbilityLibrary::SetPrecisionMultiplier(FGameplayEffectContextHandle& Handle, float PrecisionMultiplier)
+void UAngelAbilityLibrary::SetBodyPart(FGameplayEffectContextHandle& EffectContext, EBodyPart BodyPart)
 {
-	FAngelGameplayEffectContext* AngelEffectContext = static_cast<FAngelGameplayEffectContext*>(Handle.Get());
+	FAngelGameplayEffectContext* AngelEffectContext = static_cast<FAngelGameplayEffectContext*>(EffectContext.Get());
 	if (AngelEffectContext)
 	{
-		AngelEffectContext->SetPrecisionMultiplier(PrecisionMultiplier);
-	}
-}
-
-void UAngelAbilityLibrary::SetAdditionalEnchantTriggers(FGameplayEffectContextHandle& Handle, const FGameplayTagContainer& EnchantTriggers)
-{
-	FAngelGameplayEffectContext* AngelEffectContext = static_cast<FAngelGameplayEffectContext*>(Handle.Get());
-	if (AngelEffectContext)
-	{
-		AngelEffectContext->SetAdditionalEnchantTriggers(EnchantTriggers);
+		AngelEffectContext->SetBodyPart(BodyPart);
 	}
 }
 

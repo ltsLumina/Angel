@@ -34,7 +34,7 @@ struct FBulletSpreadData
 	bool IsAccurate;
 }
 
-struct FEquipData
+struct FEquipParams
 {
 	UPROPERTY()
 	EEquipSpeed Speed;
@@ -45,7 +45,7 @@ struct FEquipData
 	UPROPERTY()
 	int ReserveAmmo;
 
-	FEquipData(EEquipSpeed InSpeed, bool InReload = false, int InAmmo = -1, int InReserveAmmo = -1)
+	FEquipParams(EEquipSpeed InSpeed, bool InReload = false, int InAmmo = -1, int InReserveAmmo = -1)
 	{
 		Speed = InSpeed;
 		Reload = InReload;

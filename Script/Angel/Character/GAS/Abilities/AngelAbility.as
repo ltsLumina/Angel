@@ -5,7 +5,7 @@ class UAngelAbility : UAngelscriptGASAbility
     /**
      * The agent that owns this ability
      */
-    UPROPERTY(Category = "Ability | Info", ToolTip = "The agent that owns this ability")
+    UPROPERTY(Category = "Ability | Info")
     FName Agent;
 
 	UPROPERTY(Category = "Ability | Info")

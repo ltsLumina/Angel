@@ -251,7 +251,7 @@ class UShopItemWidget : UUserWidget
 		if (IsValid(GunToGrant))
 		{
 			PreviousGunClass = Character.HolsterComponent.EquippedGun.GetClass();
-			Character.HolsterComponent.GrantGun(GunToGrant, true, FEquipData(EEquipSpeed::Fast, true));
+			Character.HolsterComponent.GrantGun(GunToGrant, true, FEquipParams(EEquipSpeed::Fast, true));
 		}
 		else if (GrantArmor)
 		{
