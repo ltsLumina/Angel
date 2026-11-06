@@ -2,13 +2,13 @@ class UWeaponRegistrySubsystem : UScriptGameInstanceSubsystem
 {
 	// Editor-filled mapping: WeaponID -> DataAsset (soft)
 	UPROPERTY(Category = "Weapons")
-	TMap<FName, TSoftObjectPtr<UWeaponDataAsset>> Weapons;
+	TMap<FName, TSoftObjectPtr<UWeaponDefinition>> Weapons;
 
 	// Runtime fast cache (resolved pointers) - not serialized
-	TMap<FName, UWeaponDataAsset> LoadedWeapons;
+	TMap<FName, UWeaponDefinition> LoadedWeapons;
 
 	// Get asset synchronously (or nullptr)
-	UWeaponDataAsset GetWeaponDataSync(FName Id)
+	UWeaponDefinition GetWeaponDataSync(FName Id)
 	{
         for (auto& Pair : Weapons)
         {
@@ -43,12 +43,12 @@ class UWeaponRegistrySubsystem : UScriptGameInstanceSubsystem
         }
 	}
 
-    UWeaponDataAsset Asset;
+    UWeaponDefinition Asset;
 
 	UFUNCTION()
 	private void OnWeaponDataLoaded(UObject LoadedObject)
 	{
-        Asset = Cast<UWeaponDataAsset>(LoadedObject);
+        Asset = Cast<UWeaponDefinition>(LoadedObject);
         if (IsValid(Asset))
         {
             LoadedWeapons.Add(Asset.WeaponID, Asset);
@@ -61,31 +61,4 @@ class UWeaponRegistrySubsystem : UScriptGameInstanceSubsystem
 	}
 
 
-}
-
-class UWeaponDataAsset : UPrimaryDataAsset
-{
-	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
-	TSoftClassPtr<AGunBase> WeaponClass;
-
-	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
-	FName WeaponID;
-
-	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
-	FText DisplayName;
-
-	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
-	USkeletalMesh GunMesh;
-
-	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
-	UTexture2D Icon;
-
-	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
-	UTexture2D IconKillfeed;
-
-	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
-	int Price;
-
-	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
-	EGunType Type;
 }

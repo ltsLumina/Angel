@@ -3,6 +3,13 @@
 	"EngineAssociation": "{8E8394BE-4DBC-A618-16B7-41948F80CC70}",
 	"Category": "",
 	"Description": "",
+	"Modules": [
+		{
+			"Name": "Angel",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
 	"Plugins": [
 		{
 			"Name": "ModelingToolsEditorMode",

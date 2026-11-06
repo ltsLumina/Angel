@@ -1,32 +1,5 @@
-event void FOnKillEvent(FDeathInfo DeathInfo);
-event void FOnDeathEvent(FDeathInfo DeathInfo);
-
-struct FDeathInfo
-{
-	UPROPERTY()
-	AAngelAgent Killer;
-
-	UPROPERTY()
-	AAngelAgent Victim;
-
-	UPROPERTY()
-	AGunBase WeaponUsed;
-
-	UPROPERTY()
-	bool WasHeadshot;
-
-	UPROPERTY()
-	TSubclassOf<UAngelAbility> AbilityUsed;
-
-	FDeathInfo(AAngelAgent InKiller, AAngelAgent InVictim, AGunBase InWeaponUsed = nullptr, bool InWasHeadshot = false, TSubclassOf<UAngelAbility> InAbilityUsed = nullptr)
-	{
-		Killer = InKiller;
-		Victim = InVictim;
-		WeaponUsed = InWeaponUsed;
-		WasHeadshot = InWasHeadshot;
-		AbilityUsed = InAbilityUsed;
-	}
-}
+event void FOnKillEvent(FGameplayEffectContextHandle EffectContext);
+event void FOnDeathEvent(FGameplayEffectContextHandle EffectContext);
 
 namespace Armor
 {
@@ -59,7 +32,7 @@ namespace Armor
 }
 
 UCLASS(Abstract)
-class AAngelAgent : AAngelscriptGASCharacter
+class AAngelAgent : AAngelCharacterBase
 {
 	UPROPERTY(Category = "Agent | GAS", EditDefaultsOnly)
 	TArray<TSubclassOf<UAngelAbility>> Abilities;
@@ -88,7 +61,7 @@ class AAngelAgent : AAngelscriptGASCharacter
 	float CurrentArmor;
 
 	UPROPERTY(Category = "Agent | Health", VisibleAnywhere)
-	FDeathInfo DeathInfo;
+	FGameplayEffectContextHandle DeathContext;
 
 	// helper functions
 
@@ -152,29 +125,22 @@ class AAngelAgent : AAngelscriptGASCharacter
 	void BP_BeginPlay()
 	{}
 
-	UFUNCTION(BlueprintOverride, Category = "Agent | Damage")
-	void PointDamage(float Damage, const UDamageType DamageType, FVector HitLocation, FVector HitNormal,
-					 UPrimitiveComponent HitComponent, FName BoneName, FVector ShotFromDirection,
-					 AController InstigatedBy, AActor DamageCauser, FHitResult HitInfo)
+	UFUNCTION(Category = "Agent | Damage")
+	void DealDamage(float Damage, FGameplayEffectContextHandle EffectContext)
 	{
-		DeathInfo.Killer = Cast<AAngelAgent>(InstigatedBy.ControlledPawn);
-		DeathInfo.Victim = this;
-		DeathInfo.WeaponUsed = Cast<AGunBase>(DamageCauser);
-		DeathInfo.WasHeadshot = Hit::GetBodyPartHit(HitComponent).Head;
+		DeathContext = EffectContext;
 
-		ApplyDamage(Damage);
+		ApplyDamage(Damage, EffectContext);
 
-		BP_PointDamage(Damage, DamageType, HitLocation, HitNormal, HitComponent, BoneName, ShotFromDirection, InstigatedBy, DamageCauser, HitInfo);
+		BP_DealDamage(Damage, EffectContext);
 	}
 
 	UFUNCTION(BlueprintEvent, DisplayName = "Took Damage", Category = "Damage")
 	void BP_TookDamage(float HealthDamage, float ArmorDamage)
 	{}
 
-	UFUNCTION(BlueprintEvent, Category = "Damage", DisplayName = "Point Damage")
-	void BP_PointDamage(float Damage, const UDamageType DamageType, FVector HitLocation, FVector HitNormal,
-						UPrimitiveComponent HitComponent, FName BoneName, FVector ShotFromDirection,
-						AController InstigatedBy, AActor DamageCauser, FHitResult HitInfo)
+	UFUNCTION(BlueprintEvent, Category = "Damage", DisplayName = "Deal Damage")
+	void BP_DealDamage(float Damage, FGameplayEffectContextHandle EffectContext)
 	{}
 
 	/**
@@ -263,14 +229,14 @@ class AAngelAgent : AAngelscriptGASCharacter
 
 		System::SetTimer(this, n"Respawn", 1.5f, false);
 
-		OnDeath.Broadcast(DeathInfo);
-		Game::GameState.OnAgentDeath.Broadcast(DeathInfo);
+		OnDeath.Broadcast(DeathContext);
+		Game::GameState.OnAgentDeath.Broadcast(DeathContext);
 
-		BP_Death(DeathInfo);
+		BP_Death(DeathContext);
 	}
 
 	UFUNCTION(BlueprintEvent, Category = "Dummy | Health", DisplayName = "Death")
-	void BP_Death(FDeathInfo InDeathInfo)
+	void BP_Death(FGameplayEffectContextHandle InDeathContext)
 	{}
 
 	UFUNCTION(Category = "Agent | Health")
@@ -291,13 +257,13 @@ class AAngelAgent : AAngelscriptGASCharacter
 	}
 
 	UFUNCTION(Category = "Agent | Damage")
-	void ApplyDamage(float Damage)
+	void ApplyDamage(float Damage, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle())
 	{
 		float HealthDamage;
 		float ArmorDamage;
 		CalculateDamageTaken(Damage, HealthDamage, ArmorDamage);
 
-		FGameplayEffectSpecHandle HealthHandle = AbilitySystem.MakeOutgoingSpec(UGE_Damage_Health, 1, FGameplayEffectContextHandle());
+		FGameplayEffectSpecHandle HealthHandle = AbilitySystem.MakeOutgoingSpec(UGE_Damage_Health, 1, EffectContext);
 		if (HealthHandle.IsValid() && GetHealthAttribute() > 0)
 		{
 			HealthHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Health, -HealthDamage);
@@ -308,7 +274,7 @@ class AAngelAgent : AAngelscriptGASCharacter
 			Print(f"Applied {Math::RoundToInt(HealthDamage)} HEALTH damage to {AgentName}", 1, FLinearColor::DPink);
 		}
 
-		FGameplayEffectSpecHandle ArmorHandle = AbilitySystem.MakeOutgoingSpec(UGE_Damage_Armor, 1, FGameplayEffectContextHandle());
+		FGameplayEffectSpecHandle ArmorHandle = AbilitySystem.MakeOutgoingSpec(UGE_Damage_Armor, 1, EffectContext);
 		if (ArmorHandle.IsValid() && GetArmorAttribute() > 0)
 		{
 			ArmorHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Armor, -ArmorDamage);

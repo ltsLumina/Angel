@@ -1,7 +1,5 @@
-event void OnDeath();
-
 class AAngelTrainingDummy : AAngelAgent
-{
+{	
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
 	{

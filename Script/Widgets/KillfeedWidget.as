@@ -27,6 +27,6 @@ class UKillfeedWidget : UUserWidget
 	{}
 
 	UFUNCTION(BlueprintEvent, DisplayName = "Agent Death")
-	void AgentDeath(FDeathInfo DeathInfo)
+	void AgentDeath(FGameplayEffectContextHandle EffectContext)
 	{}
 };

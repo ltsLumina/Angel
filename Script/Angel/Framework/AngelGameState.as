@@ -2,7 +2,7 @@ event void FBuyPhaseStartEvent();
 event void FRoundStartEvent();
 event void FPostRoundEvent();
 
-event void FAgentDeathEvent(FDeathInfo DeathInfo);
+event void FAgentDeathEvent(FGameplayEffectContextHandle EffectContext);
 
 enum EGamePhase
 {

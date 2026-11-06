@@ -6,11 +6,12 @@ namespace Drop
 		AAngelPlayerCharacter Character = Game::Player;
 		UHolsterComponent Holster = UHolsterComponent::Get(Character);
 		AGunBase CurrentGun = Holster.EquippedGun;
+		UGunComponent GunComponent = UGunComponent::Get(Character);
 
-		AGunDropped DroppedGun = SpawnActor(GunDropClass, Character.ActorLocation + FVector(0, 0, 75), FRotator::ZeroRotator, FName(f"Dropped {CurrentGun.GunName}"));
+		AGunDropped DroppedGun = SpawnActor(GunDropClass, Character.ActorLocation + FVector(0, 0, 75), FRotator::ZeroRotator, FName(f"Dropped {GunComponent.WeaponDefinition.WeaponName}"));
 		DroppedGun.GunClassToGrant = CurrentGun.GetClass();
-		DroppedGun.CurrentAmmo = CurrentGun.CurrentAmmo;
-		DroppedGun.ReserveAmmo = CurrentGun.ReserveAmmo;
+		DroppedGun.CurrentAmmo = GunComponent.CurrentAmmo;
+		DroppedGun.ReserveAmmo = GunComponent.ReserveAmmo;
 		DroppedGun.Mesh.SkeletalMeshAsset = CurrentGun.GunMesh.SkeletalMeshAsset;
 
 		Holster.RemoveGun(CurrentGun);
@@ -44,15 +45,15 @@ class AGunDropped : AActor
     UFUNCTION(BlueprintOverride)
     void ConstructionScript()
     {
-        SetActorLabel(f"Dropped {GunClassToGrant.DefaultObject.GunName}");
+        SetActorLabel(f"Dropped {GunClassToGrant.DefaultObject.GetName()}");
     }
 #endif
 
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
 	{
-		CurrentAmmo = GunClassToGrant.DefaultObject.MaxAmmo;
-		ReserveAmmo = GunClassToGrant.DefaultObject.MaxReserveAmmo;
+		CurrentAmmo = 0;
+		ReserveAmmo = 0;
 
 		BP_BeginPlay();
 	}
@@ -67,11 +68,12 @@ class AGunDropped : AActor
 		AAngelPlayerCharacter Character = Game::Player;
 		UHolsterComponent Holster = UHolsterComponent::Get(Game::Player);
 		OldGun = Holster.EquippedGun;
+		UGunComponent GunComponent = UGunComponent::Get(Character);
 
-		AGunDropped NewDroppedGun = SpawnActor(Blueprint, Character.ActorLocation + FVector(0, 0, 75), FRotator::ZeroRotator, FName(f"Dropped {GunClassToGrant.DefaultObject.GunName}"));
+		AGunDropped NewDroppedGun = SpawnActor(Blueprint, Character.ActorLocation + FVector(0, 0, 75), FRotator::ZeroRotator, FName(f"Dropped {GunClassToGrant.DefaultObject.GetName()}"));
 		NewDroppedGun.GunClassToGrant = OldGun.GetClass();
-		NewDroppedGun.CurrentAmmo = OldGun.CurrentAmmo;
-		NewDroppedGun.ReserveAmmo = OldGun.ReserveAmmo;
+		NewDroppedGun.CurrentAmmo = GunComponent.CurrentAmmo;
+		NewDroppedGun.ReserveAmmo = GunComponent.ReserveAmmo;
 		NewDroppedGun.Mesh.SkeletalMeshAsset = OldGun.GunMesh.SkeletalMeshAsset;
 
 		Holster.GrantGun(GunClassToGrant, true, FEquipData(EEquipSpeed::Normal, false, CurrentAmmo, ReserveAmmo));

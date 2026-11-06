@@ -104,5 +104,5 @@ UTexture2D GetWeaponIcon(TSubclassOf<AGunBase> GunClass)
 {
 	if (!IsValid(GunClass))
 		return nullptr;
-	return GunClass.DefaultObject.Icon;
+	return UGunComponent::Get(Game::Player).GetDefinition(GunClass.DefaultObject).Icon;
 }

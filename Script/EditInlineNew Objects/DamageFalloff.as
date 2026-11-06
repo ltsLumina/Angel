@@ -1,4 +1,3 @@
-USTRUCT()
 struct FTTKInfo
 {
 	UPROPERTY()
@@ -25,7 +24,7 @@ class UDamageFalloff : UObject
 	 * For example, a value of (156, 40, 34) at a key range of (0, 50) means that within 0 to 50 meters,
 	 * headshots deal 156 damage, body shots deal 40 damage, and leg shots deal 34 damage.
 	 */
-	UPROPERTY(Category = "Range", VisibleAnywhere, ToolTip = "Set these values in the angelscript subclass.", Meta = (ForceInlineRow))
+	UPROPERTY(Category = "Range", VisibleAnywhere, Meta = (ForceInlineRow))
 	TMap<FVector2D, FVector> DamageMap;
 
 	UFUNCTION(BlueprintPure)

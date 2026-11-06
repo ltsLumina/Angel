@@ -94,6 +94,8 @@ class UHolsterComponent : UActorComponent
 	UFUNCTION(Category = "Holster")
 	private void EquipGun(AGunBase Gun, FEquipData EquipData)
 	{
+		UGunComponent GunComponent = UGunComponent::Get(GetOwner());
+		UWeaponDefinition Definition = GunComponent.GetDefinition(Gun);
 		for (AGunBase ExistingGun : HolsteredGuns)
 		{
 			ExistingGun.SetActorHiddenInGame(true);
@@ -107,17 +109,17 @@ class UHolsterComponent : UActorComponent
 
 		if (EquipData.Reload)
 		{
-			Gun.CurrentAmmo = Gun.MaxAmmo;
-			Gun.ReserveAmmo = Gun.MaxReserveAmmo;
+			GunComponent.CurrentAmmo = Definition.MaxAmmo;
+			GunComponent.ReserveAmmo = Definition.MaxReserveAmmo;
 		}
 		else if (EquipData.Ammo >= 0) 
 		{
-			Gun.CurrentAmmo = Math::Clamp(EquipData.Ammo, 0, Gun.MaxAmmo);
+			GunComponent.CurrentAmmo = Math::Clamp(EquipData.Ammo, 0, Definition.MaxAmmo);
 		}
 		
 		if (EquipData.ReserveAmmo >= 0) 
 		{
-			Gun.ReserveAmmo = Math::Clamp(EquipData.ReserveAmmo, 0, Gun.MaxReserveAmmo);
+			GunComponent.ReserveAmmo = Math::Clamp(EquipData.ReserveAmmo, 0, Definition.MaxReserveAmmo);
 		}
 
 		Gun.SetOwner(GetOwner());
@@ -125,12 +127,13 @@ class UHolsterComponent : UActorComponent
 
 		EquippedGun = Gun;
 
-		if (Gun.GunType == EGunType::Sidearm && HasSidearm())
+		if (Definition.GunType == EGunType::Sidearm && HasSidearm())
 			Sidearm = Gun;
-		else if (Gun.GunType != EGunType::Sidearm && HasPrimary())
+		else if (Definition.GunType != EGunType::Sidearm && HasPrimary())
 			Primary = Gun;
 
 		Gameplay::PlaySound2D(EquippedGun.GetEquipSound(EquipData.Speed));
+		GunComponent.SetEquippedWeapon(Gun);
 
 		BP_GunEquipped(Gun, EquipData);
 	}
@@ -185,9 +188,10 @@ class UHolsterComponent : UActorComponent
 	UFUNCTION(BlueprintPure, Category = "Holster | Guns")
 	bool HasGunOfType(EGunType Type)
 	{
+		UGunComponent GunComponent = UGunComponent::Get(GetOwner());
 		for (AGunBase Gun : HolsteredGuns)
 		{
-			if (IsValid(Gun) && Gun.GunType == Type)
+			if (IsValid(Gun) && GunComponent.GetDefinition(Gun).GunType == Type)
 			{
 				return true;
 			}
@@ -204,12 +208,13 @@ class UHolsterComponent : UActorComponent
 	UFUNCTION(Category = "Holster")
 	AGunBase GrantGun(TSubclassOf<AGunBase> GunClass, bool AutoEquip = true, FEquipData EquipData = FEquipData())
 	{
+		UGunComponent GunComponent = UGunComponent::Get(GetOwner());
 		if (!HasGun(GunClass))
 		{
 			AGunBase NewGun = CreateGun(GunClass);
 			if (!IsValid(NewGun)) return nullptr;
 
-			if (NewGun.GunType == EGunType::Sidearm && HasSidearm())
+			if (GunComponent.GetDefinition(NewGun).GunType == EGunType::Sidearm && HasSidearm())
 			{
 				// replace existing sidearm
 				HolsteredGuns.Remove(Sidearm);
@@ -218,7 +223,7 @@ class UHolsterComponent : UActorComponent
 				Sidearm = NewGun;
 				Print("Replaced existing sidearm with new one.");
 			}
-			else if (NewGun.GunType != EGunType::Sidearm && HasPrimary())
+			else if (GunComponent.GetDefinition(NewGun).GunType != EGunType::Sidearm && HasPrimary())
 			{
 				// replace existing primary
 				HolsteredGuns.Remove(Primary);
@@ -232,10 +237,10 @@ class UHolsterComponent : UActorComponent
 			NewGun.SetActorHiddenInGame(true);
 			HolsteredGuns.Add(NewGun);
 
-			Primary = NewGun.GunType != EGunType::Sidearm && !HasPrimary() ? NewGun : Primary;
-			Sidearm = NewGun.GunType == EGunType::Sidearm && !HasSidearm() ? NewGun : Sidearm;
+			Primary = GunComponent.GetDefinition(NewGun).GunType != EGunType::Sidearm && !HasPrimary() ? NewGun : Primary;
+			Sidearm = GunComponent.GetDefinition(NewGun).GunType == EGunType::Sidearm && !HasSidearm() ? NewGun : Sidearm;
 
-			Print(f"Granted new gun: {NewGun.GunName}\nType: {NewGun.GunType}", 2, FLinearColor(0.22, 0.47, 0.75));
+			Print(f"Granted new gun: {GunComponent.GetDefinition(NewGun).WeaponName}\nType: {GunComponent.GetDefinition(NewGun).GunType}", 2, FLinearColor(0.22, 0.47, 0.75));
 
 			if (AutoEquip)
 			{
@@ -254,6 +259,7 @@ class UHolsterComponent : UActorComponent
 	UFUNCTION()
 	void RemoveGun(AGunBase Gun)
 	{
+		UGunComponent GunComponent = UGunComponent::Get(GetOwner());
 		if (HolsteredGuns.Contains(Gun))
 		{
 			HolsteredGuns.Remove(Gun);
@@ -273,7 +279,7 @@ class UHolsterComponent : UActorComponent
 			return;
 		}
 
-		PrintWarning(f"Attempted to remove gun {Gun.GunName}, but it was not found in the holster.", 5);
+		PrintWarning(f"Attempted to remove gun {GunComponent.GetDefinition(Gun).WeaponName}, but it was not found in the holster.", 5);
 	}
 
 	UFUNCTION()

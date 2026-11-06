@@ -43,7 +43,7 @@ class UReloadComponent : UActorComponent
         }
         else { TimeSinceInput = 0; }
 
-        EquippedGun.Reload();
+        UGunComponent::Get(Game::Player).Reload();
 
         BP_OnReload();
     }
