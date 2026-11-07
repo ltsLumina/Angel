@@ -443,6 +443,37 @@ mixin bool HasLineOfSight(const APawn LineOfSightActor, const APawn OtherActor, 
 	return LineOfSightActor.Controller.LineOfSightTo(OtherActor, FVector(), bIsAIControlled);
 }
 
+// - EffectContext
+
+UFUNCTION(BlueprintPure)
+mixin AAngelAgent GetInstigatorAgent(FGameplayEffectContextHandle Context)
+{
+	return Cast<AAngelAgent>(Context.OriginalInstigator);
+}
+
+UFUNCTION(BlueprintPure)
+mixin AAngelAgent GetVictimAgent(FGameplayEffectContextHandle Context)
+{
+	FHitResult Hit;
+	
+	Context.GetHitResult(Hit);
+	AAngelAgent Victim = Cast<AAngelAgent>(Hit.Actor);
+	
+	return Victim;
+}
+
+UFUNCTION(BlueprintPure)
+mixin UWeaponDefinition GetWeaponDefinition(FGameplayEffectContextHandle Context)
+{
+	auto WeaponActor = Cast<AGunBase>(Context.EffectCauser);
+	return WeaponActor.Definition;
+}
+
+UFUNCTION(BlueprintPure)
+mixin UAgentAbility GetAgentAbility(FGameplayEffectContextHandle Context)
+{
+	return Cast<UAgentAbility>(Context.Ability);
+}
 
 namespace AgentUtils
 {

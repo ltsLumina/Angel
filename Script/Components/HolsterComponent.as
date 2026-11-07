@@ -1,6 +1,5 @@
 event void FOnGunSwitched(int NewIndex);
 
-UCLASS(Abstract)
 class UHolsterComponent : UActorComponent
 {
 	UPROPERTY(Category = "Holster | Guns", EditDefaultsOnly, BlueprintReadOnly)
@@ -23,7 +22,7 @@ class UHolsterComponent : UActorComponent
 
 	// - flags
 
-	UPROPERTY(Category = "Holster", VisibleAnywhere)
+	UPROPERTY(Category = "Holster", VisibleAnywhere, BlueprintReadWrite)
 	bool IsEquipping;
 
 	USkeletalMeshComponent ArmsMesh;
@@ -31,7 +30,8 @@ class UHolsterComponent : UActorComponent
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
 	{
-		ArmsMesh = Cast<USkeletalMeshComponent>(GetOwner().GetComponentsByTag(USkeletalMeshComponent, n"Character Arms")[0]);
+		ArmsMesh = Game::Player.CharacterArms;
+		
 		if (!IsValid(ArmsMesh))
 		{
 			PrintError("Holster component requires a 'Character Arms (Mesh)' component on the owner actor!");
@@ -73,6 +73,7 @@ class UHolsterComponent : UActorComponent
 		AGunBase NewGun = SpawnActor(GunClass);
 		if (IsValid(NewGun))
 		{
+			NewGun.GunMesh.SkeletalMeshAsset = NewGun.Definition.GunMesh;
 			NewGun.AttachToComponent(ArmsMesh, n"ik_hand_gun", EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, true);
 			// NewGun.AttachToComponent(ArmsMesh, n"GripPoint", EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, true);
 			NewGun.SetActorHiddenInGame(true);
@@ -127,9 +128,9 @@ class UHolsterComponent : UActorComponent
 
 		EquippedGun = Gun;
 
-		if (Definition.GunType == EGunType::Sidearm && HasSidearm())
+		if (Definition.Type == EGunType::Sidearm && HasSidearm())
 			Sidearm = Gun;
-		else if (Definition.GunType != EGunType::Sidearm && HasPrimary())
+		else if (Definition.Type != EGunType::Sidearm && HasPrimary())
 			Primary = Gun;
 
 		Gameplay::PlaySound2D(EquippedGun.GetEquipSound(EquipData.Speed));
@@ -191,7 +192,7 @@ class UHolsterComponent : UActorComponent
 		UGunComponent GunComponent = UGunComponent::Get(GetOwner());
 		for (AGunBase Gun : HolsteredGuns)
 		{
-			if (IsValid(Gun) && GunComponent.GetDefinition(Gun).GunType == Type)
+			if (IsValid(Gun) && GunComponent.GetDefinition(Gun).Type == Type)
 			{
 				return true;
 			}
@@ -215,7 +216,7 @@ class UHolsterComponent : UActorComponent
 			if (!IsValid(NewGun)) return nullptr;
 
 			UWeaponDefinition Def = GunComponent.GetDefinition(NewGun);
-			EGunType GunType = Def.GunType;
+			EGunType GunType = Def.Type;
 
 			if (GunType == EGunType::Sidearm && HasSidearm())
 			{
@@ -238,12 +239,14 @@ class UHolsterComponent : UActorComponent
 
 			NewGun.SetOwner(GetOwner());
 			NewGun.SetActorHiddenInGame(true);
+			NewGun.Definition = Def;
+			
 			HolsteredGuns.Add(NewGun);
 
 			Primary = GunType != EGunType::Sidearm && !HasPrimary() ? NewGun : Primary;
 			Sidearm = GunType == EGunType::Sidearm && !HasSidearm() ? NewGun : Sidearm;
 
-			FName WeaponName = Def.WeaponName;
+			FText WeaponName = Def.WeaponName;
 			Print(f"Granted new gun: {WeaponName}\nType: {GunType}", 2, FLinearColor(0.22, 0.47, 0.75));
 
 			if (AutoEquip)
@@ -283,7 +286,7 @@ class UHolsterComponent : UActorComponent
 			return;
 		}
 
-		FName WeaponName = GunComponent.GetDefinition(Gun).WeaponName;
+		FText WeaponName = GunComponent.GetDefinition(Gun).WeaponName;
 		PrintWarning(f"Attempted to remove gun {WeaponName}, but it was not found in the holster.", 5);
 	}
 

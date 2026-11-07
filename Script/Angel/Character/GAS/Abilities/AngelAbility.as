@@ -1,6 +1,6 @@
 // base class for all gameplay abilities in the Angel project
 UCLASS(Abstract)
-class UAngelAbility : UAngelscriptGASAbility
+class UAgentAbility : UGA_HeroAbility_AS
 {
     /**
      * The agent that owns this ability

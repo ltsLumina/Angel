@@ -1,5 +1,5 @@
 UCLASS(Abstract)
-class USnakeBite : UAngelAbility
+class USnakeBite : UAgentAbility
 {
     UPROPERTY(Category = "Ability | Snake Bite", Meta = (UIMin = "1.0", UIMax = "10.0", BlueprintGetter = "GetRadius"))
     float Radius = 5.0f;

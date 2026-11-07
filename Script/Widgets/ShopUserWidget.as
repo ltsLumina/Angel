@@ -49,10 +49,10 @@ class UShopUserWidget : UUserWidget
 	UFUNCTION(BlueprintOverride)
 	void PreConstruct(bool IsDesignTime)
 	{
-		if (IsValid(Game::Player.HolsterComponent))
+		if (IsValid(Game::Controller.HolsterComponent))
 		{
-			Sidearm = Game::Player.HolsterComponent.Sidearm.GetClass();
-			Primary = Game::Player.HolsterComponent.Primary.GetClass();
+			Sidearm = Game::Controller.HolsterComponent.Sidearm.GetClass();
+			Primary = Game::Controller.HolsterComponent.Primary.GetClass();
 		}
 
 		ArmorImage.SetBrushFromTexture(GetArmorIcon(Armor));
@@ -104,5 +104,6 @@ UTexture2D GetWeaponIcon(TSubclassOf<AGunBase> GunClass)
 {
 	if (!IsValid(GunClass))
 		return nullptr;
-	return UGunComponent::Get(Game::Player).GetDefinition(GunClass.DefaultObject).Icon;
+
+	return UGunComponent::Get(Game::Controller).GetDefinition(GunClass.DefaultObject).Icon;
 }

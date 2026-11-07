@@ -7,25 +7,19 @@ class UWeaponDefinition : UPrimaryDataAsset
 	FName WeaponID;
 
 	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
-	FText DisplayName;
-
-	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
 	USkeletalMesh GunMesh;
 
 	UPROPERTY(Category = "Weapon", BlueprintReadOnly)
 	UTexture2D KillfeedIcon;
 
 	UPROPERTY(Category = "Info", EditDefaultsOnly)
-	FName WeaponName;
+	FText WeaponName;
 
 	UPROPERTY(Category = "Info", EditDefaultsOnly)
 	UTexture2D Icon;
 
 	UPROPERTY(Category = "Info", EditDefaultsOnly, BlueprintReadOnly)
 	int Price = 2900;
-
-	UPROPERTY(Category = "Info", EditDefaultsOnly)
-	EGunType GunType = EGunType::Rifle;
 
 	UPROPERTY(Category = "Info", EditDefaultsOnly)
 	EGunType Type = EGunType::Rifle;

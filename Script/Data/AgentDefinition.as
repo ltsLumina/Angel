@@ -1,12 +1,11 @@
-UCLASS(Abstract, Meta = (PrioritizeCategories = "Entity | Details"))
-class UEntityDefinition : UDataAsset
+UCLASS(Meta = (PrioritizeCategories = "Entity | Details"))
+class UAgentDefinition : UDataAsset
 {
-	UPROPERTY(Category = "Entity | Details", EditDefaultsOnly, BlueprintReadOnly)
-	FText EntityName;
-	default EntityName = FText::FromString("Entity");
+	UPROPERTY(Category = "Agent | Info")
+	FText AgentName = FText::FromString("Agent");
 
-	UPROPERTY(Category = "Entity | Details")
-	bool bRagdollsOnDeath = true;
+	UPROPERTY(Category = "Agent | Info")
+	UTexture2D Avatar;
 
 	UPROPERTY(Category = "Entity | GAS", Meta = (EditFixedOrder, RequiredAssetDataTags = "RowStructure=/Script/GameplayAbilities.AttributeMetaData"))
 	TMap<TSubclassOf<UAngelscriptAttributeSet>, UDataTable> StartingData;

@@ -3,11 +3,17 @@ class AAngelPlayerController : AAngelPlayerControllerBase
 	UPROPERTY(DefaultComponent, NotVisible, BlueprintReadOnly)
 	UEnhancedInputComponent InputComponent;
 
-	UPROPERTY(Category = "Input")
+	UPROPERTY(Category = "Components", DefaultComponent)
 	UGunComponent GunComponent;
 
-	UPROPERTY(Category = "Input")
+	UPROPERTY(Category = "Components", DefaultComponent)
 	UReloadComponent ReloadComponent;
+
+	UPROPERTY(Category = "Components", BindComponent)
+	UHolsterComponent HolsterComponent;
+
+	UPROPERTY(Category = "Components", DefaultComponent)
+	UADSComponent ADSComponent;
 
 	UPROPERTY(Category = "Input")
 	UInputAction MoveAction;
@@ -94,9 +100,6 @@ class AAngelPlayerController : AAngelPlayerControllerBase
 		if (Char == nullptr)
 			return;
 
-		GunComponent = UGunComponent::Get(Char);
-		ReloadComponent = UReloadComponent::Get(Char);
-
 		SetupMouseEvents(Char);
 		SetupKeyboardEvents(Char);
 	}
@@ -107,7 +110,6 @@ class AAngelPlayerController : AAngelPlayerControllerBase
 		InputComponent.BindAction(ShootAction, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(GunComponent, n"Fire"));
 
 		// ADS (Aim Down Sights)
-		UADSComponent ADSComponent = UADSComponent::Get(Char);
 		InputComponent.BindAction(ADS_Action, ETriggerEvent::Started, FEnhancedInputActionHandlerDynamicSignature(ADSComponent, n"StartADS"));
 		InputComponent.BindAction(ADS_Action, ETriggerEvent::Canceled, FEnhancedInputActionHandlerDynamicSignature(ADSComponent, n"CancelledADS"));
 		InputComponent.BindAction(ADS_Action, ETriggerEvent::Triggered, FEnhancedInputActionHandlerDynamicSignature(ADSComponent, n"TriggeredADS"));
@@ -152,18 +154,16 @@ class AAngelPlayerController : AAngelPlayerControllerBase
 		if (Char == nullptr)
 			return;
 
-		UHolsterComponent Holster = Char.HolsterComponent;
-
 		if (CycleGunTimer > 0.0f)
 			return;
 
 		float Direction = ActionValue.GetAxis1D();
 
-		if (IsValid(Holster))
+		if (IsValid(HolsterComponent))
 		{
 			FString DirectionString = (Direction > 0) ? "Next" : "Previous";
 			Print(f"Cycle gun with direction: {DirectionString}", 2, FLinearColor(0.15, 0.32, 0.52));
-			Holster.CycleGun(Direction);
+			HolsterComponent.CycleGun(Direction);
 			CycleGunTimer = CycleGunCooldown;
 		}
 	}
@@ -175,10 +175,6 @@ class AAngelPlayerController : AAngelPlayerControllerBase
 		if (Char == nullptr)
 			return;
 
-		UHolsterComponent Holster = Char.HolsterComponent;
-		if (!IsValid(Holster))
-			return;
-
 		int GunIndex = -1;
 		if (Key == EKeys::One)
 			GunIndex = 0;
@@ -187,10 +183,10 @@ class AAngelPlayerController : AAngelPlayerControllerBase
 		else if (Key == EKeys::Three)
 			GunIndex = 2;
 
-		if (GunIndex >= 0 && GunIndex < Holster.HolsteredGuns.Num())
+		if (GunIndex >= 0 && GunIndex < HolsterComponent.HolsteredGuns.Num())
 		{
 			if (CycleGunTimer > 0.0f) return;
-			Holster.SwitchGun(GunIndex);
+			HolsterComponent.SwitchGun(GunIndex);
 			CycleGunTimer = 0.3;
 		}
 	}

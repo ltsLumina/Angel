@@ -63,7 +63,7 @@ class UAngelCheatManager : UCheatManager
     UFUNCTION(Exec)
     void GrantGun(TSubclassOf<AGunBase> GunClass, bool AutoEquip = true)
     {
-        Game::Player.HolsterComponent.GrantGun(GunClass, AutoEquip, FEquipParams(EEquipSpeed::Fast, true));
+        Game::Controller.HolsterComponent.GrantGun(GunClass, AutoEquip, FEquipParams(EEquipSpeed::Fast, true));
     }
 
     // Credits

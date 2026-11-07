@@ -32,10 +32,10 @@ struct FPurchaseData
 	EShopCategory Category;
 	TSubclassOf<AGunBase> GunClass;
 	EArmorType ArmorType;
-	TSubclassOf<UAngelAbility> AbilityClass;
+	TSubclassOf<UAgentAbility> AbilityClass;
 	int Cost;
 
-	FPurchaseData(EShopCategory InCategory, int InCost, TSubclassOf<AGunBase> InGunClass = nullptr, EArmorType InArmorType = EArmorType::None, TSubclassOf<UAngelAbility> InAbilityClass = nullptr)
+	FPurchaseData(EShopCategory InCategory, int InCost, TSubclassOf<AGunBase> InGunClass = nullptr, EArmorType InArmorType = EArmorType::None, TSubclassOf<UAgentAbility> InAbilityClass = nullptr)
 	{
 		Category = InCategory;
 		Cost = InCost;
@@ -50,10 +50,10 @@ struct FSellData
     EShopCategory Category;
     TSubclassOf<AGunBase> GunClass;
     EArmorType ArmorType;
-    TSubclassOf<UAngelAbility> AbilityClass;
+    TSubclassOf<UAgentAbility> AbilityClass;
     int RefundAmount;
 
-    FSellData(EShopCategory InCategory, int InRefundAmount, TSubclassOf<AGunBase> InGunClass = nullptr, EArmorType InArmorType = EArmorType::None, TSubclassOf<UAngelAbility> InAbilityClass = nullptr)
+    FSellData(EShopCategory InCategory, int InRefundAmount, TSubclassOf<AGunBase> InGunClass = nullptr, EArmorType InArmorType = EArmorType::None, TSubclassOf<UAgentAbility> InAbilityClass = nullptr)
     {
         Category = InCategory;
         RefundAmount = InRefundAmount;

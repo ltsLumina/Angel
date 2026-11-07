@@ -23,7 +23,7 @@ class UShopItemWidget : UUserWidget
 	default GrantAbility = false;
 
 	UPROPERTY(Category = "UI | Type", Meta = (EditCondition = "GrantAbility"))
-	TSubclassOf<UAngelAbility> AbilityClass;
+	TSubclassOf<UAgentAbility> AbilityClass;
 
 	UPROPERTY(Category = "UI | Shop", BlueprintReadOnly)
 	FText ItemName;
@@ -99,7 +99,7 @@ class UShopItemWidget : UUserWidget
 
 		if (IsValid(GunToGrant))
 		{
-			SetIsOwned(Game::Player.HolsterComponent.HasGun(GunToGrant));
+			SetIsOwned(Game::Controller.HolsterComponent.HasGun(GunToGrant));
 			return;
 		}
 		else if (GrantArmor)
@@ -247,11 +247,12 @@ class UShopItemWidget : UUserWidget
 		CostText.Text = FText::FromString("OWNED");
 
 		auto Character = Game::Player;
+		auto Controller = Game::Controller;
 
 		if (IsValid(GunToGrant))
 		{
-			PreviousGunClass = Character.HolsterComponent.EquippedGun.GetClass();
-			Character.HolsterComponent.GrantGun(GunToGrant, true, FEquipParams(EEquipSpeed::Fast, true));
+			PreviousGunClass = Controller.HolsterComponent.EquippedGun.GetClass();
+			Controller.HolsterComponent.GrantGun(GunToGrant, true, FEquipParams(EEquipSpeed::Fast, true));
 		}
 		else if (GrantArmor)
 		{
@@ -320,10 +321,11 @@ class UShopItemWidget : UUserWidget
 		Print(f"Sold {ItemName}");
 
 		auto Character = Game::Player;
+		auto Controller = Game::Controller;
 
 		if (IsValid(PreviousGunClass))
 		{
-			Character.HolsterComponent.GrantGun(PreviousGunClass);
+			Controller.HolsterComponent.GrantGun(PreviousGunClass);
 		}
 		else if (GrantArmor)
 		{

@@ -19,7 +19,7 @@ class UReloadStrategyBase : UObject
     EGunState GunState = EGunState::NotReady;
 
     // Setup gun stuff, like getting a reference to the gun.
-    void Reload() { GunComponent = UGunComponent::Get(Game::Player); }
+    void Reload() { GunComponent = UGunComponent::Get(Game::Controller); }
 }
 
 UCLASS(EditInlineNew)

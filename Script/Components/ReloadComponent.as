@@ -1,7 +1,3 @@
-//event void FOnInitiateReload(AManualGun Gun);
-//event void FOnReloadComplete(AManualGun Gun);
-
-UCLASS(Abstract)
 class UReloadComponent : UActorComponent
 {
 
@@ -34,7 +30,7 @@ class UReloadComponent : UActorComponent
     void Reload(FKey Key)
     {
         // NOTE: This is done on each key press in-case the reload keys change dynamically, in the future.
-        auto EquippedGun = Game::Player.HolsterComponent.EquippedGun;
+        auto EquippedGun = Game::Controller.HolsterComponent.EquippedGun;
 
         if (TimeSinceInput < InputDelay)
         {
@@ -43,7 +39,7 @@ class UReloadComponent : UActorComponent
         }
         else { TimeSinceInput = 0; }
 
-        UGunComponent::Get(Game::Player).Reload();
+        Game::Controller.GunComponent.Reload();
 
         BP_OnReload();
     }

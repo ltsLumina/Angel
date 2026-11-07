@@ -3,23 +3,16 @@ class AAngelPlayerCharacter : AAngelAgent
 	default bReplicates = true;
 	default bReplicateMovement = true;
 
-	UPROPERTY(Category = "Entity", EditDefaultsOnly)
-	UEntityDefinition EntityDefinition;
+	UPROPERTY(Category = "Player", BlueprintReadOnly, BindComponent)
+	USkeletalMeshComponent CharacterArms;
 
-	UPROPERTY(Category = "Player", VisibleAnywhere)
-	EAngelMovementState MovementState;
-	default MovementState = EAngelMovementState::Still;
+	UPROPERTY(Category = "Player", VisibleAnywhere, BlueprintReadWrite)
+	EAngelMovementState MovementState = EAngelMovementState::Still;
 
-	UPROPERTY(Category = "Player", VisibleAnywhere)
-	EAngelMovementState PreviousMovementState;
-	default PreviousMovementState = EAngelMovementState::Run;
+	UPROPERTY(Category = "Player", VisibleAnywhere, BlueprintReadWrite)
+	EAngelMovementState PreviousMovementState = EAngelMovementState::Run;
 
 	// - end
-
-	UReloadComponent ReloadComponent;
-	UHolsterComponent HolsterComponent;
-	UPROPERTY(DefaultComponent, Category = "Components")
-	UADSComponent ADSComponent;
 
 	UFUNCTION(BlueprintOverride)
 	void BeginPlay()
@@ -28,22 +21,20 @@ class AAngelPlayerCharacter : AAngelAgent
 
 		ThrowIf(Mesh.bPauseAnims, f"Animations are paused on {Mesh.Name} of {Name}!");
 
-		ReloadComponent = UReloadComponent::Get(this);
-		HolsterComponent = UHolsterComponent::Get(this);
 	}
 
 	UFUNCTION(BlueprintOverride)
 	void Possessed(AController NewController)
 	{
 		ThrowIf(AbilitySystem == nullptr, "AbilitySystem is nullptr!\nMake sure to call this AFTER the ability system has been initialized.");
-		ThrowIf(EntityDefinition == nullptr, "EntityDefinition is not set!");
+		ThrowIf(AgentDefinition == nullptr, "EntityDefinition is not set!");
 
-		for (auto& StartingAbility : EntityDefinition.StartingAbilities)
+		for (auto& StartingAbility : AgentDefinition.StartingAbilities)
 		{
 			AbilitySystem.GiveAbility(StartingAbility, 1, -1, nullptr);
 		}
 
-		for (auto& StartingEffect : EntityDefinition.StartingEffects)
+		for (auto& StartingEffect : AgentDefinition.StartingEffects)
 		{
 			AbilitySystem.ApplyGameplayEffectToSelf(StartingEffect, 1, FGameplayEffectContextHandle());
 		}

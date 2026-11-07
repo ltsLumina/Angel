@@ -36,22 +36,15 @@ class AAngelAgent : AAngelCharacterBase
 {
 	UPROPERTY(Category = "Components", OverrideComponent = "CharMoveComp", BlueprintReadOnly, NotVisible)
 	UAngelCharacterMovementComponent AngelCharMoveComp;
+
+	UPROPERTY(Category = "Entity", EditDefaultsOnly)
+	UAgentDefinition AgentDefinition;
 	
 	UPROPERTY(Category = "Agent | GAS", EditDefaultsOnly)
-	TArray<TSubclassOf<UAngelAbility>> Abilities;
+	TArray<TSubclassOf<UAgentAbility>> Abilities;
 
 	UPROPERTY(Category = "Agent | GAS", EditConst)
 	UAngelGASAttributes Attributes;
-
-	UPROPERTY(Category = "Agent | GAS", EditConst)
-	FGameplayTagContainer GameplayTags;
-
-	UPROPERTY(Category = "Agent | Info", VisibleAnywhere)
-	FText AgentName;
-	default AgentName = FText::FromString("Agent");
-
-	UPROPERTY(Category = "Agent | Info", VisibleAnywhere)
-	UTexture2D Avatar;
 
 	UPROPERTY(Category = "Agent | Health", VisibleAnywhere, BlueprintReadOnly, BlueprintGetter = GetHealthAttribute, ToolTip = "Only used for display purposes.")
 	float CurrentHealth;
@@ -117,7 +110,7 @@ class AAngelAgent : AAngelCharacterBase
 		CurrentHealth = GetHealthAttribute();
 		CurrentArmor = GetArmorAttribute();
 
-		check(Avatar != nullptr, "Avatar texture not assigned!");
+		check(AgentDefinition.Avatar != nullptr, "Avatar texture not assigned!");
 
 		Print(f"{AgentName} has spawned with {GetHealthAttribute()} health and {GetArmorAttribute()} armor.", 1.5f, FLinearColor::Green);
 
@@ -129,11 +122,11 @@ class AAngelAgent : AAngelCharacterBase
 	{}
 
 	UFUNCTION(Category = "Agent | Damage")
-	void DealDamage(float Damage, FGameplayEffectContextHandle EffectContext)
+	void DealDamage(UAbilitySystemComponent SourceASC, float Damage, FGameplayEffectContextHandle EffectContext)
 	{
 		DeathContext = EffectContext;
 
-		ApplyDamage(Damage, EffectContext);
+		ApplyDamage(SourceASC, Damage, EffectContext);
 
 		BP_DealDamage(Damage, EffectContext);
 	}
@@ -215,10 +208,10 @@ class AAngelAgent : AAngelCharacterBase
 	UFUNCTION(Category = "Agent | Health")
 	void Death()
 	{
-		if (GameplayTags.HasTag(GameplayTags::Agent_State_Dead))
+		if (AbilitySystem.HasGameplayTag(GameplayTags::Agent_State_Dead))
 			return;
 		else
-			GameplayTags.AddTag(GameplayTags::Agent_State_Dead);
+			AbilitySystem.AddLooseGameplayTag(GameplayTags::Agent_State_Dead);
 
 		FGameplayEffectQuery Query;
 		for (FActiveGameplayEffectHandle Handle : AbilitySystem.GetActiveEffects(Query))
@@ -250,7 +243,7 @@ class AAngelAgent : AAngelCharacterBase
 		SetActorHiddenInGame(false);
 		System::SetTimer(this, n"EnableCollision", 0.5f, false);
 
-		GameplayTags.RemoveTag(GameplayTags::Agent_State_Dead);
+		AbilitySystem.RemoveLooseGameplayTag(GameplayTags::Agent_State_Dead);
 	}
 
 	UFUNCTION()
@@ -260,7 +253,7 @@ class AAngelAgent : AAngelCharacterBase
 	}
 
 	UFUNCTION(Category = "Agent | Damage")
-	void ApplyDamage(float Damage, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle())
+	void ApplyDamage(UAbilitySystemComponent SourceASC, float Damage, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle())
 	{
 		float HealthDamage;
 		float ArmorDamage;
@@ -270,7 +263,7 @@ class AAngelAgent : AAngelCharacterBase
 		if (HealthHandle.IsValid() && GetHealthAttribute() > 0)
 		{
 			HealthHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Health, -HealthDamage);
-			AbilitySystem.ApplyGameplayEffectSpecToSelf(HealthHandle);
+			SourceASC.ApplyGameplayEffectSpecToTarget(HealthHandle, AbilitySystem);
 
 			CurrentHealth = Math::Clamp(GetHealthAttribute(), 0.0f, Attributes.MaxHealth.BaseValue);
 
@@ -281,7 +274,7 @@ class AAngelAgent : AAngelCharacterBase
 		if (ArmorHandle.IsValid() && GetArmorAttribute() > 0)
 		{
 			ArmorHandle.Spec.SetByCallerMagnitude(GameplayTags::Data_Damage_Armor, -ArmorDamage);
-			AbilitySystem.ApplyGameplayEffectSpecToSelf(ArmorHandle);
+			SourceASC.ApplyGameplayEffectSpecToTarget(ArmorHandle, AbilitySystem);
 
 			CurrentArmor = Math::Clamp(GetArmorAttribute(), 0.0f, Attributes.MaxArmor.BaseValue);
 
@@ -342,15 +335,21 @@ class AAngelAgent : AAngelCharacterBase
 		ApplyHealing(Attributes.MaxHealth.BaseValue);
 		ApplyArmor(Armor);
 	}
+
+	UFUNCTION(BlueprintPure)
+	FText GetAgentName() property
+	{
+		return AgentDefinition.AgentName;
+	}
+
+	UFUNCTION(BlueprintPure)
+	UTexture2D GetAvatarIcon() property
+	{
+		return AgentDefinition.Avatar;
+	}
 }
 
 // Global Helper Functions
-
-UFUNCTION(Category = "Agent | Damage")
-void ApplyDamage(AAngelAgent Agent, float Damage)
-{
-	Agent.ApplyDamage(Damage);
-}
 
 UFUNCTION(Category = "Agent | Health")
 void ApplyHealing(AAngelAgent Agent, float HealAmount)

@@ -7,6 +7,9 @@ class AGunBase : AActor
 	UPROPERTY(DefaultComponent, Category = "Gun | Visual")
 	USkeletalMeshComponent GunMesh;
 
+	UPROPERTY()
+	UWeaponDefinition Definition;
+
 	UPROPERTY(Category = "Gun | Audio | Weapon Sounds", EditDefaultsOnly)
 	USoundCue ShootSound;
 
@@ -126,4 +129,27 @@ class AGunBase : AActor
 	UFUNCTION(BlueprintEvent, NotBlueprintCallable, Category = "Gun | Visual", DisplayName = "Ready")
 	void BP_Ready()
 	{}
+
+	UFUNCTION(BlueprintPure)
+	float GetMovementSpeed(EAngelMovementState MoveState)
+	{
+		auto Def = Definition;
+		float DefaultSpeed = Def.RunSpeed;
+		
+		switch (MoveState)
+		{
+			case EAngelMovementState::Still:
+				return Def.RunSpeed;
+			case EAngelMovementState::Airborne:
+				return Def.RunSpeed;
+			case EAngelMovementState::Crouch:
+				return DefaultSpeed * Def.CrouchSpeedRatio;
+			case EAngelMovementState::Run:
+				return Def.RunSpeed;
+			case EAngelMovementState::Walk:
+				return DefaultSpeed * Def.WalkSpeedRatio;
+			case EAngelMovementState::CrouchWalk:
+				return DefaultSpeed * Def.CrouchSpeedRatio;
+		}
+	}
 };

@@ -18,6 +18,7 @@ namespace Game
 
 	// - Controller
 
+	UFUNCTION(BlueprintPure)
 	AAngelPlayerController GetController() property
 	{
 		return Cast<AAngelPlayerController>(Gameplay::GetPlayerController(0));

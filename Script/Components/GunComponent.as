@@ -94,6 +94,9 @@ class UGunComponent : UActorComponent
 		return TimeSinceLastShot < GetShootCooldown();
 	}
 
+	UPROPERTY()
+	UAnimMontage ShootMontage;
+
 	UFUNCTION()
 	void Fire(FInputActionValue ActionValue, float32 InElapsedTime, float32 InTriggeredTime, const UInputAction SourceAction)
 	{
@@ -104,7 +107,11 @@ class UGunComponent : UActorComponent
 			return;
 
 		if (Shoot(HolsterComponent.EquippedGun, InElapsedTime, InTriggeredTime))
+		{
+			Game::Player.CharacterArms.AnimInstance.Montage_Play(ShootMontage);
+			
 			BP_OnShoot(HolsterComponent.EquippedGun);
+		}
 	}
 
 	UFUNCTION(BlueprintEvent, Meta = (DisplayName = "On Shoot"))
@@ -139,9 +146,11 @@ class UGunComponent : UActorComponent
 
 		if (Hit::WasAgentHit(LastHit))
 		{
+			auto ASC = Game::Player.AbilitySystem;
+
 			float DamageAmount = WeaponDefinition.DamageFalloff.GetDamageAtDistance(Math::ToMeters(LastHit.Distance), LastEffectContext.BodyPart);
 			DamageAmount *= BulletPenetrated ? 0.8f : 1.0f;
-			Cast<AAngelAgent>(LastHit.Actor).DealDamage(DamageAmount, LastEffectContext);
+			Cast<AAngelAgent>(LastHit.Actor).DealDamage(ASC, DamageAmount, LastEffectContext);
 		}
 
 		CurrentAmmo--;
@@ -167,7 +176,10 @@ class UGunComponent : UActorComponent
 		System::LineTraceMulti(Start, Start + Direction * MaxDistance, ETraceTypeQuery::TraceTypeQuery3, false, TArray<AActor>(), EDrawDebugTrace::None, Hits, true);
 		LastHit = Hits.Num() > 0 ? Hits.Last() : FHitResult();
 
-		LastEffectContext = FGameplayEffectContextHandle();
+		auto ASC = Game::Player.AbilitySystem;
+
+		LastEffectContext = ASC.MakeEffectContext();
+		LastEffectContext.AddHitResult(LastHit, true);
 		LastEffectContext.AddInstigator(Game::Player, LastHit.Actor);
 		LastEffectContext.IsPrecisionHit = LastHit.Component != nullptr && Hit::GetBodyPartHit(LastHit.Component) == EBodyPart::Head;
 		LastEffectContext.BodyPart = LastHit.Component != nullptr ? Hit::GetBodyPartHit(LastHit.Component) : EBodyPart::Unknown;
